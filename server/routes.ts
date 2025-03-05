@@ -4,9 +4,18 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertAnalysisSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
+import { RekognitionClient, DetectFacesCommand } from "@aws-sdk/client-rekognition";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const rekognition = new RekognitionClient({ 
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+  }
+});
 
 const uploadImageSchema = z.object({
   imageData: z.string(),
@@ -23,8 +32,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { imageData, sessionId } = uploadImageSchema.parse(req.body);
 
-      // Get face analysis from Azure
-      const faceAnalysis = await analyzeFaceWithAzure(imageData);
+      // Extract base64 data
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+
+      // Get face analysis from AWS Rekognition
+      const faceAnalysis = await analyzeFaceWithRekognition(imageBuffer);
 
       // Get comprehensive personality insights from OpenAI
       const personalityInsights = await getPersonalityInsights(faceAnalysis);
@@ -94,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ messages: [userMessage, assistantMessage] });
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ error: "Failed to process chat message" });
     }
   });
 
@@ -102,24 +115,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-async function analyzeFaceWithAzure(imageData: string) {
-  // Mock Azure Face API call for now
+async function analyzeFaceWithRekognition(imageBuffer: Buffer) {
+  const command = new DetectFacesCommand({
+    Image: {
+      Bytes: imageBuffer
+    },
+    Attributes: ['ALL']
+  });
+
+  const response = await rekognition.send(command);
+  const face = response.FaceDetails?.[0];
+
+  if (!face) {
+    throw new Error("No face detected in the image");
+  }
+
   return {
-    age: 30,
-    gender: "female",
-    emotion: {
-      happiness: 0.8,
-      neutral: 0.2,
+    age: {
+      low: face.AgeRange?.Low || 0,
+      high: face.AgeRange?.High || 0
     },
+    gender: face.Gender?.Value?.toLowerCase() || "unknown",
+    emotion: face.Emotions?.reduce((acc, emotion) => {
+      if (emotion.Type && emotion.Confidence) {
+        acc[emotion.Type.toLowerCase()] = emotion.Confidence / 100;
+      }
+      return acc;
+    }, {} as Record<string, number>),
     faceAttributes: {
-      smile: 0.9,
-      glasses: "NoGlasses",
-      headPose: {
-        pitch: 0,
-        roll: 0,
-        yaw: 0,
+      smile: face.Smile?.Value ? face.Smile.Confidence / 100 : 0,
+      eyeglasses: face.Eyeglasses?.Value ? "Glasses" : "NoGlasses",
+      sunglasses: face.Sunglasses?.Value ? "Sunglasses" : "NoSunglasses",
+      beard: face.Beard?.Value ? "Yes" : "No",
+      mustache: face.Mustache?.Value ? "Yes" : "No",
+      eyesOpen: face.EyesOpen?.Value ? "Yes" : "No",
+      mouthOpen: face.MouthOpen?.Value ? "Yes" : "No",
+      quality: {
+        brightness: face.Quality?.Brightness || 0,
+        sharpness: face.Quality?.Sharpness || 0,
       },
-    },
+      pose: {
+        pitch: face.Pose?.Pitch || 0,
+        roll: face.Pose?.Roll || 0,
+        yaw: face.Pose?.Yaw || 0,
+      }
+    }
   };
 }
 
@@ -150,7 +190,8 @@ async function getPersonalityInsights(faceAnalysis: any) {
   }
 }
 
-Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.`,
+Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
+Important: Pay careful attention to gender, facial expressions, and emotional indicators from the analysis data. Base your insights on the actual facial analysis data provided.`,
       },
       {
         role: "user",
