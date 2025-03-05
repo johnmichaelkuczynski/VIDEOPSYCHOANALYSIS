@@ -26,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get face analysis from Azure
       const faceAnalysis = await analyzeFaceWithAzure(imageData);
 
-      // Get initial personality insights from OpenAI
+      // Get comprehensive personality insights from OpenAI
       const personalityInsights = await getPersonalityInsights(faceAnalysis);
 
       const analysis = await storage.createAnalysis({
@@ -36,16 +36,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         personalityInsights,
       });
 
+      // Send initial message with comprehensive analysis
       await storage.createMessage({
         sessionId,
         analysisId: analysis.id,
-        content: personalityInsights.summary,
+        content: JSON.stringify(personalityInsights.detailed_analysis),
         role: "assistant",
       });
 
       res.json(analysis);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "An unknown error occurred" });
+      }
     }
   });
 
@@ -124,7 +129,28 @@ async function getPersonalityInsights(faceAnalysis: any) {
     messages: [
       {
         role: "system",
-        content: "Generate a professional personality analysis based on facial features. Avoid stereotypes and bias. Return a JSON object with summary and detailed insights.",
+        content: `You are an expert personality analyst capable of providing deep psychological insights. Analyze the facial features and expressions to generate a comprehensive personality profile. Return a JSON object with the following structure:
+{
+  "summary": "Brief overview",
+  "detailed_analysis": {
+    "personality_core": "Deep analysis of core personality traits",
+    "thought_patterns": "Analysis of cognitive processes and decision-making style",
+    "cognitive_style": "Description of learning and problem-solving approaches",
+    "professional_insights": "Career inclinations and work style",
+    "relationships": {
+      "current_status": "Likely relationship status",
+      "parental_status": "Insights about parenting style or potential",
+      "ideal_partner": "Description of compatible partner characteristics"
+    },
+    "growth_areas": {
+      "strengths": ["List of key strengths"],
+      "challenges": ["Areas for improvement"],
+      "development_path": "Suggested personal growth direction"
+    }
+  }
+}
+
+Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.`,
       },
       {
         role: "user",

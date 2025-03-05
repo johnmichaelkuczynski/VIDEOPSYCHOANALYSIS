@@ -15,6 +15,7 @@ export default function Home() {
   const [sessionId] = useState(() => nanoid());
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState("");
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -25,10 +26,46 @@ export default function Home() {
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.readAsDataURL(file);
       });
+      setUploadedImage(imageData);
       return uploadImage(imageData, sessionId);
     },
     onSuccess: (data) => {
-      setMessages([{ role: "assistant", content: data.personalityInsights.summary }]);
+      const analysis = data.personalityInsights;
+      const detailedAnalysis = data.personalityInsights.detailed_analysis;
+
+      // Format the detailed analysis sections
+      const formattedContent = `
+Personality Analysis Summary:
+${analysis.summary}
+
+Core Personality:
+${detailedAnalysis.personality_core}
+
+Thought Patterns:
+${detailedAnalysis.thought_patterns}
+
+Cognitive Style:
+${detailedAnalysis.cognitive_style}
+
+Professional Insights:
+${detailedAnalysis.professional_insights}
+
+Relationships:
+Current Status: ${detailedAnalysis.relationships.current_status}
+Parental Status: ${detailedAnalysis.relationships.parental_status}
+Ideal Partner: ${detailedAnalysis.relationships.ideal_partner}
+
+Growth Areas:
+Strengths:
+${detailedAnalysis.growth_areas.strengths.map((s: string) => `- ${s}`).join('\n')}
+
+Challenges:
+${detailedAnalysis.growth_areas.challenges.map((c: string) => `- ${c}`).join('\n')}
+
+Development Path:
+${detailedAnalysis.growth_areas.development_path}`;
+
+      setMessages([{ role: "assistant", content: formattedContent }]);
       queryClient.invalidateQueries({ queryKey: ["/api/analyze"] });
     },
     onError: () => {
@@ -87,61 +124,85 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-6xl">
       <h1 className="text-4xl font-bold text-center mb-8">AI Personality Analysis</h1>
-      
-      <Card className="mb-8">
-        <div
-          {...getRootProps()}
-          className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
-            ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
-        >
-          <input {...getInputProps()} />
-          {uploadMutation.isPending ? (
-            <div className="animate-pulse">Analyzing image...</div>
-          ) : (
-            <div className="space-y-4">
-              <FileImage className="w-12 h-12 mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground">
-                Drag & drop an image here, or click to select
-              </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <Card className="p-6">
+          <h2 className="text-2xl font-semibold mb-4">Upload Photo</h2>
+          <div
+            {...getRootProps()}
+            className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
+              ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
+          >
+            <input {...getInputProps()} />
+            {uploadMutation.isPending ? (
+              <div className="animate-pulse">Analyzing image...</div>
+            ) : (
+              <div className="space-y-4">
+                <FileImage className="w-12 h-12 mx-auto text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  Drag & drop an image here, or click to select
+                </p>
+              </div>
+            )}
+          </div>
+          {uploadedImage && (
+            <div className="mt-4">
+              <img 
+                src={uploadedImage} 
+                alt="Uploaded" 
+                className="max-w-full h-auto rounded-lg shadow-md"
+              />
             </div>
           )}
-        </div>
-      </Card>
+        </Card>
 
-      <Card className="mb-4">
-        <ScrollArea className="h-[400px] p-4">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`mb-4 p-4 rounded-lg ${
-                msg.role === "assistant"
-                  ? "bg-primary/10 ml-4"
-                  : "bg-muted mr-4"
-              }`}
-            >
-              {msg.content}
-            </div>
-          ))}
-        </ScrollArea>
-      </Card>
+        <Card className="p-6">
+          <h2 className="text-2xl font-semibold mb-4">Analysis Results</h2>
+          <ScrollArea className="h-[600px] pr-4">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`mb-6 p-6 rounded-lg ${
+                  msg.role === "assistant"
+                    ? "bg-primary/10"
+                    : "bg-muted"
+                }`}
+              >
+                <div className="prose prose-sm max-w-none">
+                  {msg.content.split('\n').map((line, j) => (
+                    <p key={j} className={`mb-2 ${line.startsWith('-') ? 'ml-4' : ''}`}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </ScrollArea>
+        </Card>
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message..."
-          disabled={uploadMutation.isPending || chatMutation.isPending}
-        />
-        <Button
-          type="submit"
-          disabled={!input.trim() || uploadMutation.isPending || chatMutation.isPending}
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+      <Card className="p-6">
+        <h2 className="text-2xl font-semibold mb-4">Chat with AI</h2>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ask questions about the analysis..."
+            disabled={uploadMutation.isPending || chatMutation.isPending}
+            className="flex-1"
+          />
+          <Button
+            type="submit"
+            disabled={!input.trim() || uploadMutation.isPending || chatMutation.isPending}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Send
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 }
