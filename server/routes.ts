@@ -2,9 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { insertAnalysisSchema, insertMessageSchema } from "@shared/schema";
+import { insertAnalysisSchema, insertMessageSchema, insertShareSchema } from "@shared/schema";
 import { z } from "zod";
 import { RekognitionClient, DetectFacesCommand } from "@aws-sdk/client-rekognition";
+import { sendAnalysisEmail } from "./services/email";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -108,6 +109,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ messages: [userMessage, assistantMessage] });
     } catch (error) {
       res.status(400).json({ error: "Failed to process chat message" });
+    }
+  });
+
+  app.post("/api/share", async (req, res) => {
+    try {
+      const shareData = insertShareSchema.parse(req.body);
+
+      // Create share record
+      const share = await storage.createShare(shareData);
+
+      // Get the analysis
+      const analysis = await storage.getAnalysisById(shareData.analysisId);
+      if (!analysis) {
+        return res.status(404).json({ error: "Analysis not found" });
+      }
+
+      // Send email
+      const emailSent = await sendAnalysisEmail({
+        share,
+        analysis,
+      });
+
+      // Update share status based on email sending result
+      await storage.updateShareStatus(share.id, emailSent ? "sent" : "error");
+
+      res.json({ success: emailSent });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "Failed to share analysis" });
+      }
     }
   });
 
