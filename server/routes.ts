@@ -28,6 +28,9 @@ const sendMessageSchema = z.object({
   sessionId: z.string(),
 });
 
+// Check if email service is configured
+const isEmailServiceConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_VERIFIED_SENDER);
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/analyze", async (req, res) => {
     try {
@@ -58,7 +61,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "assistant",
       });
 
-      res.json(analysis);
+      res.json({ 
+        ...analysis, 
+        emailServiceAvailable: isEmailServiceConfigured 
+      });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({ error: error.message });
@@ -97,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         response_format: { type: "json_object" },
       });
 
-      const aiResponse = JSON.parse(response.choices[0].message.content);
+      const aiResponse = JSON.parse(response.choices[0]?.message.content || "{}");
 
       const assistantMessage = await storage.createMessage({
         sessionId,
@@ -115,9 +121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/share", async (req, res) => {
     try {
       // Check if email service is configured
-      if (!process.env.SENDGRID_API_KEY) {
+      if (!isEmailServiceConfigured) {
         return res.status(503).json({ 
-          error: "Email service is not configured. Please contact support." 
+          error: "Email sharing is not available. Please try again later or contact support." 
         });
       }
 
@@ -190,7 +196,7 @@ async function analyzeFaceWithRekognition(imageBuffer: Buffer) {
       return acc;
     }, {} as Record<string, number>),
     faceAttributes: {
-      smile: face.Smile?.Value ? face.Smile.Confidence / 100 : 0,
+      smile: face.Smile?.Value ? (face.Smile.Confidence || 0) / 100 : 0,
       eyeglasses: face.Eyeglasses?.Value ? "Glasses" : "NoGlasses",
       sunglasses: face.Sunglasses?.Value ? "Sunglasses" : "NoSunglasses",
       beard: face.Beard?.Value ? "Yes" : "No",
@@ -248,5 +254,5 @@ Important: Pay careful attention to gender, facial expressions, and emotional in
     response_format: { type: "json_object" },
   });
 
-  return JSON.parse(response.choices[0].message.content);
+  return JSON.parse(response.choices[0]?.message.content || "{}");
 }

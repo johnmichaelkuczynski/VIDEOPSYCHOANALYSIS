@@ -28,6 +28,7 @@ export default function Home() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [analysisId, setAnalysisId] = useState<number | null>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -43,6 +44,7 @@ export default function Home() {
     },
     onSuccess: (data) => {
       setAnalysisId(data.id);
+      setEmailServiceAvailable(data.emailServiceAvailable);
       const analysis = data.personalityInsights;
       const detailedAnalysis = data.personalityInsights.detailed_analysis;
 
@@ -203,7 +205,7 @@ ${detailedAnalysis.growth_areas.development_path}`;
         <Card className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">Analysis Results</h2>
-            {messages.length > 0 && (
+            {messages.length > 0 && emailServiceAvailable && (
               <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
