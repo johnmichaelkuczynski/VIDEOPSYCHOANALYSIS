@@ -8,7 +8,7 @@ if (!process.env.SENDGRID_API_KEY) {
 const mailService = new MailService();
 mailService.setApiKey(process.env.SENDGRID_API_KEY);
 
-const FROM_EMAIL = 'no-reply@personality-insights.app'; // Update this with your verified sender
+const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'notifications@personality-insights.app';
 
 interface SendAnalysisEmailParams {
   share: Share;
@@ -20,32 +20,59 @@ export async function sendAnalysisEmail({
   analysis,
 }: SendAnalysisEmailParams): Promise<boolean> {
   try {
-    const personalityTraits = analysis.personalityInsights;
-    const faceAttributes = analysis.faceAnalysis;
+    const { personalityInsights, faceAnalysis } = analysis;
+    const summary = personalityInsights.summary;
+    const detailedAnalysis = personalityInsights.detailed_analysis;
 
     const emailContent = `
-      <h2>Personality Insights Analysis Results</h2>
-      <p>Someone has shared a personality analysis with you!</p>
-      
-      <h3>Face Analysis Results:</h3>
-      <pre>${JSON.stringify(faceAttributes, null, 2)}</pre>
-      
-      <h3>Personality Insights:</h3>
-      <pre>${JSON.stringify(personalityTraits, null, 2)}</pre>
-      
-      <p>This analysis was shared by: ${share.senderEmail}</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Your Personality Analysis Results</h2>
+
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #444;">Summary</h3>
+          <p>${summary}</p>
+        </div>
+
+        <div style="margin: 20px 0;">
+          <h3 style="color: #444;">Core Personality Traits</h3>
+          <p>${detailedAnalysis.personality_core}</p>
+        </div>
+
+        <div style="margin: 20px 0;">
+          <h3 style="color: #444;">Professional Insights</h3>
+          <p>${detailedAnalysis.professional_insights}</p>
+        </div>
+
+        <div style="margin: 20px 0;">
+          <h3 style="color: #444;">Growth Areas</h3>
+          <ul>
+            ${detailedAnalysis.growth_areas.strengths.map((s: string) => `<li>${s}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div style="background: #eef4ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="font-style: italic;">This analysis was shared by: ${share.senderEmail}</p>
+        </div>
+      </div>
     `;
 
     await mailService.send({
       to: share.recipientEmail,
-      from: FROM_EMAIL,
-      subject: 'Your Personality Insights Analysis Results',
+      from: {
+        email: FROM_EMAIL,
+        name: "Personality Insights"
+      },
+      subject: 'Your Personality Analysis Results',
       html: emailContent,
     });
 
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
+    const sendGridError = error as any;
+    if (sendGridError.response?.body?.errors) {
+      console.error('SendGrid detailed errors:', sendGridError.response.body.errors);
+    }
     return false;
   }
 }
