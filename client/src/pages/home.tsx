@@ -7,8 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { uploadImage, sendMessage } from "@/lib/api";
-import { Upload, Send, FileImage } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { uploadImage, sendMessage, shareAnalysis } from "@/lib/api";
+import { Upload, Send, FileImage, Share2 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const shareSchema = z.object({
+  senderEmail: z.string().email("Please enter a valid email"),
+  recipientEmail: z.string().email("Please enter a valid email"),
+});
 
 export default function Home() {
   const { toast } = useToast();
@@ -16,6 +26,8 @@ export default function Home() {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState("");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [analysisId, setAnalysisId] = useState<number | null>(null);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -30,6 +42,7 @@ export default function Home() {
       return uploadImage(imageData, sessionId);
     },
     onSuccess: (data) => {
+      setAnalysisId(data.id);
       const analysis = data.personalityInsights;
       const detailedAnalysis = data.personalityInsights.detailed_analysis;
 
@@ -94,6 +107,31 @@ ${detailedAnalysis.growth_areas.development_path}`;
     },
   });
 
+  const shareMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof shareSchema>) => {
+      if (!analysisId) throw new Error("No analysis to share");
+      return shareAnalysis(analysisId, data.senderEmail, data.recipientEmail);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Analysis shared successfully!",
+      });
+      setIsShareDialogOpen(false);
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to share analysis. Please try again.",
+      });
+    },
+  });
+
+  const shareForm = useForm<z.infer<typeof shareSchema>>({
+    resolver: zodResolver(shareSchema),
+  });
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       uploadMutation.mutate(acceptedFiles[0]);
@@ -121,6 +159,10 @@ ${detailedAnalysis.growth_areas.development_path}`;
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const onShareSubmit = (data: z.infer<typeof shareSchema>) => {
+    shareMutation.mutate(data);
   };
 
   return (
@@ -159,7 +201,61 @@ ${detailedAnalysis.growth_areas.development_path}`;
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-2xl font-semibold mb-4">Analysis Results</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Analysis Results</h2>
+            {messages.length > 0 && (
+              <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Share Analysis</DialogTitle>
+                  </DialogHeader>
+                  <Form {...shareForm}>
+                    <form onSubmit={shareForm.handleSubmit(onShareSubmit)} className="space-y-4">
+                      <FormField
+                        control={shareForm.control}
+                        name="senderEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Your Email</FormLabel>
+                            <FormControl>
+                              <Input placeholder="your@email.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={shareForm.control}
+                        name="recipientEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Recipient's Email</FormLabel>
+                            <FormControl>
+                              <Input placeholder="recipient@email.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={shareMutation.isPending}
+                      >
+                        {shareMutation.isPending ? "Sending..." : "Send"}
+                      </Button>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
           <ScrollArea className="h-[600px] pr-4">
             {messages.map((msg, i) => (
               <div
