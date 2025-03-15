@@ -1,12 +1,19 @@
 import { MailService } from '@sendgrid/mail';
 import { Share, Analysis } from '../../shared/schema';
 
+// Check if required environment variables are set
 if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+  console.warn("Warning: SENDGRID_API_KEY environment variable is not set. Email functionality will be disabled.");
+}
+
+if (!process.env.SENDGRID_VERIFIED_SENDER) {
+  console.warn("Warning: SENDGRID_VERIFIED_SENDER environment variable is not set. Using default sender.");
 }
 
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+if (process.env.SENDGRID_API_KEY) {
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'notifications@personality-insights.app';
 
@@ -20,9 +27,15 @@ export async function sendAnalysisEmail({
   analysis,
 }: SendAnalysisEmailParams): Promise<boolean> {
   try {
-    const { personalityInsights, faceAnalysis } = analysis;
-    const summary = personalityInsights.summary;
-    const detailedAnalysis = personalityInsights.detailed_analysis;
+    // If SendGrid is not configured, log error and return false
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('SendGrid is not configured. Emails cannot be sent.');
+      return false;
+    }
+
+    const { personalityInsights } = analysis;
+    const summary = personalityInsights?.summary || 'No summary available';
+    const detailedAnalysis = personalityInsights?.detailed_analysis || {};
 
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -35,18 +48,18 @@ export async function sendAnalysisEmail({
 
         <div style="margin: 20px 0;">
           <h3 style="color: #444;">Core Personality Traits</h3>
-          <p>${detailedAnalysis.personality_core}</p>
+          <p>${detailedAnalysis.personality_core || 'Not available'}</p>
         </div>
 
         <div style="margin: 20px 0;">
           <h3 style="color: #444;">Professional Insights</h3>
-          <p>${detailedAnalysis.professional_insights}</p>
+          <p>${detailedAnalysis.professional_insights || 'Not available'}</p>
         </div>
 
         <div style="margin: 20px 0;">
           <h3 style="color: #444;">Growth Areas</h3>
           <ul>
-            ${detailedAnalysis.growth_areas.strengths.map((s: string) => `<li>${s}</li>`).join('')}
+            ${(detailedAnalysis.growth_areas?.strengths || []).map((s: string) => `<li>${s}</li>`).join('')}
           </ul>
         </div>
 

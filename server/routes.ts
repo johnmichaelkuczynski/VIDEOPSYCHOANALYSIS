@@ -114,6 +114,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/share", async (req, res) => {
     try {
+      // Check if email service is configured
+      if (!process.env.SENDGRID_API_KEY) {
+        return res.status(503).json({ 
+          error: "Email service is not configured. Please contact support." 
+        });
+      }
+
       const shareData = insertShareSchema.parse(req.body);
 
       // Create share record
@@ -134,8 +141,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update share status based on email sending result
       await storage.updateShareStatus(share.id, emailSent ? "sent" : "error");
 
+      if (!emailSent) {
+        return res.status(500).json({ 
+          error: "Failed to send email. Please try again later." 
+        });
+      }
+
       res.json({ success: emailSent });
     } catch (error) {
+      console.error('Share endpoint error:', error);
       if (error instanceof Error) {
         res.status(400).json({ error: error.message });
       } else {
