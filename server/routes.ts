@@ -77,6 +77,50 @@ const unlinkAsync = promisify(fs.unlink);
 // This would typically be created and configured through Google Cloud Console first
 const bucketName = 'ai-personality-videos';
 
+/**
+ * Helper function to get the duration of a video using ffprobe
+ */
+async function getVideoDuration(videoPath: string): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
+    ffmpeg.ffprobe(videoPath, (err: Error | null, metadata: any) => {
+      if (err) {
+        console.error('Error getting video duration:', err);
+        // Default to 5 seconds if we can't determine duration
+        return resolve(5);
+      }
+      
+      // Get duration in seconds
+      const durationSec = metadata.format.duration || 5;
+      resolve(durationSec);
+    });
+  });
+}
+
+/**
+ * Helper function to split a video into chunks of specified duration
+ */
+async function splitVideoIntoChunks(videoPath: string, outputDir: string, chunkDurationSec: number): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    ffmpeg(videoPath)
+      .outputOptions([
+        `-f segment`,
+        `-segment_time ${chunkDurationSec}`,
+        `-reset_timestamps 1`,
+        `-c copy` // Copy codec (fast)
+      ])
+      .output(path.join(outputDir, 'chunk_%03d.mp4'))
+      .on('end', () => {
+        console.log('Video successfully split into chunks');
+        resolve();
+      })
+      .on('error', (err: Error) => {
+        console.error('Error splitting video:', err);
+        reject(err);
+      })
+      .run();
+  });
+}
+
 // For backward compatibility
 const uploadImageSchema = z.object({
   imageData: z.string(),
@@ -421,6 +465,8 @@ async function analyzeFaceWithRekognition(imageBuffer: Buffer) {
     }
   };
 }
+
+
 
 async function getPersonalityInsights(faceAnalysis: any, videoAnalysis: any = null, audioTranscription: any = null) {
   // Build a comprehensive analysis input combining all the data we have
