@@ -121,6 +121,85 @@ async function splitVideoIntoChunks(videoPath: string, outputDir: string, chunkD
   });
 }
 
+/**
+ * Helper function to extract audio from video and transcribe it
+ */
+async function extractAudioTranscription(videoPath: string): Promise<any> {
+  try {
+    // Extract audio from video
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const audioPath = path.join(tempDir, `${randomId}.wav`);
+    
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(videoPath)
+        .output(audioPath)
+        .audioCodec('pcm_s16le')
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .on('end', () => resolve())
+        .on('error', (err: Error) => {
+          console.error('Error extracting audio:', err);
+          reject(err);
+        })
+        .run();
+    });
+    
+    // Read the audio file
+    const audioBytes = await fs.promises.readFile(audioPath);
+    const audioBase64 = audioBytes.toString('base64');
+    
+    // Use Google Cloud Speech-to-Text API
+    const request = {
+      audio: {
+        content: audioBase64,
+      },
+      config: {
+        encoding: 'LINEAR16' as const,
+        sampleRateHertz: 16000,
+        languageCode: 'en-US',
+        enableAutomaticPunctuation: true,
+        model: 'default',
+      },
+    };
+    
+    const [response] = await speechClient.recognize(request);
+    const transcription = response.results
+      ?.map((result: any) => result.alternatives?.[0]?.transcript)
+      .filter(Boolean)
+      .join(' ') || '';
+    
+    // Calculate speaking rate (words per second)
+    const words = transcription.split(' ').length;
+    const audioDuration = await getVideoDuration(audioPath);
+    const speakingRate = audioDuration > 0 ? words / audioDuration : 0;
+    
+    // Clean up temp file
+    await unlinkAsync(audioPath).catch(err => console.warn('Error deleting temp audio file:', err));
+    
+    return {
+      transcription,
+      speechAnalysis: {
+        averageConfidence: response.results?.[0]?.alternatives?.[0]?.confidence || 0,
+        speakingRate,
+        wordCount: words,
+        duration: audioDuration
+      }
+    };
+  } catch (error) {
+    console.error('Error in audio transcription:', error);
+    // Return a minimal object if transcription fails
+    return {
+      transcription: "",
+      speechAnalysis: {
+        averageConfidence: 0,
+        speakingRate: 0,
+        error: "Failed to transcribe audio"
+      }
+    };
+  }
+}
+
+
 // For backward compatibility
 const uploadImageSchema = z.object({
   imageData: z.string(),
@@ -260,14 +339,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           };
           
-          // Extract audio transcript - mock for now
-          audioTranscription = {
-            transcription: "Audio transcription would be extracted from the full video",
-            speechAnalysis: {
-              averageConfidence: 0.92,
-              speakingRate: 1.2
-            }
-          };
+          // Extract audio transcription from the video
+          console.log('Extracting audio transcription...');
+          try {
+            audioTranscription = await extractAudioTranscription(videoPath);
+            console.log(`Audio transcription complete: ${audioTranscription.transcription.substring(0, 50)}...`);
+          } catch (error) {
+            console.error('Error during audio transcription:', error);
+            audioTranscription = {
+              transcription: "Could not extract audio from video",
+              speechAnalysis: {
+                averageConfidence: 0,
+                speakingRate: 0,
+                error: "Failed to process audio"
+              }
+            };
+          }
           
           // Clean up temp files
           try {
