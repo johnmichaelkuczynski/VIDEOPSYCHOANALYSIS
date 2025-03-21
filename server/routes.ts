@@ -18,6 +18,8 @@ import { promisify } from 'util';
 import ffmpeg from 'fluent-ffmpeg';
 import { Storage } from '@google-cloud/storage';
 import { VideoIntelligenceServiceClient } from '@google-cloud/video-intelligence';
+import Anthropic from '@anthropic-ai/sdk';
+import { PerplexityAI } from 'perplexity';
 import { SpeechClient } from '@google-cloud/speech';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
