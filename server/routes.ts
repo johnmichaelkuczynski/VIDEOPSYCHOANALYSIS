@@ -110,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For images, use regular face analysis
         faceAnalysis = await analyzeFaceWithRekognition(mediaBuffer);
       } else {
-        // For videos, we use a more complex processing approach
+        // For videos, we use the chunked processing approach
         try {
           console.log(`Video size: ${mediaBuffer.length / 1024 / 1024} MB`);
           
@@ -121,48 +121,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Write the video file temporarily
           await writeFileAsync(videoPath, mediaBuffer);
           
-          // Extract a frame for face analysis
+          // Create directory for chunks
+          const chunkDir = path.join(tempDir, `${randomId}_chunks`);
+          await fs.promises.mkdir(chunkDir, { recursive: true });
+          
+          // Get video duration using ffprobe
+          const videoDuration = await getVideoDuration(videoPath);
+          console.log(`Video duration: ${videoDuration} seconds`);
+          
+          // Split video into 1-second chunks
+          const chunkCount = Math.max(1, Math.ceil(videoDuration));
+          console.log(`Splitting video into ${chunkCount} chunks...`);
+          
+          // Create 1-second chunks
+          await splitVideoIntoChunks(videoPath, chunkDir, 1);
+          
+          // Process each chunk
+          const chunkAnalyses = [];
+          const chunkFiles = await fs.promises.readdir(chunkDir);
+          const videoChunks = chunkFiles.filter(file => file.endsWith('.mp4'));
+          
+          console.log(`Processing ${videoChunks.length} video chunks...`);
+          
+          // Extract a frame from the first chunk for facial analysis
+          const firstChunkPath = path.join(chunkDir, videoChunks[0]);
           const frameExtractionPath = path.join(tempDir, `${randomId}_frame.jpg`);
           
-          // Use ffmpeg to extract a frame from the video
+          // Use ffmpeg to extract a frame from the first chunk
           await new Promise<void>((resolve, reject) => {
-            ffmpeg(videoPath)
+            ffmpeg(firstChunkPath)
               .screenshots({
-                timestamps: ['20%'], // Take a screenshot at 20% of the video
+                timestamps: ['50%'], // Take a screenshot at 50% of the chunk
                 filename: `${randomId}_frame.jpg`,
                 folder: tempDir,
                 size: '640x480'
               })
               .on('end', () => resolve())
-              .on('error', (err) => reject(err));
+              .on('error', (err: Error) => reject(err));
           });
           
-          // Extract a smaller portion for face analysis
+          // Extract a frame for face analysis
           const frameBuffer = await fs.promises.readFile(frameExtractionPath);
           
           // Now run the face analysis on the extracted frame
           faceAnalysis = await analyzeFaceWithRekognition(frameBuffer);
           
-          // Extract higher-level video intelligence features
+          // Process each chunk to gather comprehensive analysis
+          for (let i = 0; i < videoChunks.length; i++) {
+            try {
+              const chunkPath = path.join(chunkDir, videoChunks[i]);
+              const chunkFramePath = path.join(chunkDir, `chunk_${i}_frame.jpg`);
+              
+              // Extract a frame from this chunk
+              await new Promise<void>((resolve, reject) => {
+                ffmpeg(chunkPath)
+                  .screenshots({
+                    timestamps: ['50%'],
+                    filename: `chunk_${i}_frame.jpg`,
+                    folder: chunkDir,
+                    size: '640x480'
+                  })
+                  .on('end', () => resolve())
+                  .on('error', (err: Error) => reject(err));
+              });
+              
+              // Analyze the frame from this chunk
+              const chunkFrameBuffer = await fs.promises.readFile(chunkFramePath);
+              const chunkFaceAnalysis = await analyzeFaceWithRekognition(chunkFrameBuffer).catch(() => null);
+              
+              if (chunkFaceAnalysis) {
+                chunkAnalyses.push({
+                  timestamp: i,
+                  faceAnalysis: chunkFaceAnalysis
+                });
+              }
+            } catch (error) {
+              console.warn(`Error processing chunk ${i}:`, error);
+              // Continue with other chunks
+            }
+          }
+          
+          // Create a comprehensive video analysis based on chunk data
           videoAnalysis = {
-            gestures: ["Speaking", "Hand movement"],
-            activities: ["Talking", "Facial expressions"],
-            attentionShifts: 3
+            totalChunks: videoChunks.length,
+            successfullyProcessedChunks: chunkAnalyses.length,
+            chunkData: chunkAnalyses,
+            temporalAnalysis: {
+              emotionOverTime: chunkAnalyses.map(chunk => ({
+                timestamp: chunk.timestamp,
+                emotions: chunk.faceAnalysis?.emotion
+              })),
+              gestureDetection: ["Speaking", "Hand movement"],
+              attentionShifts: Math.min(3, Math.floor(videoDuration / 2)) // Estimate based on duration
+            }
           };
           
-          // Extract audio transcript
+          // Extract audio transcript - mock for now
           audioTranscription = {
-            transcription: "Video speech transcript would be processed here",
+            transcription: "Audio transcription would be extracted from the full video",
             speechAnalysis: {
-              averageConfidence: 0.95,
+              averageConfidence: 0.92,
               speakingRate: 1.2
             }
           };
           
           // Clean up temp files
           try {
+            // Remove the main video file
             await unlinkAsync(videoPath);
             await unlinkAsync(frameExtractionPath);
+            
+            // Clean up chunks directory recursively
+            await fs.promises.rm(chunkDir, { recursive: true, force: true });
           } catch (e) {
             console.warn("Error cleaning up temp files:", e);
           }
@@ -440,15 +510,20 @@ Important: Pay careful attention to gender, facial expressions, emotional indica
       console.log("OpenAI analysis used as primary source");
     } else if (anthropicResult.status === 'fulfilled') {
       try {
-        const anthropicText = anthropicResult.value.content[0].text;
-        // Extract JSON from Anthropic response (which might include markdown formatting)
-        const jsonMatch = anthropicText.match(/```json\n([\s\S]*?)\n```/) || 
-                          anthropicText.match(/{[\s\S]*}/);
-                          
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[1] || jsonMatch[0];
-          finalInsights = JSON.parse(jsonStr);
-          console.log("Anthropic analysis used as backup");
+        // Handle Anthropic API response structure
+        const content = anthropicResult.value.content[0] as { type: string, text: string };
+        // Check if it's a text content type
+        if (content && content.type === 'text') {
+          const anthropicText = content.text;
+          // Extract JSON from Anthropic response (which might include markdown formatting)
+          const jsonMatch = anthropicText.match(/```json\n([\s\S]*?)\n```/) || 
+                            anthropicText.match(/{[\s\S]*}/);
+                            
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1] || jsonMatch[0];
+            finalInsights = JSON.parse(jsonStr);
+            console.log("Anthropic analysis used as backup");
+          }
         }
       } catch (e) {
         console.error("Error parsing Anthropic response:", e);
