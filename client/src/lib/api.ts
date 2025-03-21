@@ -1,7 +1,11 @@
 import { apiRequest } from "./queryClient";
 
-export async function uploadImage(imageData: string, sessionId: string) {
-  const res = await apiRequest("POST", "/api/analyze", { imageData, sessionId });
+export async function uploadMedia(mediaData: string, mediaType: "image" | "video", sessionId: string) {
+  const res = await apiRequest("POST", "/api/analyze", { 
+    mediaData, 
+    mediaType, 
+    sessionId 
+  });
   return res.json();
 }
 

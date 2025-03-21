@@ -1,15 +1,29 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { insertAnalysisSchema, insertMessageSchema, insertShareSchema } from "@shared/schema";
+import { insertAnalysisSchema, insertMessageSchema, insertShareSchema, uploadMediaSchema } from "@shared/schema";
 import { z } from "zod";
-import { RekognitionClient, DetectFacesCommand } from "@aws-sdk/client-rekognition";
+import { 
+  RekognitionClient, 
+  DetectFacesCommand, 
+  StartFaceDetectionCommand, 
+  GetFaceDetectionCommand 
+} from "@aws-sdk/client-rekognition";
 import { sendAnalysisEmail } from "./services/email";
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { promisify } from 'util';
+import ffmpeg from 'fluent-ffmpeg';
+import { Storage } from '@google-cloud/storage';
+import { VideoIntelligenceServiceClient } from '@google-cloud/video-intelligence';
+import { SpeechClient } from '@google-cloud/speech';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// AWS Rekognition client
 const rekognition = new RekognitionClient({ 
   region: "us-east-1",
   credentials: {
@@ -18,6 +32,21 @@ const rekognition = new RekognitionClient({
   }
 });
 
+// Google Cloud clients
+const googleStorage = new Storage();
+const videoIntelligence = new VideoIntelligenceServiceClient();
+const speechClient = new SpeechClient();
+
+// For temporary file storage
+const tempDir = os.tmpdir();
+const writeFileAsync = promisify(fs.writeFile);
+const unlinkAsync = promisify(fs.unlink);
+
+// Google Cloud Storage bucket for videos
+// This would typically be created and configured through Google Cloud Console first
+const bucketName = 'ai-personality-videos';
+
+// For backward compatibility
 const uploadImageSchema = z.object({
   imageData: z.string(),
   sessionId: z.string(),

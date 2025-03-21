@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { uploadImage, sendMessage, shareAnalysis } from "@/lib/api";
-import { Upload, Send, FileImage, Share2 } from "lucide-react";
+import { uploadMedia, sendMessage, shareAnalysis } from "@/lib/api";
+import { Upload, Send, FileImage, Film, Share2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 
 const shareSchema = z.object({
   senderEmail: z.string().email("Please enter a valid email"),
@@ -25,24 +27,65 @@ export default function Home() {
   const [sessionId] = useState(() => nanoid());
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState("");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  
+  // Media states
+  const [uploadedMedia, setUploadedMedia] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [analysisId, setAnalysisId] = useState<number | null>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Reference for video element
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const queryClient = useQueryClient();
 
+  // Simulate analysis progress
+  useEffect(() => {
+    if (isAnalyzing) {
+      const interval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 5;
+        });
+      }, 500);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isAnalyzing]);
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      // Determine media type based on file type
+      const fileType = file.type.split('/')[0];
+      const isMimeTypeVideo = fileType === 'video';
+      const currentMediaType = isMimeTypeVideo ? "video" : "image";
+      
+      setMediaType(currentMediaType);
+      setIsAnalyzing(true);
+      setAnalysisProgress(0);
+      
+      // Read file as data URL
       const reader = new FileReader();
-      const imageData = await new Promise<string>((resolve) => {
+      const mediaData = await new Promise<string>((resolve) => {
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.readAsDataURL(file);
       });
-      setUploadedImage(imageData);
-      return uploadImage(imageData, sessionId);
+      
+      // Set previews
+      setUploadedMedia(mediaData);
+      
+      // Upload for analysis
+      return uploadMedia(mediaData, currentMediaType, sessionId);
     },
     onSuccess: (data) => {
+      setIsAnalyzing(false);
+      setAnalysisProgress(100);
       setAnalysisId(data.id);
       setEmailServiceAvailable(data.emailServiceAvailable);
       const analysis = data.personalityInsights;
@@ -83,11 +126,13 @@ ${detailedAnalysis.growth_areas.development_path}`;
       setMessages([{ role: "assistant", content: formattedContent }]);
       queryClient.invalidateQueries({ queryKey: ["/api/analyze"] });
     },
-    onError: () => {
+    onError: (error) => {
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to analyze image. Please try again.",
+        description: "Failed to analyze media. Please try again.",
       });
     },
   });
@@ -144,8 +189,10 @@ ${detailedAnalysis.growth_areas.development_path}`;
     onDrop,
     accept: {
       "image/*": [".jpeg", ".jpg", ".png"],
+      "video/*": [".mp4", ".mov", ".webm"]
     },
     maxFiles: 1,
+    maxSize: 50 * 1024 * 1024, // 50MB limit
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -173,31 +220,49 @@ ${detailedAnalysis.growth_areas.development_path}`;
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <Card className="p-6">
-          <h2 className="text-2xl font-semibold mb-4">Upload Photo</h2>
+          <h2 className="text-2xl font-semibold mb-4">Upload Media</h2>
           <div
             {...getRootProps()}
             className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
               ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
           >
             <input {...getInputProps()} />
-            {uploadMutation.isPending ? (
-              <div className="animate-pulse">Analyzing image...</div>
+            {isAnalyzing ? (
+              <div className="space-y-4">
+                <div className="animate-pulse">Analyzing media...</div>
+                <Progress value={analysisProgress} className="w-full" />
+              </div>
             ) : (
               <div className="space-y-4">
-                <FileImage className="w-12 h-12 mx-auto text-muted-foreground" />
+                <div className="flex items-center justify-center space-x-2">
+                  <FileImage className="w-8 h-8 text-muted-foreground" />
+                  <Film className="w-8 h-8 text-muted-foreground" />
+                </div>
                 <p className="text-muted-foreground">
-                  Drag & drop an image here, or click to select
+                  Drag & drop an image or video, or click to select
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supports JPG, PNG, MP4, MOV, WEBM (max 50MB)
                 </p>
               </div>
             )}
           </div>
-          {uploadedImage && (
+          {uploadedMedia && (
             <div className="mt-4">
-              <img 
-                src={uploadedImage} 
-                alt="Uploaded" 
-                className="max-w-full h-auto rounded-lg shadow-md"
-              />
+              {mediaType === "image" ? (
+                <img 
+                  src={uploadedMedia} 
+                  alt="Uploaded" 
+                  className="max-w-full h-auto rounded-lg shadow-md"
+                />
+              ) : (
+                <video 
+                  ref={videoRef}
+                  src={uploadedMedia} 
+                  controls
+                  className="max-w-full h-auto rounded-lg shadow-md"
+                />
+              )}
             </div>
           )}
         </Card>
@@ -289,12 +354,12 @@ ${detailedAnalysis.growth_areas.development_path}`;
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask questions about the analysis..."
-            disabled={uploadMutation.isPending || chatMutation.isPending}
+            disabled={isAnalyzing || chatMutation.isPending}
             className="flex-1"
           />
           <Button
             type="submit"
-            disabled={!input.trim() || uploadMutation.isPending || chatMutation.isPending}
+            disabled={!input.trim() || isAnalyzing || chatMutation.isPending}
           >
             <Send className="w-4 h-4 mr-2" />
             Send
