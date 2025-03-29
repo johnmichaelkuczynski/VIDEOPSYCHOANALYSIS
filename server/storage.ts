@@ -8,7 +8,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesBySessionId(sessionId: string): Promise<Message[]>;
   createShare(share: InsertShare): Promise<Share>;
-  getShareById(id: number): Promise<Share | undefined>;
+  getShareById(id: string | number): Promise<Share | undefined>;
   updateShareStatus(shareId: number, status: "pending" | "sent" | "error"): Promise<void>;
 }
 
@@ -114,8 +114,10 @@ export class MemStorage implements IStorage {
     return share;
   }
 
-  async getShareById(id: number): Promise<Share | undefined> {
-    return this.shares.get(id);
+  async getShareById(id: string | number): Promise<Share | undefined> {
+    // Convert string id to number if needed
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    return this.shares.get(numericId);
   }
 
   async updateShareStatus(shareId: number, status: "pending" | "sent" | "error"): Promise<void> {

@@ -76,5 +76,5 @@ export const uploadMediaSchema = z.object({
 
 // Schema for getting shared analysis
 export const getSharedAnalysisSchema = z.object({
-  shareId: z.coerce.number().int().positive(),
+  shareId: z.string(),
 });
