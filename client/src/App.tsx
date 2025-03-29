@@ -9,7 +9,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/:share" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );
