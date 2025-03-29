@@ -324,11 +324,35 @@ export default function Home() {
                 }`}
               >
                 <div className="prose prose-sm max-w-none">
-                  {msg.content.split('\n').map((line, j) => (
-                    <p key={j} className={`mb-2 ${line.startsWith('-') ? 'ml-4' : ''}`}>
-                      {line}
-                    </p>
-                  ))}
+                  {msg.content.split('\n').map((line, j) => {
+                    // Check if line is a divider (─────)
+                    if (line.startsWith('─')) {
+                      return <hr key={j} className="my-3 border-gray-300" />;
+                    }
+                    
+                    // Check if line is a section header with emoji (e.g., "👤 Subject 1")
+                    if (/^[👤🧠🖼️📷🧾🧬💼❤️📈🤝]/.test(line)) {
+                      return <h3 key={j} className="text-lg font-bold mt-4 mb-2 text-primary">{line}</h3>;
+                    }
+                    
+                    // Special formatting for Growth Areas with bullet points
+                    if (line.startsWith('•')) {
+                      return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
+                    }
+                    
+                    // Handle bullet lists
+                    if (line.startsWith('-') || line.startsWith('*')) {
+                      return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
+                    }
+                    
+                    // For subsections like "Strengths:", "Challenges:", etc.
+                    if (line.endsWith(':')) {
+                      return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
+                    }
+                    
+                    // Regular paragraph
+                    return <p key={j} className="mb-2">{line}</p>;
+                  })}
                 </div>
               </div>
             ))}

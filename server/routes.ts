@@ -444,102 +444,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let formattedContent = "";
       
       if (personalityInsights.individualProfiles?.length > 1) {
-        // Multi-person message format
-        formattedContent = `# Multi-Person Analysis (${peopleCount} people)\n\n`;
+        // Multi-person message format with improved visual structure
+        const peopleCount = personalityInsights.individualProfiles.length;
+        formattedContent = `🧠 AI-Powered Psychological Profile Report\n`;
+        formattedContent += `🖼️ Subjects Detected: ${peopleCount} Individuals\n`;
+        formattedContent += `📷 Mode: Group Analysis\n\n`;
         
-        // Add group dynamics if available
-        if (personalityInsights.groupDynamics) {
-          formattedContent += `## Group Dynamics\n${personalityInsights.groupDynamics}\n\n`;
-        }
-        
-        // Add each individual profile
+        // Add each individual profile first
         personalityInsights.individualProfiles.forEach((profile, index) => {
-          formattedContent += `## ${profile.personLabel || `Person ${index + 1}`}\n\n`;
-          formattedContent += `### Summary\n${profile.summary || 'No summary available'}\n\n`;
+          const gender = profile.personLabel?.includes('Male') ? 'Male' : 
+                         profile.personLabel?.includes('Female') ? 'Female' : '';
+          const ageMatch = profile.personLabel?.match(/~(\d+)-(\d+)/);
+          const ageRange = ageMatch ? `~${ageMatch[1]}–${ageMatch[2]} years` : '';
+          const genderAge = [gender, ageRange].filter(Boolean).join(', ');
+          
+          formattedContent += `${'─'.repeat(65)}\n`;
+          formattedContent += `👤 Subject ${index + 1}${genderAge ? ` (${genderAge})` : ''}\n`;
+          formattedContent += `${'─'.repeat(65)}\n\n`;
           
           const detailedAnalysis = profile.detailed_analysis || {};
           
-          if (detailedAnalysis.personality_core) {
-            formattedContent += `### Core Personality\n${detailedAnalysis.personality_core}\n\n`;
-          }
+          formattedContent += `🧾 Summary:\n${profile.summary || 'No summary available'}\n\n`;
           
-          if (detailedAnalysis.thought_patterns) {
-            formattedContent += `### Thought Patterns\n${detailedAnalysis.thought_patterns}\n\n`;
+          if (detailedAnalysis.personality_core) {
+            formattedContent += `🧬 Core Personality:\n${detailedAnalysis.personality_core}\n\n`;
           }
           
           if (detailedAnalysis.cognitive_style) {
-            formattedContent += `### Cognitive Style\n${detailedAnalysis.cognitive_style}\n\n`;
+            formattedContent += `🧠 Cognitive Style:\n${detailedAnalysis.cognitive_style}\n\n`;
           }
           
           if (detailedAnalysis.professional_insights) {
-            formattedContent += `### Professional Insights\n${detailedAnalysis.professional_insights}\n\n`;
+            formattedContent += `💼 Professional Fit:\n${detailedAnalysis.professional_insights}\n\n`;
           }
           
           if (detailedAnalysis.relationships) {
-            formattedContent += `### Relationships\n`;
-            formattedContent += `Current Status: ${detailedAnalysis.relationships.current_status || 'Not available'}\n`;
-            formattedContent += `Parental Status: ${detailedAnalysis.relationships.parental_status || 'Not available'}\n`;
-            formattedContent += `Ideal Partner: ${detailedAnalysis.relationships.ideal_partner || 'Not available'}\n\n`;
+            formattedContent += `❤️ Relationships:\n`;
+            const relationshipParts = [];
+            
+            if (detailedAnalysis.relationships.current_status && 
+                detailedAnalysis.relationships.current_status !== 'Not available') {
+              relationshipParts.push(detailedAnalysis.relationships.current_status);
+            }
+            
+            if (detailedAnalysis.relationships.parental_status && 
+                detailedAnalysis.relationships.parental_status !== 'Not available') {
+              relationshipParts.push(detailedAnalysis.relationships.parental_status);
+            }
+            
+            if (detailedAnalysis.relationships.ideal_partner && 
+                detailedAnalysis.relationships.ideal_partner !== 'Not available') {
+              relationshipParts.push(`Ideal match: ${detailedAnalysis.relationships.ideal_partner}`);
+            }
+            
+            formattedContent += relationshipParts.length > 0 
+              ? relationshipParts.join(' ') 
+              : 'No relationship data available';
+            
+            formattedContent += `\n\n`;
           }
           
           if (detailedAnalysis.growth_areas) {
-            formattedContent += `### Growth Areas\n`;
+            formattedContent += `📈 Growth Areas:\n`;
             
-            if (Array.isArray(detailedAnalysis.growth_areas.strengths)) {
-              formattedContent += `Strengths:\n${detailedAnalysis.growth_areas.strengths.map((s: string) => `- ${s}`).join('\n')}\n\n`;
+            if (Array.isArray(detailedAnalysis.growth_areas.strengths) && 
+                detailedAnalysis.growth_areas.strengths.length > 0) {
+              formattedContent += `Strengths:\n${detailedAnalysis.growth_areas.strengths.map((s: string) => `• ${s}`).join('\n')}\n\n`;
             }
             
-            if (Array.isArray(detailedAnalysis.growth_areas.challenges)) {
-              formattedContent += `Challenges:\n${detailedAnalysis.growth_areas.challenges.map((c: string) => `- ${c}`).join('\n')}\n\n`;
+            if (Array.isArray(detailedAnalysis.growth_areas.challenges) && 
+                detailedAnalysis.growth_areas.challenges.length > 0) {
+              formattedContent += `Challenges:\n${detailedAnalysis.growth_areas.challenges.map((c: string) => `• ${c}`).join('\n')}\n\n`;
             }
             
             if (detailedAnalysis.growth_areas.development_path) {
               formattedContent += `Development Path:\n${detailedAnalysis.growth_areas.development_path}\n\n`;
             }
           }
-          
-          // Add separator between profiles
-          formattedContent += `${'='.repeat(50)}\n\n`;
         });
+        
+        // Add group dynamics at the end
+        if (personalityInsights.groupDynamics) {
+          formattedContent += `${'─'.repeat(65)}\n`;
+          formattedContent += `🤝 Group Dynamics (${peopleCount}-Person Analysis)\n`;
+          formattedContent += `${'─'.repeat(65)}\n\n`;
+          formattedContent += `${personalityInsights.groupDynamics}\n`;
+        }
+        
       } else if (personalityInsights.individualProfiles?.length === 1) {
-        // Single person format (maintain backward compatibility)
+        // Single person format (maintain similar structure for consistency)
         const profile = personalityInsights.individualProfiles[0];
         const detailedAnalysis = profile.detailed_analysis || {};
         
-        formattedContent = `
-Personality Analysis Summary:
-${profile.summary || 'No summary available'}
-
-Core Personality:
-${detailedAnalysis.personality_core || 'Not available'}
-
-Thought Patterns:
-${detailedAnalysis.thought_patterns || 'Not available'}
-
-Cognitive Style:
-${detailedAnalysis.cognitive_style || 'Not available'}
-
-Professional Insights:
-${detailedAnalysis.professional_insights || 'Not available'}
-
-Relationships:
-Current Status: ${detailedAnalysis.relationships?.current_status || 'Not available'}
-Parental Status: ${detailedAnalysis.relationships?.parental_status || 'Not available'}
-Ideal Partner: ${detailedAnalysis.relationships?.ideal_partner || 'Not available'}
-
-Growth Areas:
-Strengths:
-${Array.isArray(detailedAnalysis.growth_areas?.strengths) 
-  ? detailedAnalysis.growth_areas.strengths.map((s: string) => `- ${s}`).join('\n')
-  : '- Not available'}
-
-Challenges:
-${Array.isArray(detailedAnalysis.growth_areas?.challenges)
-  ? detailedAnalysis.growth_areas.challenges.map((c: string) => `- ${c}`).join('\n')
-  : '- Not available'}
-
-Development Path:
-${detailedAnalysis.growth_areas?.development_path || 'Not available'}`;
+        const gender = profile.personLabel?.includes('Male') ? 'Male' : 
+                       profile.personLabel?.includes('Female') ? 'Female' : '';
+        const ageMatch = profile.personLabel?.match(/~(\d+)-(\d+)/);
+        const ageRange = ageMatch ? `~${ageMatch[1]}–${ageMatch[2]} years` : '';
+        const genderAge = [gender, ageRange].filter(Boolean).join(', ');
+        
+        formattedContent = `🧠 AI-Powered Psychological Profile Report\n`;
+        formattedContent += `🖼️ Subject Detected: 1 Individual\n`;
+        formattedContent += `📷 Mode: Individual Analysis\n\n`;
+        
+        formattedContent += `${'─'.repeat(65)}\n`;
+        formattedContent += `👤 Subject 1${genderAge ? ` (${genderAge})` : ''}\n`;
+        formattedContent += `${'─'.repeat(65)}\n\n`;
+        
+        formattedContent += `🧾 Summary:\n${profile.summary || 'No summary available'}\n\n`;
+        
+        if (detailedAnalysis.personality_core) {
+          formattedContent += `🧬 Core Personality:\n${detailedAnalysis.personality_core || 'Not available'}\n\n`;
+        }
+        
+        if (detailedAnalysis.cognitive_style) {
+          formattedContent += `🧠 Cognitive Style:\n${detailedAnalysis.cognitive_style || 'Not available'}\n\n`;
+        }
+        
+        if (detailedAnalysis.professional_insights) {
+          formattedContent += `💼 Professional Fit:\n${detailedAnalysis.professional_insights || 'Not available'}\n\n`;
+        }
+        
+        if (detailedAnalysis.relationships) {
+          formattedContent += `❤️ Relationships:\n`;
+          const relationshipParts = [];
+          
+          if (detailedAnalysis.relationships.current_status && 
+              detailedAnalysis.relationships.current_status !== 'Not available') {
+            relationshipParts.push(detailedAnalysis.relationships.current_status);
+          }
+          
+          if (detailedAnalysis.relationships.parental_status && 
+              detailedAnalysis.relationships.parental_status !== 'Not available') {
+            relationshipParts.push(detailedAnalysis.relationships.parental_status);
+          }
+          
+          if (detailedAnalysis.relationships.ideal_partner && 
+              detailedAnalysis.relationships.ideal_partner !== 'Not available') {
+            relationshipParts.push(`Ideal match: ${detailedAnalysis.relationships.ideal_partner}`);
+          }
+          
+          formattedContent += relationshipParts.length > 0 
+            ? relationshipParts.join(' ') 
+            : 'No relationship data available';
+          
+          formattedContent += `\n\n`;
+        }
+        
+        if (detailedAnalysis.growth_areas) {
+          formattedContent += `📈 Growth Areas:\n`;
+          
+          if (Array.isArray(detailedAnalysis.growth_areas.strengths) && 
+              detailedAnalysis.growth_areas.strengths.length > 0) {
+            formattedContent += `Strengths:\n${detailedAnalysis.growth_areas.strengths.map((s: string) => `• ${s}`).join('\n')}\n\n`;
+          }
+          
+          if (Array.isArray(detailedAnalysis.growth_areas.challenges) && 
+              detailedAnalysis.growth_areas.challenges.length > 0) {
+            formattedContent += `Challenges:\n${detailedAnalysis.growth_areas.challenges.map((c: string) => `• ${c}`).join('\n')}\n\n`;
+          }
+          
+          if (detailedAnalysis.growth_areas.development_path) {
+            formattedContent += `Development Path:\n${detailedAnalysis.growth_areas.development_path}\n\n`;
+          }
+        }
       } else {
         // Fallback if no profiles
         formattedContent = "No personality profiles could be generated. Please try again with a different image or video.";
