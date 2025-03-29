@@ -661,7 +661,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const apiMessages = [
           {
             role: "system",
-            content: "You are an AI personality analyst providing insights based on facial analysis and user interaction. Be professional and avoid stereotypes.",
+            content: `You are an AI assistant capable of general conversation as well as providing specialized analysis about the personality insights previously generated. 
+            
+If the user asks about the analysis, provide detailed information based on the personality insights.
+If the user asks general questions unrelated to the analysis, respond naturally and helpfully as you would to any question.
+
+Be engaging, professional, and conversational in all responses. Feel free to have opinions, share information, and engage in dialogue on any topic.`,
           },
           {
             role: "assistant",
@@ -672,10 +677,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...messages.map(m => ({ role: m.role, content: m.content })),
         ];
         
-        // Remove the JSON response format to use the default text format
+        // Convert message format to match OpenAI's expected types
+        const typedMessages = apiMessages.map(msg => {
+          // Convert role to proper type
+          const role = msg.role === 'user' ? 'user' : 
+                      msg.role === 'assistant' ? 'assistant' : 'system';
+          
+          // Return properly typed message
+          return {
+            role,
+            content: msg.content || ''
+          };
+        });
+        
+        // Use the properly typed messages for the API call
         const response = await openai.chat.completions.create({
           model: "gpt-4o",
-          messages: apiMessages,
+          messages: typedMessages,
           // Don't use JSON format as it requires specific message formats
           // response_format: { type: "json_object" },
         });
