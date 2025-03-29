@@ -2,6 +2,7 @@ import { Analysis, InsertAnalysis, Message, InsertMessage, Share, InsertShare } 
 
 export interface IStorage {
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
+  updateAnalysisPeopleCount(analysisId: number, count: number): Promise<void>;
   getAnalysisBySessionId(sessionId: string): Promise<Analysis | undefined>;
   getAnalysisById(id: number): Promise<Analysis | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
@@ -29,11 +30,28 @@ export class MemStorage implements IStorage {
 
   async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
     const id = this.currentAnalysisId++;
+    
+    // Extract peopleCount from personalityInsights if available
+    let peopleCount = 1; // Default to 1 
+    try {
+      const insights = insertAnalysis.personalityInsights as any;
+      if (insights && typeof insights === 'object' && 'peopleCount' in insights) {
+        peopleCount = insights.peopleCount || 1;
+      }
+    } catch (err) {
+      console.error("Error extracting peopleCount:", err);
+    }
+    
     const analysis: Analysis = {
       ...insertAnalysis,
       id,
       createdAt: new Date(),
+      // Add these fields with defaults to match the schema
+      videoAnalysis: insertAnalysis.videoAnalysis || null,
+      audioTranscription: insertAnalysis.audioTranscription || null,
+      peopleCount: peopleCount
     };
+    
     this.analyses.set(id, analysis);
     return analysis;
   }
@@ -47,14 +65,32 @@ export class MemStorage implements IStorage {
   async getAnalysisById(id: number): Promise<Analysis | undefined> {
     return this.analyses.get(id);
   }
+  
+  async updateAnalysisPeopleCount(analysisId: number, count: number): Promise<void> {
+    const analysis = this.analyses.get(analysisId);
+    if (analysis) {
+      this.analyses.set(analysisId, { 
+        ...analysis, 
+        peopleCount: count 
+      });
+    }
+  }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     const id = this.currentMessageId++;
+    
+    // Ensure analysisId is properly handled (null instead of undefined)
+    const analysisId = insertMessage.analysisId !== undefined 
+      ? insertMessage.analysisId 
+      : null;
+      
     const message: Message = {
       ...insertMessage,
       id,
       createdAt: new Date(),
+      analysisId: analysisId
     };
+    
     this.messages.set(id, message);
     return message;
   }

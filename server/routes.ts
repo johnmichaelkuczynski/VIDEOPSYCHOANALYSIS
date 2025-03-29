@@ -18,15 +18,42 @@ import { promisify } from 'util';
 import ffmpeg from 'fluent-ffmpeg';
 import Anthropic from '@anthropic-ai/sdk';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize API clients with proper error handling for missing keys
+let openai: OpenAI | null = null;
+let anthropic: Anthropic | null = null;
 
-// Anthropic Claude client
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Check if OpenAI API key is available
+if (process.env.OPENAI_API_KEY) {
+  try {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log("OpenAI client initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize OpenAI client:", error);
+  }
+} else {
+  console.warn("OPENAI_API_KEY environment variable is not set. OpenAI API functionality will be limited.");
+}
+
+// Check if Anthropic API key is available
+if (process.env.ANTHROPIC_API_KEY) {
+  try {
+    anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    console.log("Anthropic client initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Anthropic client:", error);
+  }
+} else {
+  console.warn("ANTHROPIC_API_KEY environment variable is not set. Anthropic API functionality will be limited.");
+}
 
 // Perplexity AI client
 const perplexity = {
   query: async ({ model, query }: { model: string, query: string }) => {
+    if (!process.env.PERPLEXITY_API_KEY) {
+      console.warn("PERPLEXITY_API_KEY environment variable is not set. Perplexity API functionality will be limited.");
+      throw new Error("Perplexity API key not available");
+    }
+    
     try {
       const response = await fetch("https://api.perplexity.ai/chat/completions", {
         method: "POST",
@@ -145,13 +172,28 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
     const audioFile = fs.createReadStream(audioPath);
     
     // Transcribe using OpenAI's Whisper API
-    const transcriptionResponse = await openai.audio.transcriptions.create({
-      file: audioFile,
-      model: 'whisper-1',
-      language: 'en',
-      response_format: 'verbose_json',
-      timestamp_granularities: ['word']
-    });
+    let transcriptionResponse;
+    
+    if (openai) {
+      try {
+        transcriptionResponse = await openai.audio.transcriptions.create({
+          file: audioFile,
+          model: 'whisper-1',
+          language: 'en',
+          response_format: 'verbose_json',
+          timestamp_granularities: ['word']
+        });
+      } catch (error) {
+        console.error("Error with OpenAI Whisper API:", error);
+        throw new Error("Transcription failed. OpenAI API may not be properly configured.");
+      }
+    } else {
+      console.warn("OpenAI client is not initialized. Using mock transcription response.");
+      transcriptionResponse = {
+        text: "OpenAI API key is required for transcription. This is a placeholder transcription.",
+        segments: []
+      };
+    }
     
     const transcription = transcriptionResponse.text;
     console.log(`Transcription received: ${transcription.substring(0, 100)}...`);
@@ -220,8 +262,8 @@ const isEmailServiceConfigured = Boolean(process.env.SENDGRID_API_KEY && process
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/analyze", async (req, res) => {
     try {
-      // Use the new schema that supports both image and video
-      const { mediaData, mediaType, sessionId } = uploadMediaSchema.parse(req.body);
+      // Use the new schema that supports both image and video with optional maxPeople
+      const { mediaData, mediaType, sessionId, maxPeople = 5 } = uploadMediaSchema.parse(req.body);
 
       // Extract base64 data
       const base64Data = mediaData.replace(/^data:(image|video)\/\w+;base64,/, "");
@@ -233,8 +275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Process based on media type
       if (mediaType === "image") {
-        // For images, use regular face analysis
-        faceAnalysis = await analyzeFaceWithRekognition(mediaBuffer);
+        // For images, use multi-person face analysis
+        console.log(`Analyzing image for up to ${maxPeople} people...`);
+        faceAnalysis = await analyzeFaceWithRekognition(mediaBuffer, maxPeople);
+        console.log(`Detected ${Array.isArray(faceAnalysis) ? faceAnalysis.length : 1} people in the image`);
       } else {
         // For videos, we use the chunked processing approach
         try {
@@ -289,8 +333,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Extract a frame for face analysis
           const frameBuffer = await fs.promises.readFile(frameExtractionPath);
           
-          // Now run the face analysis on the extracted frame
-          faceAnalysis = await analyzeFaceWithRekognition(frameBuffer);
+          // Now run the face analysis on the extracted frame for multiple people
+          faceAnalysis = await analyzeFaceWithRekognition(frameBuffer, maxPeople);
+          console.log(`Detected ${Array.isArray(faceAnalysis) ? faceAnalysis.length : 1} people in the video frame`);
           
           // Process each chunk to gather comprehensive analysis
           for (let i = 0; i < videoChunks.length; i++) {
@@ -383,6 +428,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         audioTranscription
       );
 
+      // Determine how many people were detected
+      const peopleCount = personalityInsights.peopleCount || 1;
+
       // Create analysis in storage
       const analysis = await storage.createAnalysis({
         sessionId,
@@ -392,11 +440,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
         personalityInsights,
       });
 
+      // Format initial message content for the chat
+      let formattedContent = "";
+      
+      if (personalityInsights.individualProfiles?.length > 1) {
+        // Multi-person message format
+        formattedContent = `# Multi-Person Analysis (${peopleCount} people)\n\n`;
+        
+        // Add group dynamics if available
+        if (personalityInsights.groupDynamics) {
+          formattedContent += `## Group Dynamics\n${personalityInsights.groupDynamics}\n\n`;
+        }
+        
+        // Add each individual profile
+        personalityInsights.individualProfiles.forEach((profile, index) => {
+          formattedContent += `## ${profile.personLabel || `Person ${index + 1}`}\n\n`;
+          formattedContent += `### Summary\n${profile.summary || 'No summary available'}\n\n`;
+          
+          const detailedAnalysis = profile.detailed_analysis || {};
+          
+          if (detailedAnalysis.personality_core) {
+            formattedContent += `### Core Personality\n${detailedAnalysis.personality_core}\n\n`;
+          }
+          
+          if (detailedAnalysis.thought_patterns) {
+            formattedContent += `### Thought Patterns\n${detailedAnalysis.thought_patterns}\n\n`;
+          }
+          
+          if (detailedAnalysis.cognitive_style) {
+            formattedContent += `### Cognitive Style\n${detailedAnalysis.cognitive_style}\n\n`;
+          }
+          
+          if (detailedAnalysis.professional_insights) {
+            formattedContent += `### Professional Insights\n${detailedAnalysis.professional_insights}\n\n`;
+          }
+          
+          if (detailedAnalysis.relationships) {
+            formattedContent += `### Relationships\n`;
+            formattedContent += `Current Status: ${detailedAnalysis.relationships.current_status || 'Not available'}\n`;
+            formattedContent += `Parental Status: ${detailedAnalysis.relationships.parental_status || 'Not available'}\n`;
+            formattedContent += `Ideal Partner: ${detailedAnalysis.relationships.ideal_partner || 'Not available'}\n\n`;
+          }
+          
+          if (detailedAnalysis.growth_areas) {
+            formattedContent += `### Growth Areas\n`;
+            
+            if (Array.isArray(detailedAnalysis.growth_areas.strengths)) {
+              formattedContent += `Strengths:\n${detailedAnalysis.growth_areas.strengths.map((s: string) => `- ${s}`).join('\n')}\n\n`;
+            }
+            
+            if (Array.isArray(detailedAnalysis.growth_areas.challenges)) {
+              formattedContent += `Challenges:\n${detailedAnalysis.growth_areas.challenges.map((c: string) => `- ${c}`).join('\n')}\n\n`;
+            }
+            
+            if (detailedAnalysis.growth_areas.development_path) {
+              formattedContent += `Development Path:\n${detailedAnalysis.growth_areas.development_path}\n\n`;
+            }
+          }
+          
+          // Add separator between profiles
+          formattedContent += `${'='.repeat(50)}\n\n`;
+        });
+      } else if (personalityInsights.individualProfiles?.length === 1) {
+        // Single person format (maintain backward compatibility)
+        const profile = personalityInsights.individualProfiles[0];
+        const detailedAnalysis = profile.detailed_analysis || {};
+        
+        formattedContent = `
+Personality Analysis Summary:
+${profile.summary || 'No summary available'}
+
+Core Personality:
+${detailedAnalysis.personality_core || 'Not available'}
+
+Thought Patterns:
+${detailedAnalysis.thought_patterns || 'Not available'}
+
+Cognitive Style:
+${detailedAnalysis.cognitive_style || 'Not available'}
+
+Professional Insights:
+${detailedAnalysis.professional_insights || 'Not available'}
+
+Relationships:
+Current Status: ${detailedAnalysis.relationships?.current_status || 'Not available'}
+Parental Status: ${detailedAnalysis.relationships?.parental_status || 'Not available'}
+Ideal Partner: ${detailedAnalysis.relationships?.ideal_partner || 'Not available'}
+
+Growth Areas:
+Strengths:
+${Array.isArray(detailedAnalysis.growth_areas?.strengths) 
+  ? detailedAnalysis.growth_areas.strengths.map((s: string) => `- ${s}`).join('\n')
+  : '- Not available'}
+
+Challenges:
+${Array.isArray(detailedAnalysis.growth_areas?.challenges)
+  ? detailedAnalysis.growth_areas.challenges.map((c: string) => `- ${c}`).join('\n')
+  : '- Not available'}
+
+Development Path:
+${detailedAnalysis.growth_areas?.development_path || 'Not available'}`;
+      } else {
+        // Fallback if no profiles
+        formattedContent = "No personality profiles could be generated. Please try again with a different image or video.";
+      }
+
       // Send initial message with comprehensive analysis
       await storage.createMessage({
         sessionId,
         analysisId: analysis.id,
-        content: JSON.stringify(personalityInsights.detailed_analysis),
+        content: formattedContent,
         role: "assistant",
       });
 
@@ -508,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-async function analyzeFaceWithRekognition(imageBuffer: Buffer) {
+async function analyzeFaceWithRekognition(imageBuffer: Buffer, maxPeople: number = 5) {
   const command = new DetectFacesCommand({
     Image: {
       Bytes: imageBuffer
@@ -517,56 +670,282 @@ async function analyzeFaceWithRekognition(imageBuffer: Buffer) {
   });
 
   const response = await rekognition.send(command);
-  const face = response.FaceDetails?.[0];
+  const faces = response.FaceDetails || [];
 
-  if (!face) {
-    throw new Error("No face detected in the image");
+  if (faces.length === 0) {
+    throw new Error("No faces detected in the image");
   }
 
-  return {
-    age: {
-      low: face.AgeRange?.Low || 0,
-      high: face.AgeRange?.High || 0
-    },
-    gender: face.Gender?.Value?.toLowerCase() || "unknown",
-    emotion: face.Emotions?.reduce((acc, emotion) => {
-      if (emotion.Type && emotion.Confidence) {
-        acc[emotion.Type.toLowerCase()] = emotion.Confidence / 100;
-      }
-      return acc;
-    }, {} as Record<string, number>),
-    faceAttributes: {
-      smile: face.Smile?.Value ? (face.Smile.Confidence || 0) / 100 : 0,
-      eyeglasses: face.Eyeglasses?.Value ? "Glasses" : "NoGlasses",
-      sunglasses: face.Sunglasses?.Value ? "Sunglasses" : "NoSunglasses",
-      beard: face.Beard?.Value ? "Yes" : "No",
-      mustache: face.Mustache?.Value ? "Yes" : "No",
-      eyesOpen: face.EyesOpen?.Value ? "Yes" : "No",
-      mouthOpen: face.MouthOpen?.Value ? "Yes" : "No",
-      quality: {
-        brightness: face.Quality?.Brightness || 0,
-        sharpness: face.Quality?.Sharpness || 0,
-      },
-      pose: {
-        pitch: face.Pose?.Pitch || 0,
-        roll: face.Pose?.Roll || 0,
-        yaw: face.Pose?.Yaw || 0,
-      }
+  // Limit the number of faces to analyze
+  const facesToProcess = faces.slice(0, maxPeople);
+  
+  // Process each face and add descriptive labels
+  return facesToProcess.map((face, index) => {
+    // Create a descriptive label for each person
+    let personLabel = `Person ${index + 1}`;
+    
+    // Add gender and approximate age to label if available
+    if (face.Gender?.Value) {
+      const genderLabel = face.Gender.Value.toLowerCase() === 'male' ? 'Male' : 'Female';
+      const ageRange = face.AgeRange ? `${face.AgeRange.Low}-${face.AgeRange.High}` : '';
+      personLabel = `${personLabel} (${genderLabel}${ageRange ? ', ~' + ageRange + ' years' : ''})`;
     }
-  };
+    
+    return {
+      personLabel,
+      positionInImage: index + 1,
+      boundingBox: face.BoundingBox || {
+        Width: 0,
+        Height: 0,
+        Left: 0,
+        Top: 0
+      },
+      age: {
+        low: face.AgeRange?.Low || 0,
+        high: face.AgeRange?.High || 0
+      },
+      gender: face.Gender?.Value?.toLowerCase() || "unknown",
+      emotion: face.Emotions?.reduce((acc, emotion) => {
+        if (emotion.Type && emotion.Confidence) {
+          acc[emotion.Type.toLowerCase()] = emotion.Confidence / 100;
+        }
+        return acc;
+      }, {} as Record<string, number>),
+      faceAttributes: {
+        smile: face.Smile?.Value ? (face.Smile.Confidence || 0) / 100 : 0,
+        eyeglasses: face.Eyeglasses?.Value ? "Glasses" : "NoGlasses",
+        sunglasses: face.Sunglasses?.Value ? "Sunglasses" : "NoSunglasses",
+        beard: face.Beard?.Value ? "Yes" : "No",
+        mustache: face.Mustache?.Value ? "Yes" : "No",
+        eyesOpen: face.EyesOpen?.Value ? "Yes" : "No",
+        mouthOpen: face.MouthOpen?.Value ? "Yes" : "No",
+        quality: {
+          brightness: face.Quality?.Brightness || 0,
+          sharpness: face.Quality?.Sharpness || 0,
+        },
+        pose: {
+          pitch: face.Pose?.Pitch || 0,
+          roll: face.Pose?.Roll || 0,
+          yaw: face.Pose?.Yaw || 0,
+        }
+      },
+      dominant: index === 0 // Flag the first/largest face as dominant
+    };
+  });
 }
 
 
 
 async function getPersonalityInsights(faceAnalysis: any, videoAnalysis: any = null, audioTranscription: any = null) {
-  // Build a comprehensive analysis input combining all the data we have
-  const analysisInput = {
-    faceAnalysis,
-    ...(videoAnalysis && { videoAnalysis }),
-    ...(audioTranscription && { audioTranscription })
-  };
+  // Check if any API clients are available, display warning if not
+  if (!openai && !anthropic && !process.env.PERPLEXITY_API_KEY) {
+    console.warn("No AI model API clients are available. Using fallback analysis.");
+    return {
+      peopleCount: Array.isArray(faceAnalysis) ? faceAnalysis.length : 1,
+      individualProfiles: [{
+        summary: "API keys are required for detailed analysis. Please configure OpenAI, Anthropic, or Perplexity API keys.",
+        detailed_analysis: {
+          personality_core: "API keys required for detailed analysis",
+          thought_patterns: "API keys required for detailed analysis",
+          cognitive_style: "API keys required for detailed analysis",
+          professional_insights: "API keys required for detailed analysis",
+          relationships: {
+            current_status: "Not available",
+            parental_status: "Not available",
+            ideal_partner: "Not available"
+          },
+          growth_areas: {
+            strengths: ["Not available"],
+            challenges: ["Not available"],
+            development_path: "Not available"
+          }
+        }
+      }]
+    };
+  }
   
-  const analysisPrompt = `
+  // Check if faceAnalysis is an array (multiple people) or single object
+  const isMultiplePeople = Array.isArray(faceAnalysis);
+  
+  // If we have multiple people, analyze each one separately
+  if (isMultiplePeople) {
+    console.log(`Analyzing ${faceAnalysis.length} people...`);
+    
+    // Create a combined analysis with an overview and individual profiles
+    let multiPersonAnalysis = {
+      peopleCount: faceAnalysis.length,
+      overviewSummary: `Analysis of ${faceAnalysis.length} people detected in the media.`,
+      individualProfiles: [] as any[],
+      groupDynamics: undefined as string | undefined, // Will be populated later for multi-person analyses
+      detailed_analysis: {} // For backward compatibility with message format
+    };
+    
+    // Analyze each person with the existing logic (concurrently for efficiency)
+    const analysisPromises = faceAnalysis.map(async (personFaceData) => {
+      try {
+        // Create input for this specific person
+        const personInput = {
+          faceAnalysis: personFaceData,
+          ...(videoAnalysis && { videoAnalysis }),
+          ...(audioTranscription && { audioTranscription })
+        };
+        
+        // Use the standard analysis prompt but customized for the person
+        const personLabel = personFaceData.personLabel || "Person";
+        const analysisPrompt = `
+You are an expert personality analyst capable of providing deep psychological insights. 
+Analyze the provided data to generate a comprehensive personality profile for ${personLabel}.
+
+${videoAnalysis ? 'This analysis includes video data showing gestures, activities, and attention patterns.' : ''}
+${audioTranscription ? 'This analysis includes audio transcription and speech pattern data.' : ''}
+
+Return a JSON object with the following structure:
+{
+  "summary": "Brief overview of ${personLabel}",
+  "detailed_analysis": {
+    "personality_core": "Deep analysis of core personality traits",
+    "thought_patterns": "Analysis of cognitive processes and decision-making style",
+    "cognitive_style": "Description of learning and problem-solving approaches",
+    "professional_insights": "Career inclinations and work style",
+    "relationships": {
+      "current_status": "Likely relationship status",
+      "parental_status": "Insights about parenting style or potential",
+      "ideal_partner": "Description of compatible partner characteristics"
+    },
+    "growth_areas": {
+      "strengths": ["List of key strengths"],
+      "challenges": ["Areas for improvement"],
+      "development_path": "Suggested personal growth direction"
+    }
+  }
+}
+
+Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
+Important: Pay careful attention to gender, facial expressions, emotional indicators, and any video/audio data provided. Base your insights on the actual analysis data provided.`;
+
+        // Use OpenAI as primary source for consistency across multiple analyses
+        try {
+          if (!openai) {
+            throw new Error("OpenAI client not available");
+          }
+          
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: analysisPrompt,
+              },
+              {
+                role: "user",
+                content: JSON.stringify(personInput),
+              },
+            ],
+            response_format: { type: "json_object" },
+          });
+          
+          // Parse and add person identifier
+          const analysisResult = JSON.parse(response.choices[0]?.message.content || "{}");
+          return {
+            ...analysisResult,
+            personLabel: personFaceData.personLabel,
+            personIndex: personFaceData.positionInImage,
+            // Add positional data for potential UI highlighting
+            boundingBox: personFaceData.boundingBox
+          };
+        } catch (err) {
+          console.error(`Failed to analyze ${personLabel}:`, err);
+          // Return minimal profile on error
+          return {
+            summary: `Analysis of ${personLabel} could not be completed.`,
+            detailed_analysis: {
+              personality_core: "Analysis unavailable for this individual.",
+              thought_patterns: "Analysis unavailable.",
+              cognitive_style: "Analysis unavailable.",
+              professional_insights: "Analysis unavailable.",
+              relationships: {
+                current_status: "Analysis unavailable.",
+                parental_status: "Analysis unavailable.",
+                ideal_partner: "Analysis unavailable."
+              },
+              growth_areas: {
+                strengths: ["Unknown"],
+                challenges: ["Unknown"],
+                development_path: "Analysis unavailable."
+              }
+            },
+            personLabel: personFaceData.personLabel,
+            personIndex: personFaceData.positionInImage
+          };
+        }
+      } catch (error) {
+        console.error("Error analyzing person:", error);
+        return null;
+      }
+    });
+    
+    // Wait for all analyses to complete
+    const individualResults = await Promise.all(analysisPromises);
+    
+    // Filter out any failed analyses
+    multiPersonAnalysis.individualProfiles = individualResults.filter(result => result !== null);
+    
+    // Generate a group dynamics summary if we have multiple successful analyses
+    if (multiPersonAnalysis.individualProfiles.length > 1) {
+      try {
+        // Create a combined input with only successful profiles
+        const groupInput = {
+          profiles: multiPersonAnalysis.individualProfiles.map(profile => ({
+            personLabel: profile.personLabel,
+            summary: profile.summary,
+            key_traits: profile.detailed_analysis.personality_core.substring(0, 200) // Truncate for brevity
+          }))
+        };
+        
+        const groupPrompt = `
+You are analyzing the group dynamics of ${multiPersonAnalysis.individualProfiles.length} people detected in the same media.
+Based on the individual summaries provided, generate a brief analysis of how these personalities might interact.
+
+Return a short paragraph (3-5 sentences) describing potential group dynamics, 
+compatibilities or conflicts, and how these different personalities might complement each other.`;
+
+        if (!openai) {
+          throw new Error("OpenAI client not available for group dynamics analysis");
+        }
+        
+        const groupResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: groupPrompt,
+            },
+            {
+              role: "user",
+              content: JSON.stringify(groupInput),
+            },
+          ]
+        });
+        
+        multiPersonAnalysis.groupDynamics = groupResponse.choices[0]?.message.content || 
+          "Group dynamics analysis unavailable.";
+      } catch (err) {
+        console.error("Error generating group dynamics:", err);
+        multiPersonAnalysis.groupDynamics = "Group dynamics analysis unavailable.";
+      }
+    }
+    
+    return multiPersonAnalysis;
+  } else {
+    // Original single-person analysis logic
+    // Build a comprehensive analysis input combining all the data we have
+    const analysisInput = {
+      faceAnalysis,
+      ...(videoAnalysis && { videoAnalysis }),
+      ...(audioTranscription && { audioTranscription })
+    };
+    
+    const analysisPrompt = `
 You are an expert personality analyst capable of providing deep psychological insights. 
 Analyze the provided data to generate a comprehensive personality profile.
 
@@ -597,122 +976,160 @@ Return a JSON object with the following structure:
 Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
 Important: Pay careful attention to gender, facial expressions, emotional indicators, and any video/audio data provided. Base your insights on the actual analysis data provided.`;
 
-  // Try to get analysis from all three services in parallel for maximum depth
-  try {
-    const [openaiResult, anthropicResult, perplexityResult] = await Promise.allSettled([
-      // OpenAI Analysis
-      openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: analysisPrompt,
-          },
-          {
-            role: "user",
-            content: JSON.stringify(analysisInput),
-          },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    // Try to get analysis from all three services in parallel for maximum depth
+    try {
+      // Prepare API calls based on available clients
+      const apiPromises = [];
       
-      // Anthropic Analysis
-      anthropic.messages.create({
-        model: "claude-3-opus-20240229",
-        max_tokens: 4000,
-        system: analysisPrompt,
-        messages: [
-          {
-            role: "user",
-            content: JSON.stringify(analysisInput),
+      // OpenAI Analysis (if available)
+      if (openai) {
+        apiPromises.push(
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: analysisPrompt,
+              },
+              {
+                role: "user",
+                content: JSON.stringify(analysisInput),
+              },
+            ],
+            response_format: { type: "json_object" },
+          })
+        );
+      } else {
+        apiPromises.push(Promise.reject(new Error("OpenAI client not available")));
+      }
+      
+      // Anthropic Analysis (if available)
+      if (anthropic) {
+        apiPromises.push(
+          anthropic.messages.create({
+            model: "claude-3-opus-20240229",
+            max_tokens: 4000,
+            system: analysisPrompt,
+            messages: [
+              {
+                role: "user",
+                content: JSON.stringify(analysisInput),
+              }
+            ],
+          })
+        );
+      } else {
+        apiPromises.push(Promise.reject(new Error("Anthropic client not available")));
+      }
+      
+      // Perplexity Analysis (if API key available)
+      if (process.env.PERPLEXITY_API_KEY) {
+        apiPromises.push(
+          perplexity.query({
+            model: "mistral-large-latest",
+            query: `${analysisPrompt}\n\nHere is the data to analyze: ${JSON.stringify(analysisInput)}`,
+          })
+        );
+      } else {
+        apiPromises.push(Promise.reject(new Error("Perplexity API key not available")));
+      }
+      
+      // Run all API calls in parallel
+      const [openaiResult, anthropicResult, perplexityResult] = await Promise.allSettled(apiPromises);
+      
+      // Process results from each service
+      let finalInsights: any = {};
+      
+      // Try each service result in order of preference
+      if (openaiResult.status === 'fulfilled') {
+        try {
+          // Handle OpenAI response
+          const openaiResponse = openaiResult.value as any;
+          const openaiData = JSON.parse(openaiResponse.choices[0]?.message.content || "{}");
+          finalInsights = openaiData;
+          console.log("OpenAI analysis used as primary source");
+        } catch (e) {
+          console.error("Error parsing OpenAI response:", e);
+        }
+      } else if (anthropicResult.status === 'fulfilled') {
+        try {
+          // Handle Anthropic API response structure
+          const anthropicResponse = anthropicResult.value as any;
+          if (anthropicResponse.content && Array.isArray(anthropicResponse.content) && anthropicResponse.content.length > 0) {
+            const content = anthropicResponse.content[0];
+            // Check if it's a text content type
+            if (content && content.type === 'text') {
+              const anthropicText = content.text;
+              // Extract JSON from Anthropic response (which might include markdown formatting)
+              const jsonMatch = anthropicText.match(/```json\n([\s\S]*?)\n```/) || 
+                                anthropicText.match(/{[\s\S]*}/);
+                                
+              if (jsonMatch) {
+                const jsonStr = jsonMatch[1] || jsonMatch[0];
+                finalInsights = JSON.parse(jsonStr);
+                console.log("Anthropic analysis used as backup");
+              }
+            }
           }
-        ],
-      }),
-      
-      // Perplexity Analysis
-      perplexity.query({
-        model: "mistral-large-latest",
-        query: `${analysisPrompt}\n\nHere is the data to analyze: ${JSON.stringify(analysisInput)}`,
-      })
-    ]);
-    
-    // Process results from each service
-    let finalInsights: any = {};
-    
-    // Try each service result in order of preference
-    if (openaiResult.status === 'fulfilled') {
-      const openaiData = JSON.parse(openaiResult.value.choices[0]?.message.content || "{}");
-      finalInsights = openaiData;
-      console.log("OpenAI analysis used as primary source");
-    } else if (anthropicResult.status === 'fulfilled') {
-      try {
-        // Handle Anthropic API response structure
-        const content = anthropicResult.value.content[0] as { type: string, text: string };
-        // Check if it's a text content type
-        if (content && content.type === 'text') {
-          const anthropicText = content.text;
-          // Extract JSON from Anthropic response (which might include markdown formatting)
-          const jsonMatch = anthropicText.match(/```json\n([\s\S]*?)\n```/) || 
-                            anthropicText.match(/{[\s\S]*}/);
-                            
+        } catch (e) {
+          console.error("Error parsing Anthropic response:", e);
+        }
+      } else if (perplexityResult.status === 'fulfilled') {
+        try {
+          // Extract JSON from Perplexity response
+          const perplexityResponse = perplexityResult.value as any;
+          const perplexityText = perplexityResponse.text || "";
+          const jsonMatch = perplexityText.match(/```json\n([\s\S]*?)\n```/) || 
+                           perplexityText.match(/{[\s\S]*}/);
+                           
           if (jsonMatch) {
             const jsonStr = jsonMatch[1] || jsonMatch[0];
             finalInsights = JSON.parse(jsonStr);
-            console.log("Anthropic analysis used as backup");
+            console.log("Perplexity analysis used as backup");
           }
+        } catch (e) {
+          console.error("Error parsing Perplexity response:", e);
         }
-      } catch (e) {
-        console.error("Error parsing Anthropic response:", e);
       }
-    } else if (perplexityResult.status === 'fulfilled') {
-      try {
-        // Extract JSON from Perplexity response
-        const perplexityText = perplexityResult.value.text || "";
-        const jsonMatch = perplexityText.match(/```json\n([\s\S]*?)\n```/) || 
-                         perplexityText.match(/{[\s\S]*}/);
-                         
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[1] || jsonMatch[0];
-          finalInsights = JSON.parse(jsonStr);
-          console.log("Perplexity analysis used as backup");
-        }
-      } catch (e) {
-        console.error("Error parsing Perplexity response:", e);
-      }
-    }
-    
-    // If we couldn't get analysis from any service, fall back to a basic structure
-    if (!finalInsights || Object.keys(finalInsights).length === 0) {
-      console.error("All personality analysis services failed, using basic fallback");
-      finalInsights = {
-        summary: "Analysis could not be completed fully.",
-        detailed_analysis: {
-          personality_core: "The analysis could not be completed at this time. Please try again with a clearer image or video.",
-          thought_patterns: "Analysis unavailable.",
-          cognitive_style: "Analysis unavailable.",
-          professional_insights: "Analysis unavailable.",
-          relationships: {
-            current_status: "Analysis unavailable.",
-            parental_status: "Analysis unavailable.",
-            ideal_partner: "Analysis unavailable."
-          },
-          growth_areas: {
-            strengths: ["Determination"],
-            challenges: ["Technical issues"],
-            development_path: "Try again with a clearer image or video."
+      
+      // If we couldn't get analysis from any service, fall back to a basic structure
+      if (!finalInsights || Object.keys(finalInsights).length === 0) {
+        console.error("All personality analysis services failed, using basic fallback");
+        finalInsights = {
+          summary: "Analysis could not be completed fully.",
+          detailed_analysis: {
+            personality_core: "The analysis could not be completed at this time. Please try again with a clearer image or video.",
+            thought_patterns: "Analysis unavailable.",
+            cognitive_style: "Analysis unavailable.",
+            professional_insights: "Analysis unavailable.",
+            relationships: {
+              current_status: "Analysis unavailable.",
+              parental_status: "Analysis unavailable.",
+              ideal_partner: "Analysis unavailable."
+            },
+            growth_areas: {
+              strengths: ["Determination"],
+              challenges: ["Technical issues"],
+              development_path: "Try again with a clearer image or video."
+            }
           }
-        }
+        };
+      }
+      
+      // Enhance with combined insights if we have multiple services working
+      if (openaiResult.status === 'fulfilled' && (anthropicResult.status === 'fulfilled' || perplexityResult.status === 'fulfilled')) {
+        finalInsights.provider_info = "This analysis used multiple AI providers for maximum depth and accuracy.";
+      }
+      
+      // For single person case, wrap in object with peopleCount=1 for consistency
+      return {
+        peopleCount: 1,
+        individualProfiles: [finalInsights],
+        detailed_analysis: finalInsights.detailed_analysis || {} // For backward compatibility
       };
+    } catch (error) {
+      console.error("Error in getPersonalityInsights:", error);
+      throw new Error("Failed to generate personality insights. Please try again.");
     }
-    
-    // Enhance with combined insights if we have multiple services working
-    if (openaiResult.status === 'fulfilled' && (anthropicResult.status === 'fulfilled' || perplexityResult.status === 'fulfilled')) {
-      finalInsights.provider_info = "This analysis used multiple AI providers for maximum depth and accuracy.";
-    }
-    
-    return finalInsights;
-  } catch (error) {
-    console.error("Error in getPersonalityInsights:", error);
-    throw new Error("Failed to generate personality insights. Please try again.");
   }
 }

@@ -1,10 +1,16 @@
 import { apiRequest } from "./queryClient";
 
-export async function uploadMedia(mediaData: string, mediaType: "image" | "video", sessionId: string) {
+export async function uploadMedia(
+  mediaData: string, 
+  mediaType: "image" | "video", 
+  sessionId: string,
+  maxPeople: number = 5 // Default to 5 people
+) {
   const res = await apiRequest("POST", "/api/analyze", { 
     mediaData, 
     mediaType, 
-    sessionId 
+    sessionId,
+    maxPeople // Add the maxPeople parameter to support multi-person analysis
   });
   return res.json();
 }

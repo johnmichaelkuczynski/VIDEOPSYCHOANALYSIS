@@ -9,14 +9,16 @@ export const analyses = pgTable("analyses", {
   mediaUrl: text("media_url").notNull(),
   // Indicate whether the media is an image or video
   mediaType: text("media_type", { enum: ["image", "video"] }).notNull(),
-  // Store the face analysis data from AWS Rekognition
+  // Store the face analysis data from AWS Rekognition - now supports multiple people
   faceAnalysis: json("face_analysis").notNull(),
   // For videos, store additional analysis data
   videoAnalysis: json("video_analysis"),
   // For videos, store audio transcription
   audioTranscription: json("audio_transcription"),
-  // Store the comprehensive personality insights
+  // Store the comprehensive personality insights - now an array for multiple people
   personalityInsights: json("personality_insights").notNull(),
+  // Number of people detected in the analysis
+  peopleCount: integer("people_count").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -43,6 +45,7 @@ export const insertAnalysisSchema = createInsertSchema(analyses).omit({
   createdAt: true,
   videoAnalysis: true,
   audioTranscription: true,
+  peopleCount: true,
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
@@ -68,4 +71,5 @@ export const uploadMediaSchema = z.object({
   mediaData: z.string(),
   mediaType: z.enum(["image", "video"]),
   sessionId: z.string(),
+  maxPeople: z.number().min(1).max(5).optional().default(5), // Optional parameter to limit people count
 });
