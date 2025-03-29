@@ -657,28 +657,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages = await storage.getMessagesBySessionId(sessionId);
 
       try {
+        // Set up the messages for the API call
+        const apiMessages = [
+          {
+            role: "system",
+            content: "You are an AI personality analyst providing insights based on facial analysis and user interaction. Be professional and avoid stereotypes.",
+          },
+          {
+            role: "assistant",
+            content: typeof analysis?.personalityInsights === 'object' 
+              ? JSON.stringify(analysis?.personalityInsights) 
+              : String(analysis?.personalityInsights || ''),
+          },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+        ];
+        
+        // Remove the JSON response format to use the default text format
         const response = await openai.chat.completions.create({
           model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are an AI personality analyst providing insights based on facial analysis and user interaction. Be professional and avoid stereotypes.",
-            },
-            {
-              role: "assistant",
-              content: JSON.stringify(analysis?.personalityInsights),
-            },
-            ...messages.map(m => ({ role: m.role, content: m.content })),
-          ],
-          response_format: { type: "json_object" },
+          messages: apiMessages,
+          // Don't use JSON format as it requires specific message formats
+          // response_format: { type: "json_object" },
         });
 
-        const aiResponse = JSON.parse(response.choices[0]?.message.content || "{}");
+        // Get the raw text response
+        const responseContent = response.choices[0]?.message.content || "";
+        let aiResponse = responseContent;
+        
+        // Try to parse as JSON if it appears to be JSON, otherwise use as plain text
+        try {
+          if (responseContent.trim().startsWith('{') && responseContent.trim().endsWith('}')) {
+            aiResponse = JSON.parse(responseContent);
+          }
+        } catch (e) {
+          // If parsing fails, use the raw text
+          console.log("Failed to parse response as JSON, using raw text");
+          aiResponse = responseContent;
+        }
 
+        // Create the assistant message using the response content
+        // If aiResponse is an object with a response property, use that
+        // Otherwise, use the raw text response
+        const messageContent = typeof aiResponse === 'object' && aiResponse.response 
+          ? aiResponse.response 
+          : typeof aiResponse === 'string' 
+            ? aiResponse 
+            : "I'm sorry, I couldn't generate a proper response.";
+            
         const assistantMessage = await storage.createMessage({
           sessionId,
           analysisId: analysis?.id,
-          content: aiResponse.response,
+          content: messageContent,
           role: "assistant",
         });
 

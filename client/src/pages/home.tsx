@@ -94,7 +94,10 @@ export default function Home() {
       setAnalysisId(data.id);
       setEmailServiceAvailable(data.emailServiceAvailable);
       
-      // Get the first message that was already created on the server
+      // Clear previous messages when a new analysis is completed
+      setMessages([]);
+      
+      // Get the latest messages that were created for this session
       // This contains the properly formatted content for both single and multi-person analyses
       const messagesQuery = `/api/messages?sessionId=${sessionId}`;
       
@@ -102,7 +105,19 @@ export default function Home() {
         .then(response => response.json())
         .then(messagesData => {
           if (messagesData.length > 0) {
-            setMessages(messagesData);
+            // Only show messages from the latest analysis
+            const latestAnalysisId = Math.max(...messagesData.filter(msg => msg.analysisId).map(msg => msg.analysisId));
+            const latestMessages = messagesData.filter(msg => msg.analysisId === latestAnalysisId);
+            
+            if (latestMessages.length > 0) {
+              setMessages(latestMessages);
+              toast({
+                title: "Analysis Complete",
+                description: "New analysis completed successfully."
+              });
+            } else {
+              setMessages(messagesData); // Fallback to all messages if filtering fails
+            }
           } else {
             // Fallback in case messages aren't available
             toast({
