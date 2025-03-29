@@ -149,13 +149,31 @@ export default function Home() {
 
   const chatMutation = useMutation({
     mutationFn: async (content: string) => {
+      console.log("Sending chat message:", { content, sessionId });
       return sendMessage(content, sessionId);
     },
     onSuccess: (data) => {
+      console.log("Chat response data:", data);
+      
       // If we received messages, add them to the state
-      if (data.messages) {
-        setMessages((prev) => [...prev, ...data.messages]);
-        queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
+      if (data && data.messages && Array.isArray(data.messages)) {
+        console.log("Adding new messages to state:", data.messages);
+        
+        // Add only the new messages that aren't already in the state
+        // Get the IDs of existing messages
+        const existingMessageIds = messages.map(msg => (msg as any).id).filter(Boolean);
+        
+        // Filter out messages that are already in the state
+        const newMessages = data.messages.filter(msg => !msg.id || !existingMessageIds.includes(msg.id));
+        
+        if (newMessages.length > 0) {
+          setMessages(prev => [...prev, ...newMessages]);
+          queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
+        } else {
+          console.log("No new messages to add");
+        }
+      } else {
+        console.warn("Received invalid message data format:", data);
       }
       
       // Check for configError that indicates an API key issue
@@ -168,6 +186,8 @@ export default function Home() {
       }
     },
     onError: (error: any) => {
+      console.error("Chat error:", error);
+      
       // Check if the error has a response with details
       const errorMessage = error.response?.data?.error || "Failed to send message. Please try again.";
       const configError = error.response?.data?.configError;
