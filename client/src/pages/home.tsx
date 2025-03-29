@@ -167,7 +167,15 @@ export default function Home() {
         const newMessages = data.messages.filter(msg => !msg.id || !existingMessageIds.includes(msg.id));
         
         if (newMessages.length > 0) {
-          setMessages(prev => [...prev, ...newMessages]);
+          // Make sure each message has a valid role and content property
+          const validMessages = newMessages.map(msg => ({
+            ...msg,
+            role: msg.role || 'assistant',
+            content: msg.content || '',
+          }));
+          
+          console.log("Final messages to add:", validMessages);
+          setMessages(prev => [...prev, ...validMessages]);
           queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
         } else {
           console.log("No new messages to add");
@@ -383,48 +391,78 @@ export default function Home() {
             )}
           </div>
           <ScrollArea className="h-[600px] pr-4">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`mb-6 p-6 rounded-lg ${
-                  msg.role === "assistant"
-                    ? "bg-primary/10"
-                    : "bg-muted"
-                }`}
-              >
-                <div className="prose prose-sm max-w-none">
-                  {msg.content.split('\n').map((line, j) => {
-                    // Check if line is a divider (─────)
-                    if (line.startsWith('─')) {
-                      return <hr key={j} className="my-3 border-gray-300" />;
-                    }
-                    
-                    // Check if line is a section header with emoji (e.g., "👤 Subject 1")
-                    if (/^[👤🧠🖼️📷🧾🧬💼❤️📈🤝]/.test(line)) {
-                      return <h3 key={j} className="text-lg font-bold mt-4 mb-2 text-primary">{line}</h3>;
-                    }
-                    
-                    // Special formatting for Growth Areas with bullet points
-                    if (line.startsWith('•')) {
-                      return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
-                    }
-                    
-                    // Handle bullet lists
-                    if (line.startsWith('-') || line.startsWith('*')) {
-                      return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
-                    }
-                    
-                    // For subsections like "Strengths:", "Challenges:", etc.
-                    if (line.endsWith(':')) {
-                      return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
-                    }
-                    
-                    // Regular paragraph
-                    return <p key={j} className="mb-2">{line}</p>;
-                  })}
+            {messages.map((msg: any, i) => {
+              console.log("Rendering message:", msg);
+              
+              return (
+                <div
+                  key={i}
+                  className={`mb-6 p-6 rounded-lg ${
+                    msg.role === "assistant"
+                      ? "bg-primary/10"
+                      : "bg-muted"
+                  }`}
+                >
+                  <p className="text-xs text-gray-500 mb-2">
+                    {msg.role === "assistant" ? "AI Assistant" : "You"}
+                  </p>
+                  
+                  <div className="prose prose-sm max-w-none">
+                    {typeof msg.content === 'string' && msg.content.split('\n').map((line: string, j: number) => {
+                      // Check if line is a divider (─────)
+                      if (line.startsWith('─')) {
+                        return <hr key={j} className="my-3 border-gray-300" />;
+                      }
+                      
+                      // Check if line is a section header with emoji (e.g., "👤 Subject 1")
+                      if (/^[👤🧠🖼️📷🧾🧬💼❤️📈🤝]/.test(line)) {
+                        return <h3 key={j} className="text-lg font-bold mt-4 mb-2 text-primary">{line}</h3>;
+                      }
+                      
+                      // Check for numbered lists (e.g., "1. Item")
+                      if (/^\d+\./.test(line)) {
+                        return <p key={j} className="ml-8 mb-1">{line}</p>;
+                      }
+                      
+                      // Special formatting for Growth Areas with bullet points
+                      if (line.startsWith('•')) {
+                        return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
+                      }
+                      
+                      // Handle bullet lists
+                      if (line.startsWith('-') || line.startsWith('*')) {
+                        return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
+                      }
+                      
+                      // For subsections like "Strengths:", "Challenges:", etc.
+                      if (line.endsWith(':')) {
+                        return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
+                      }
+                      
+                      // Handle bold text with asterisks like **this**
+                      if (line.includes('**')) {
+                        // Split the line by ** markers
+                        const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                        return (
+                          <p key={j} className="mb-2">
+                            {parts.map((part, k) => {
+                              if (part.startsWith('**') && part.endsWith('**')) {
+                                // This is a bold section
+                                return <strong key={k}>{part.slice(2, -2)}</strong>;
+                              }
+                              return part;
+                            })}
+                          </p>
+                        );
+                      }
+                      
+                      // Regular paragraph
+                      return <p key={j} className="mb-2">{line}</p>;
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </ScrollArea>
         </Card>
       </div>
