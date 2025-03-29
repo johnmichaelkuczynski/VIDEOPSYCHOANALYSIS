@@ -781,10 +781,14 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
         return res.status(404).json({ error: "Analysis not found" });
       }
 
-      // Send email
+      // Generate the share URL with the current hostname
+      const shareUrl = `${req.protocol}://${req.get('host')}/share`;
+      
+      // Send email with share URL
       const emailSent = await sendAnalysisEmail({
         share,
         analysis,
+        shareUrl
       });
 
       // Update share status based on email sending result
@@ -796,7 +800,7 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
         });
       }
 
-      res.json({ success: emailSent });
+      res.json({ success: emailSent, shareUrl });
     } catch (error) {
       console.error('Share endpoint error:', error);
       if (error instanceof Error) {

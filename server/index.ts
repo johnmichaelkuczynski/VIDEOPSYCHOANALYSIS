@@ -53,8 +53,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  const port = 5000;
+  // Use Replit's default port 8080 for public access
+  const port = 8080;
   server.listen({
     port,
     host: "0.0.0.0",

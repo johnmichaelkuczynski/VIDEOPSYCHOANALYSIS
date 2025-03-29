@@ -9,6 +9,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/share">
+        {(params) => <Home isShareMode={true} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

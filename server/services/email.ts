@@ -20,11 +20,13 @@ const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'notifications@person
 interface SendAnalysisEmailParams {
   share: Share;
   analysis: Analysis;
+  shareUrl?: string;
 }
 
 export async function sendAnalysisEmail({
   share,
   analysis,
+  shareUrl
 }: SendAnalysisEmailParams): Promise<boolean> {
   try {
     // If SendGrid is not configured, log error and return false
@@ -146,6 +148,7 @@ export async function sendAnalysisEmail({
         <div style="background: #eef4ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <p style="font-style: italic;">This multi-person analysis was shared by: ${share.senderEmail}</p>
           <p style="font-size: 0.8em; color: #666; margin-top: 10px;">Analysis based on ${isVideoAnalysis ? 'video' : 'image'} processing with advanced AI technology.</p>
+          ${shareUrl ? `<p style="margin-top: 15px;"><a href="${shareUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: 500;">View Analysis Online</a></p>` : ''}
         </div>
       </div>
       `;
@@ -213,6 +216,7 @@ export async function sendAnalysisEmail({
           <div style="background: #eef4ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <p style="font-style: italic;">This analysis was shared by: ${share.senderEmail}</p>
             <p style="font-size: 0.8em; color: #666; margin-top: 10px;">Analysis based on ${isVideoAnalysis ? 'video' : 'image'} processing with AI technology.</p>
+            ${shareUrl ? `<p style="margin-top: 15px;"><a href="${shareUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: 500;">View Analysis Online</a></p>` : ''}
           </div>
         </div>
       `;

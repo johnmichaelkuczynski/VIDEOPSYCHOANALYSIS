@@ -81,7 +81,7 @@ const shareSchema = z.object({
   recipientEmail: z.string().email("Please enter a valid email"),
 });
 
-export default function Home() {
+export default function Home({ isShareMode = false }: { isShareMode?: boolean }) {
   const { toast } = useToast();
   const [sessionId] = useState(() => nanoid());
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -100,6 +100,13 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const queryClient = useQueryClient();
+
+  // Open share dialog when in share mode
+  useEffect(() => {
+    if (isShareMode && messages.length > 0 && emailServiceAvailable) {
+      setIsShareDialogOpen(true);
+    }
+  }, [isShareMode, messages.length, emailServiceAvailable]);
 
 
   // Simulate analysis progress
@@ -403,7 +410,13 @@ export default function Home() {
             {messages.length > 0 && emailServiceAvailable && (
               <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      window.history.pushState({}, "", "/share");
+                    }}
+                  >
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
                   </Button>
