@@ -666,6 +666,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 If the user asks about the analysis, provide detailed information based on the personality insights.
 If the user asks general questions unrelated to the analysis, respond naturally and helpfully as you would to any question.
 
+IMPORTANT: Do not use markdown formatting in your responses. Do not use ** for bold text, do not use ### for headers, and do not use markdown formatting for bullet points or numbered lists. Use plain text formatting only.
+
 Be engaging, professional, and conversational in all responses. Feel free to have opinions, share information, and engage in dialogue on any topic.`,
           },
           {

@@ -470,7 +470,15 @@ export default function Home() {
                   </p>
                   
                   <div className="prose prose-sm max-w-none">
-                    {typeof msg.content === 'string' && msg.content.split('\n').map((line: string, j: number) => {
+                    {typeof msg.content === 'string' && msg.content.split('\n').map((rawLine: string, j: number) => {
+                      // Clean up the line by removing markdown symbols
+                      const line = rawLine
+                        .replace(/^\s*#{1,3}\s+/, '') // Remove heading markers (### Title)
+                        .replace(/^\s*\*\*/, '') // Remove leading asterisks
+                        .replace(/\*\*\s*$/, '') // Remove trailing asterisks
+                        .replace(/\*\*/g, '') // Remove all other asterisks pairs
+                        .replace(/^>\s*/, '') // Remove block quotes
+
                       // Check if line is a divider (─────)
                       if (line.startsWith('─')) {
                         return <hr key={j} className="my-3 border-gray-300" />;
@@ -501,24 +509,7 @@ export default function Home() {
                         return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
                       }
                       
-                      // Handle bold text with asterisks like **this**
-                      if (line.includes('**')) {
-                        // Split the line by ** markers
-                        const parts = line.split(/(\*\*[^*]+\*\*)/g);
-                        return (
-                          <p key={j} className="mb-2">
-                            {parts.map((part, k) => {
-                              if (part.startsWith('**') && part.endsWith('**')) {
-                                // This is a bold section
-                                return <strong key={k}>{part.slice(2, -2)}</strong>;
-                              }
-                              return part;
-                            })}
-                          </p>
-                        );
-                      }
-                      
-                      // Regular paragraph
+                      // Regular paragraph - clean up and display
                       return <p key={j} className="mb-2">{line}</p>;
                     })}
                   </div>
@@ -560,7 +551,15 @@ export default function Home() {
                 </p>
                 
                 <div className="prose prose-sm max-w-none">
-                  {typeof msg.content === 'string' && msg.content.split('\n').map((line: string, j: number) => {
+                  {typeof msg.content === 'string' && msg.content.split('\n').map((rawLine: string, j: number) => {
+                    // Clean up the line by removing markdown symbols
+                    const line = rawLine
+                      .replace(/^\s*#{1,3}\s+/, '') // Remove heading markers (### Title)
+                      .replace(/^\s*\*\*/, '') // Remove leading asterisks
+                      .replace(/\*\*\s*$/, '') // Remove trailing asterisks
+                      .replace(/\*\*/g, '') // Remove all other asterisks pairs
+                      .replace(/^>\s*/, '') // Remove block quotes
+
                     // Check if line is a divider (─────)
                     if (line.startsWith('─')) {
                       return <hr key={j} className="my-3 border-gray-300" />;
@@ -591,24 +590,7 @@ export default function Home() {
                       return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
                     }
                     
-                    // Handle bold text with asterisks like **this**
-                    if (line.includes('**')) {
-                      // Split the line by ** markers
-                      const parts = line.split(/(\*\*[^*]+\*\*)/g);
-                      return (
-                        <p key={j} className="mb-2">
-                          {parts.map((part, k) => {
-                            if (part.startsWith('**') && part.endsWith('**')) {
-                              // This is a bold section
-                              return <strong key={k}>{part.slice(2, -2)}</strong>;
-                            }
-                            return part;
-                          })}
-                        </p>
-                      );
-                    }
-                    
-                    // Regular paragraph
+                    // Regular paragraph - clean up and display
                     return <p key={j} className="mb-2">{line}</p>;
                   })}
                 </div>
