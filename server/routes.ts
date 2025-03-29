@@ -611,6 +611,22 @@ ${detailedAnalysis.growth_areas?.development_path || 'Not available'}`;
     }
   });
 
+  app.get("/api/messages", async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      
+      if (!sessionId || typeof sessionId !== 'string') {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      const messages = await storage.getMessagesBySessionId(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Get messages error:", error);
+      res.status(400).json({ error: "Failed to get messages" });
+    }
+  });
+
   app.post("/api/share", async (req, res) => {
     try {
       // Check if email service is configured

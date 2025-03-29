@@ -88,42 +88,32 @@ export default function Home() {
       setAnalysisProgress(100);
       setAnalysisId(data.id);
       setEmailServiceAvailable(data.emailServiceAvailable);
-      const analysis = data.personalityInsights;
-      const detailedAnalysis = data.personalityInsights.detailed_analysis;
-
-      // Format the detailed analysis sections
-      const formattedContent = `
-Personality Analysis Summary:
-${analysis.summary}
-
-Core Personality:
-${detailedAnalysis.personality_core}
-
-Thought Patterns:
-${detailedAnalysis.thought_patterns}
-
-Cognitive Style:
-${detailedAnalysis.cognitive_style}
-
-Professional Insights:
-${detailedAnalysis.professional_insights}
-
-Relationships:
-Current Status: ${detailedAnalysis.relationships.current_status}
-Parental Status: ${detailedAnalysis.relationships.parental_status}
-Ideal Partner: ${detailedAnalysis.relationships.ideal_partner}
-
-Growth Areas:
-Strengths:
-${detailedAnalysis.growth_areas.strengths.map((s: string) => `- ${s}`).join('\n')}
-
-Challenges:
-${detailedAnalysis.growth_areas.challenges.map((c: string) => `- ${c}`).join('\n')}
-
-Development Path:
-${detailedAnalysis.growth_areas.development_path}`;
-
-      setMessages([{ role: "assistant", content: formattedContent }]);
+      
+      // Get the first message that was already created on the server
+      // This contains the properly formatted content for both single and multi-person analyses
+      const messagesQuery = `/api/messages?sessionId=${sessionId}`;
+      
+      fetch(messagesQuery)
+        .then(response => response.json())
+        .then(messagesData => {
+          if (messagesData.length > 0) {
+            setMessages(messagesData);
+          } else {
+            // Fallback in case messages aren't available
+            toast({
+              title: "Analysis Complete",
+              description: "Analysis completed, but message content could not be loaded."
+            });
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch messages:", err);
+          toast({
+            title: "Analysis Complete",
+            description: "Analysis completed, but message content could not be loaded."
+          });
+        });
+        
       queryClient.invalidateQueries({ queryKey: ["/api/analyze"] });
     },
     onError: (error) => {
