@@ -259,6 +259,11 @@ const sendMessageSchema = z.object({
 // Check if email service is configured
 const isEmailServiceConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_VERIFIED_SENDER);
 
+// Define the schema for retrieving a shared analysis
+const getSharedAnalysisSchema = z.object({
+  shareId: z.coerce.number(),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/analyze", async (req, res) => {
     try {
@@ -761,6 +766,42 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
     }
   });
 
+  app.get("/api/shared-analysis/:shareId", async (req, res) => {
+    try {
+      const { shareId } = getSharedAnalysisSchema.parse({ shareId: req.params.shareId });
+      
+      // Get the share record
+      const share = await storage.getShareById(shareId);
+      if (!share) {
+        return res.status(404).json({ error: "Shared analysis not found" });
+      }
+      
+      // Get the analysis
+      const analysis = await storage.getAnalysisById(share.analysisId);
+      if (!analysis) {
+        return res.status(404).json({ error: "Analysis not found" });
+      }
+      
+      // Get all messages for this analysis
+      const messages = await storage.getMessagesBySessionId(analysis.sessionId);
+      
+      // Return the complete data
+      res.json({
+        analysis,
+        messages,
+        share,
+        emailServiceAvailable: isEmailServiceConfigured
+      });
+    } catch (error) {
+      console.error("Get shared analysis error:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "Failed to get shared analysis" });
+      }
+    }
+  });
+
   app.post("/api/share", async (req, res) => {
     try {
       // Check if email service is configured
@@ -781,10 +822,10 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
         return res.status(404).json({ error: "Analysis not found" });
       }
 
-      // Generate the share URL with the current hostname and /share path
+      // Generate the share URL with the current hostname and /share path with analysis ID
       const hostname = req.get('host');
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const shareUrl = `${protocol}://${hostname}/share`;
+      const shareUrl = `${protocol}://${hostname}/share/${share.id}`;
       
       // Send email with share URL
       const emailSent = await sendAnalysisEmail({

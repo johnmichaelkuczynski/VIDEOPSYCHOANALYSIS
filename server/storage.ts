@@ -8,6 +8,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesBySessionId(sessionId: string): Promise<Message[]>;
   createShare(share: InsertShare): Promise<Share>;
+  getShareById(id: number): Promise<Share | undefined>;
   updateShareStatus(shareId: number, status: "pending" | "sent" | "error"): Promise<void>;
 }
 
@@ -111,6 +112,10 @@ export class MemStorage implements IStorage {
     };
     this.shares.set(id, share);
     return share;
+  }
+
+  async getShareById(id: number): Promise<Share | undefined> {
+    return this.shares.get(id);
   }
 
   async updateShareStatus(shareId: number, status: "pending" | "sent" | "error"): Promise<void> {

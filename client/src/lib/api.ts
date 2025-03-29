@@ -28,3 +28,8 @@ export async function shareAnalysis(analysisId: number, senderEmail: string, rec
   });
   return res.json();
 }
+
+export async function getSharedAnalysis(shareId: string) {
+  const res = await apiRequest("GET", `/api/shared-analysis/${shareId}`, null);
+  return res.json();
+}

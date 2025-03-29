@@ -73,3 +73,8 @@ export const uploadMediaSchema = z.object({
   sessionId: z.string(),
   maxPeople: z.number().min(1).max(5).optional().default(5), // Optional parameter to limit people count
 });
+
+// Schema for getting shared analysis
+export const getSharedAnalysisSchema = z.object({
+  shareId: z.coerce.number().int().positive(),
+});

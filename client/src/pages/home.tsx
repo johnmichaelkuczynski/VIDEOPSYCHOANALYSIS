@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { uploadMedia, sendMessage, shareAnalysis } from "@/lib/api";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis } from "@/lib/api";
 import { Upload, Send, FileImage, Film, Share2, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -81,7 +81,7 @@ const shareSchema = z.object({
   recipientEmail: z.string().email("Please enter a valid email"),
 });
 
-export default function Home({ isShareMode = false }: { isShareMode?: boolean }) {
+export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
   const { toast } = useToast();
   const [sessionId] = useState(() => nanoid());
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -101,12 +101,51 @@ export default function Home({ isShareMode = false }: { isShareMode?: boolean })
 
   const queryClient = useQueryClient();
 
+  // Load shared analysis when shareId is provided
+  useEffect(() => {
+    if (shareId) {
+      // Fetch and display the shared analysis
+      getSharedAnalysis(shareId)
+        .then(data => {
+          if (data.analysis && data.messages) {
+            // Set the analysis data
+            setAnalysisId(data.analysis.id);
+            
+            // Set uploaded media preview if available
+            if (data.analysis.mediaUrl) {
+              setUploadedMedia(data.analysis.mediaUrl);
+              setMediaType(data.analysis.mediaType);
+            }
+            
+            // Set messages
+            setMessages(data.messages);
+            
+            // Set email service status
+            setEmailServiceAvailable(data.emailServiceAvailable);
+            
+            toast({
+              title: "Shared Analysis Loaded",
+              description: "Viewing a shared personality analysis."
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Error loading shared analysis:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load shared analysis. It may have expired or been removed."
+          });
+        });
+    }
+  }, [shareId, toast]);
+  
   // Open share dialog when in share mode
   useEffect(() => {
-    if (isShareMode && messages.length > 0 && emailServiceAvailable) {
+    if (isShareMode && messages.length > 0 && emailServiceAvailable && !shareId) {
       setIsShareDialogOpen(true);
     }
-  }, [isShareMode, messages.length, emailServiceAvailable]);
+  }, [isShareMode, messages.length, emailServiceAvailable, shareId]);
 
 
   // Simulate analysis progress

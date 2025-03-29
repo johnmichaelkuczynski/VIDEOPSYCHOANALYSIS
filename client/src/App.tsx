@@ -12,6 +12,9 @@ function Router() {
       <Route path="/share">
         {(params) => <Home isShareMode={true} />}
       </Route>
+      <Route path="/share/:shareId">
+        {(params) => <Home isShareMode={true} shareId={params.shareId} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
