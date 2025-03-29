@@ -644,36 +644,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "user",
       });
 
+      // Check if OpenAI client is available
+      if (!openai) {
+        return res.status(400).json({ 
+          error: "OpenAI API key is not configured. Please provide an OpenAI API key to use the chat functionality.",
+          configError: "OPENAI_API_KEY_MISSING",
+          messages: [userMessage]
+        });
+      }
+
       const analysis = await storage.getAnalysisBySessionId(sessionId);
       const messages = await storage.getMessagesBySessionId(sessionId);
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an AI personality analyst providing insights based on facial analysis and user interaction. Be professional and avoid stereotypes.",
-          },
-          {
-            role: "assistant",
-            content: JSON.stringify(analysis?.personalityInsights),
-          },
-          ...messages.map(m => ({ role: m.role, content: m.content })),
-        ],
-        response_format: { type: "json_object" },
-      });
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an AI personality analyst providing insights based on facial analysis and user interaction. Be professional and avoid stereotypes.",
+            },
+            {
+              role: "assistant",
+              content: JSON.stringify(analysis?.personalityInsights),
+            },
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+          ],
+          response_format: { type: "json_object" },
+        });
 
-      const aiResponse = JSON.parse(response.choices[0]?.message.content || "{}");
+        const aiResponse = JSON.parse(response.choices[0]?.message.content || "{}");
 
-      const assistantMessage = await storage.createMessage({
-        sessionId,
-        analysisId: analysis?.id,
-        content: aiResponse.response,
-        role: "assistant",
-      });
+        const assistantMessage = await storage.createMessage({
+          sessionId,
+          analysisId: analysis?.id,
+          content: aiResponse.response,
+          role: "assistant",
+        });
 
-      res.json({ messages: [userMessage, assistantMessage] });
+        res.json({ messages: [userMessage, assistantMessage] });
+      } catch (apiError) {
+        console.error("OpenAI API error:", apiError);
+        res.status(500).json({ 
+          error: "Error communicating with OpenAI API. Please check your API key configuration.",
+          messages: [userMessage]
+        });
+      }
     } catch (error) {
+      console.error("Chat processing error:", error);
       res.status(400).json({ error: "Failed to process chat message" });
     }
   });

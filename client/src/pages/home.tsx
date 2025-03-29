@@ -10,12 +10,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { uploadMedia, sendMessage, shareAnalysis } from "@/lib/api";
-import { Upload, Send, FileImage, Film, Share2 } from "lucide-react";
+import { Upload, Send, FileImage, Film, Share2, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { 
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 const shareSchema = z.object({
   senderEmail: z.string().email("Please enter a valid email"),
@@ -132,15 +137,44 @@ export default function Home() {
       return sendMessage(content, sessionId);
     },
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, ...data.messages]);
-      queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
+      // If we received messages, add them to the state
+      if (data.messages) {
+        setMessages((prev) => [...prev, ...data.messages]);
+        queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
+      }
+      
+      // Check for configError that indicates an API key issue
+      if (data.configError === "OPENAI_API_KEY_MISSING") {
+        toast({
+          variant: "destructive",
+          title: "API Key Missing",
+          description: "OpenAI API key is required for chat functionality. Please configure the API key.",
+        });
+      }
     },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-      });
+    onError: (error: any) => {
+      // Check if the error has a response with details
+      const errorMessage = error.response?.data?.error || "Failed to send message. Please try again.";
+      const configError = error.response?.data?.configError;
+      
+      if (configError === "OPENAI_API_KEY_MISSING") {
+        toast({
+          variant: "destructive",
+          title: "API Key Missing",
+          description: "OpenAI API key is required for chat functionality. Please configure the API key.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+      }
+      
+      // If we received a user message in the error response, add it to the messages
+      if (error.response?.data?.messages) {
+        setMessages((prev) => [...prev, ...error.response.data.messages]);
+      }
     },
   });
 
@@ -362,6 +396,17 @@ export default function Home() {
 
       <Card className="p-6">
         <h2 className="text-2xl font-semibold mb-4">Chat with AI</h2>
+        
+        {messages.length > 0 && messages.some(msg => msg.role === "user") && messages.length === 1 && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>API Key Required</AlertTitle>
+            <AlertDescription>
+              OpenAI API key is required for chat functionality. Please configure the API key in the server's environment variables.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={input}
