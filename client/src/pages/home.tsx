@@ -402,11 +402,9 @@ export default function Home() {
             {messages.length > 0 && emailServiceAvailable && (
               <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="#share">
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share
-                    </a>
+                  <Button variant="outline" size="sm">
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
