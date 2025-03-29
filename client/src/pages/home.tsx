@@ -22,6 +22,60 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 
+// Helper function to resize images to keep them under the AWS 5MB limit
+async function resizeImage(file: File, maxWidth: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        
+        // Create canvas for resizing
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and resize image on canvas
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to data URL with reduced quality for JPEG to ensure smaller file size
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(dataUrl);
+      };
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
+      
+      if (typeof readerEvent.target?.result === 'string') {
+        img.src = readerEvent.target.result;
+      } else {
+        reject(new Error('Failed to read file'));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+    
+    reader.readAsDataURL(file);
+  });
+}
+
 const shareSchema = z.object({
   senderEmail: z.string().email("Please enter a valid email"),
   recipientEmail: z.string().email("Please enter a valid email"),
@@ -75,12 +129,20 @@ export default function Home() {
       setIsAnalyzing(true);
       setAnalysisProgress(0);
       
-      // Read file as data URL
-      const reader = new FileReader();
-      const mediaData = await new Promise<string>((resolve) => {
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsDataURL(file);
-      });
+      // For images, we need to resize to ensure it's under AWS Rekognition's 5MB limit
+      let mediaData: string;
+      
+      if (currentMediaType === "image") {
+        // Resize the image
+        mediaData = await resizeImage(file, 1200); // Resize to max width of 1200px
+      } else {
+        // Read video as data URL without resizing
+        const reader = new FileReader();
+        mediaData = await new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
       
       // Set previews
       setUploadedMedia(mediaData);
