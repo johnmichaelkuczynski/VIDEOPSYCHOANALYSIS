@@ -781,8 +781,10 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
         return res.status(404).json({ error: "Analysis not found" });
       }
 
-      // Generate the share URL with the current hostname
-      const shareUrl = `${req.protocol}://${req.get('host')}/share`;
+      // Generate the share URL with the current hostname and /share path
+      const hostname = req.get('host');
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const shareUrl = `${protocol}://${hostname}/share`;
       
       // Send email with share URL
       const emailSent = await sendAnalysisEmail({

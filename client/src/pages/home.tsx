@@ -414,7 +414,15 @@ export default function Home({ isShareMode = false }: { isShareMode?: boolean })
                     variant="outline" 
                     size="sm"
                     onClick={() => {
-                      window.history.pushState({}, "", "/share");
+                      // Update URL to include /share
+                      window.history.pushState({}, "Share Analysis", "/share");
+                      
+                      // For Replit deployment URLs, ensure the /share segment is included
+                      if (!window.location.pathname.includes("/share")) {
+                        const newUrl = new URL(window.location.href);
+                        newUrl.pathname = "/share";
+                        window.history.replaceState({}, "Share Analysis", newUrl.toString());
+                      }
                     }}
                   >
                     <Share2 className="w-4 h-4 mr-2" />
