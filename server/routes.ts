@@ -79,12 +79,9 @@ const perplexity = {
 };
 
 // AWS Rekognition client
+// Let the AWS SDK pick up credentials from environment variables automatically
 const rekognition = new RekognitionClient({ 
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-  }
+  region: process.env.AWS_REGION || "us-east-1"
 });
 
 // For Google Cloud functionality, we'll implement in a follow-up task
