@@ -856,34 +856,39 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
 }
 
 async function analyzeFaceWithRekognition(imageBuffer: Buffer, maxPeople: number = 5) {
-  const command = new DetectFacesCommand({
-    Image: {
-      Bytes: imageBuffer
-    },
-    Attributes: ['ALL']
-  });
+  try {
+    const command = new DetectFacesCommand({
+      Image: {
+        Bytes: imageBuffer
+      },
+      Attributes: ['ALL']
+    });
 
-  const response = await rekognition.send(command);
-  const faces = response.FaceDetails || [];
+    console.log('Sending request to AWS Rekognition...');
+    const response = await rekognition.send(command);
+    console.log('Received response from AWS Rekognition');
+    const faces = response.FaceDetails || [];
 
-  if (faces.length === 0) {
-    throw new Error("No faces detected in the image");
-  }
-
-  // Limit the number of faces to analyze
-  const facesToProcess = faces.slice(0, maxPeople);
-  
-  // Process each face and add descriptive labels
-  return facesToProcess.map((face, index) => {
-    // Create a descriptive label for each person
-    let personLabel = `Person ${index + 1}`;
-    
-    // Add gender and approximate age to label if available
-    if (face.Gender?.Value) {
-      const genderLabel = face.Gender.Value.toLowerCase() === 'male' ? 'Male' : 'Female';
-      const ageRange = face.AgeRange ? `${face.AgeRange.Low}-${face.AgeRange.High}` : '';
-      personLabel = `${personLabel} (${genderLabel}${ageRange ? ', ~' + ageRange + ' years' : ''})`;
+    if (faces.length === 0) {
+      console.log("No faces detected in the image");
+      // Return an empty array instead of throwing an error
+      return [];
     }
+
+    // Limit the number of faces to analyze
+    const facesToProcess = faces.slice(0, maxPeople);
+    
+    // Process each face and add descriptive labels
+    return facesToProcess.map((face, index) => {
+      // Create a descriptive label for each person
+      let personLabel = `Person ${index + 1}`;
+      
+      // Add gender and approximate age to label if available
+      if (face.Gender?.Value) {
+        const genderLabel = face.Gender.Value.toLowerCase() === 'male' ? 'Male' : 'Female';
+        const ageRange = face.AgeRange ? `${face.AgeRange.Low}-${face.AgeRange.High}` : '';
+        personLabel = `${personLabel} (${genderLabel}${ageRange ? ', ~' + ageRange + ' years' : ''})`;
+      }
     
     return {
       personLabel,
@@ -926,6 +931,12 @@ async function analyzeFaceWithRekognition(imageBuffer: Buffer, maxPeople: number
       dominant: index === 0 // Flag the first/largest face as dominant
     };
   });
+  } catch (error) {
+    console.error("Analyze error:", error);
+    // Return empty array instead of throwing - allows the application to continue with AI analysis
+    // This makes the app more resilient when AWS credentials aren't working
+    return [];
+  }
 }
 
 
