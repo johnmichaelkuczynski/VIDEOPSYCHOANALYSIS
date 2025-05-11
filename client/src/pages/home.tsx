@@ -319,10 +319,30 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         );
         
         setAnalysisProgress(90);
-        setAnalysisId(response.analysisId);
         
-        if (response.messages && response.messages.length > 0) {
+        if (response && response.analysisId) {
+          setAnalysisId(response.analysisId);
+        }
+        
+        console.log("Response from uploadMedia:", response);
+        
+        // Make sure we update the messages state with the response
+        if (response && response.messages && Array.isArray(response.messages) && response.messages.length > 0) {
+          console.log("Setting messages from response:", response.messages);
           setMessages(response.messages);
+        } else {
+          // If no messages were returned, let's add a default message
+          console.warn("No messages returned from analysis");
+          if (response?.analysisInsights) {
+            setMessages([{
+              role: "assistant",
+              content: response.analysisInsights,
+              id: Date.now(),
+              createdAt: new Date().toISOString(),
+              sessionId,
+              analysisId: response.analysisId
+            }]);
+          }
         }
         
         setAnalysisProgress(100);
@@ -340,7 +360,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setIsAnalyzing(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Get all messages for the session to be sure we have the latest
+      if (data?.analysisId) {
+        // If we received an analysis ID, try to fetch any messages related to it
+        fetch(`/api/messages?sessionId=${sessionId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+              console.log("Fetched messages after analysis:", data);
+              setMessages(data);
+            }
+          })
+          .catch(err => console.error("Error fetching messages:", err));
+      }
+      
       toast({
         title: "Analysis Complete",
         description: "Your media has been successfully analyzed.",
@@ -681,9 +715,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         
         {/* Right Column - Results and Chat */}
         <div className="space-y-6">
-          <Card className="p-6">
+          {/* ANALYSIS BOX */}
+          <Card className="p-6 border-2 border-primary">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Analysis & Chat</h2>
+              <h2 className="text-xl font-bold">ANALYSIS</h2>
               
               {messages.length > 0 && emailServiceAvailable && (
                 <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
@@ -741,7 +776,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               )}
             </div>
             
-            <div className="h-[600px] flex flex-col">
+            <div className="h-[400px] flex flex-col">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center space-y-4 h-full text-center text-muted-foreground">
                   <AlertCircle className="h-12 w-12" />
@@ -753,16 +788,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               ) : (
                 <ScrollArea className="flex-1 pr-4 mb-4">
                   <div className="space-y-4">
-                    {messages.map((message, index) => (
+                    {messages.filter(message => message.role === "assistant").map((message, index) => (
                       <div
                         key={index}
-                        className={`flex flex-col p-4 rounded-lg ${
-                          message.role === "user" ? "bg-primary/10 ml-8" : "bg-primary/5 mr-4"
-                        }`}
+                        className="flex flex-col p-4 rounded-lg bg-white border border-gray-200 shadow-sm"
                       >
-                        <span className="font-semibold text-sm mb-2">
-                          {message.role === "user" ? "You" : "AI Analysis"}
-                        </span>
                         <div 
                           className="whitespace-pre-wrap text-md"
                           dangerouslySetInnerHTML={{ 
@@ -777,6 +807,48 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          </Card>
+          
+          {/* CHAT BOX */}
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Chat</h2>
+            </div>
+            
+            <div className="h-[300px] flex flex-col">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center space-y-4 h-full text-center text-muted-foreground">
+                  <div>
+                    <p>No conversation yet. Ask questions about the analysis after it's generated.</p>
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea className="flex-1 pr-4 mb-4">
+                  <div className="space-y-4">
+                    {messages.filter(message => message.role === "user" || (message.role === "assistant" && messages.some(m => m.role === "user"))).map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex flex-col p-4 rounded-lg ${
+                          message.role === "user" ? "bg-primary/10 ml-8" : "bg-primary/5 mr-4"
+                        }`}
+                      >
+                        <span className="font-semibold text-sm mb-2">
+                          {message.role === "user" ? "You" : "AI"}
+                        </span>
+                        <div 
+                          className="whitespace-pre-wrap text-md"
+                          dangerouslySetInnerHTML={{ 
+                            __html: message.content
+                              .replace(/\n/g, '<br/>')
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          }} 
+                        />
+                      </div>
+                    ))}
                   </div>
                 </ScrollArea>
               )}
