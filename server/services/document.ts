@@ -250,26 +250,10 @@ export async function generateDocx(analysis: Analysis): Promise<Buffer> {
   const doc = new Document({
     title: analysis.title || 'Personality Analysis Report',
     description: 'AI-generated personality analysis',
-    styles: {
-      paragraphStyles: [
-        {
-          id: 'Normal',
-          name: 'Normal',
-          basedOn: 'Normal',
-          next: 'Normal',
-          quickFormat: true,
-          run: {
-            size: 24,
-            font: 'Calibri',
-          },
-          paragraph: {
-            spacing: {
-              after: 120,
-            },
-          },
-        },
-      ],
-    },
+    sections: [{
+      properties: {},
+      children: []
+    }],
   });
 
   const children = [];
@@ -557,16 +541,20 @@ export async function generateDocx(analysis: Analysis): Promise<Buffer> {
     })
   );
   
-  doc.addSection({
-    children: children,
+  // Create a new document with proper structure
+  const newDoc = new Document({
+    sections: [{
+      properties: {},
+      children: children
+    }]
   });
   
-  return await Packer.toBuffer(doc);
+  return await Packer.toBuffer(newDoc);
 }
 
 // Create PDF from HTML content
 export async function generatePdf(htmlContent: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
+  return new Promise<Buffer>((resolve, reject) => {
     const options = {
       format: 'Letter',
       border: {
@@ -580,6 +568,10 @@ export async function generatePdf(htmlContent: string): Promise<Buffer> {
     pdf.create(htmlContent, options).toBuffer((err, buffer) => {
       if (err) {
         reject(err);
+        return;
+      }
+      if (!buffer) {
+        reject(new Error("Failed to generate PDF: Empty buffer"));
         return;
       }
       resolve(buffer);

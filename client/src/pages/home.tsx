@@ -862,7 +862,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             __html: message.content
                               .replace(/\n/g, '<br/>')
                               .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/^(#+)\s+(.*?)$/gm, (_, hashes, text) => 
+                              .replace(/^(#+)\s+(.*?)$/gm, (_: string, hashes: string, text: string) => 
                                 `<h${hashes.length} class="font-bold text-lg mt-3 mb-1">${text}</h${hashes.length}>`)
                               .replace(/- (.*?)$/gm, '<li class="ml-4">• $1</li>')
                           }} 
