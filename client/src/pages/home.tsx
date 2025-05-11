@@ -681,29 +681,75 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             </div>
             
             {uploadedMedia && mediaType === "image" && (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <img 
                   src={uploadedMedia} 
                   alt="Uploaded" 
                   className="max-w-full h-auto rounded-lg shadow-md mx-auto"
                 />
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground mb-4">
                   Face detection will analyze personality traits and emotions
                 </div>
+                
+                {/* Re-analyze with current model button */}
+                <Button 
+                  onClick={() => {
+                    // Keep the same media but re-analyze with current model
+                    const mediaData = uploadedMedia;
+                    handleUploadMedia.mutate({
+                      type: "image/jpeg",
+                      size: 0,
+                      name: "reanalyzed-image.jpg",
+                      lastModified: Date.now(),
+                      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+                      slice: () => new Blob(),
+                      stream: () => new ReadableStream(),
+                      text: () => Promise.resolve(""),
+                      webkitRelativePath: ""
+                    } as File);
+                  }}
+                  className="w-full"
+                  disabled={isAnalyzing}
+                >
+                  Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
+                </Button>
               </div>
             )}
             
             {uploadedMedia && mediaType === "video" && (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <video 
                   ref={videoRef}
                   src={uploadedMedia} 
                   controls
                   className="max-w-full h-auto rounded-lg shadow-md mx-auto"
                 />
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground mb-4">
                   Video analysis will extract visual and audio insights
                 </div>
+                
+                {/* Re-analyze with current model button */}
+                <Button 
+                  onClick={() => {
+                    // Keep the same media but re-analyze with current model
+                    const mediaData = uploadedMedia;
+                    handleUploadMedia.mutate({
+                      type: "video/mp4",
+                      size: 0,
+                      name: "reanalyzed-video.mp4",
+                      lastModified: Date.now(),
+                      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+                      slice: () => new Blob(),
+                      stream: () => new ReadableStream(),
+                      text: () => Promise.resolve(""),
+                      webkitRelativePath: ""
+                    } as File);
+                  }}
+                  className="w-full"
+                  disabled={isAnalyzing}
+                >
+                  Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
+                </Button>
               </div>
             )}
             
@@ -713,9 +759,31 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <FileText className="w-6 h-6 mr-2" />
                   <span>{documentName}</span>
                 </div>
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground mb-4">
                   Document content will be analyzed for personality insights
                 </div>
+                
+                {/* Re-analyze with current model button */}
+                <Button 
+                  onClick={() => {
+                    // Here we should trigger re-analysis of the current document
+                    // with the currently selected model, but we need actual document data
+                    // Since we don't store the file data after upload, we'll need to prompt
+                    // user to re-upload the file
+                    toast({
+                      title: "Re-upload Required",
+                      description: "Please re-upload the document to analyze with the new model.",
+                    });
+                    // Clear document name to allow re-upload
+                    setDocumentName("");
+                    // Focus on document upload
+                    handleDocumentClick();
+                  }}
+                  className="w-full"
+                  disabled={isAnalyzing}
+                >
+                  Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
+                </Button>
               </div>
             )}
             
@@ -746,7 +814,27 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           {/* ANALYSIS BOX */}
           <Card className="p-6 border-2 border-primary">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">ANALYSIS</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold">ANALYSIS</h2>
+                {/* New Analysis button - always visible */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    // Clear all current state to start a new analysis
+                    setMessages([]);
+                    setUploadedMedia(null);
+                    setDocumentName("");
+                    setTextInput("");
+                    setAnalysisId(null);
+                    setAnalysisProgress(0);
+                  }}
+                  disabled={isAnalyzing}
+                >
+                  <span>New Analysis</span>
+                </Button>
+              </div>
               
               {messages.length > 0 && (
                 <div className="flex gap-2">
