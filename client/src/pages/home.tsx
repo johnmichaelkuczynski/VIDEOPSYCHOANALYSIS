@@ -9,44 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  uploadMedia, 
-  sendMessage, 
-  shareAnalysis, 
-  getSharedAnalysis, 
-  analyzeText, 
-  analyzeDocument, 
-  getAllSessions, 
-  clearSession, 
-  updateSessionName, 
-  getAllAnalysesBySession, 
-  downloadAnalysis, 
-  updateAnalysisTitle,
-  checkAPIStatus,
-  ModelType,
-  MediaType
-} from "@/lib/api";
-import { 
-  Upload, 
-  Send, 
-  FileImage, 
-  Film, 
-  Share2, 
-  AlertCircle, 
-  FileText, 
-  File, 
-  Text, 
-  Download, 
-  Trash2, 
-  Edit, 
-  RefreshCw, 
-  MessageSquare
-} from "lucide-react";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, ModelType, MediaType } from "@/lib/api";
+import { Upload, Send, FileImage, Film, Share2, AlertCircle, FileText, File, Download } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -55,20 +23,6 @@ import { z } from "zod";
 const shareSchema = z.object({
   senderEmail: z.string().email("Please enter a valid email"),
   recipientEmail: z.string().email("Please enter a valid email"),
-});
-
-const textSchema = z.object({
-  content: z.string().min(1, "Content is required"),
-  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai")
-});
-
-const documentSchema = z.object({
-  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai")
-});
-
-const mediaSchema = z.object({
-  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
-  maxPeople: z.number().min(1).max(10).default(5)
 });
 
 // Helper function to resize images
@@ -134,6 +88,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [sessionId] = useState(() => nanoid());
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
+  const [textInput, setTextInput] = useState("");
   const queryClient = useQueryClient();
   
   // Media states
@@ -144,54 +99,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("upload");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
   const [documentName, setDocumentName] = useState<string>("");
-  const [isMobile, setIsMobile] = useState(false);
   
-  // Check for mobile viewport
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
   // References
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Forms 
-  const shareForm = useForm<z.infer<typeof shareSchema>>({
-    resolver: zodResolver(shareSchema),
-  });
-  
-  const textForm = useForm<z.infer<typeof textSchema>>({
-    resolver: zodResolver(textSchema),
-    defaultValues: {
-      content: "",
-      selectedModel: "openai"
-    }
-  });
-  
-  const documentForm = useForm<z.infer<typeof documentSchema>>({
-    resolver: zodResolver(documentSchema),
-    defaultValues: {
-      selectedModel: "openai"
-    }
-  });
-  
-  const mediaForm = useForm<z.infer<typeof mediaSchema>>({
-    resolver: zodResolver(mediaSchema),
-    defaultValues: {
-      selectedModel: "openai",
-      maxPeople: 5
-    }
-  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   // Check API status on component mount
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const status = await checkAPIStatus();
+        const res = await fetch('/api/status');
+        const status = await res.json();
         setEmailServiceAvailable(status.sendgrid || false);
       } catch (error) {
         console.error("Error checking API status:", error);
@@ -245,15 +167,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   
-  // Text analysis form submission
+  // Text analysis
   const handleTextAnalysis = useMutation({
-    mutationFn: async (data: z.infer<typeof textSchema>) => {
+    mutationFn: async (text: string) => {
       try {
         setIsAnalyzing(true);
         setAnalysisProgress(10);
         setMessages([]);
         
-        const response = await analyzeText(data.content, sessionId, data.selectedModel);
+        const response = await analyzeText(text, sessionId, selectedModel);
         
         setAnalysisProgress(80);
         setAnalysisId(response.analysisId);
@@ -282,7 +204,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         title: "Analysis Complete",
         description: "Your text has been successfully analyzed.",
       });
-      textForm.reset();
+      setTextInput("");
     }
   });
 
@@ -304,13 +226,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           reader.readAsDataURL(file);
         });
         
-        // Extract file type
+        setAnalysisProgress(50);
+        
+        // Determine file type
         const fileExt = file.name.split('.').pop()?.toLowerCase();
         const fileType = fileExt === 'pdf' ? 'pdf' : 'docx';
         
-        setAnalysisProgress(50);
-        
-        const selectedModel = documentForm.getValues().selectedModel;
         const response = await analyzeDocument(
           fileData,
           file.name,
@@ -346,7 +267,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         title: "Analysis Complete",
         description: "Your document has been successfully analyzed.",
       });
-      documentForm.reset();
     }
   });
 
@@ -384,9 +304,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setUploadedMedia(mediaData);
         setAnalysisProgress(50);
         
-        // Get form values
-        const selectedModel = mediaForm.getValues().selectedModel;
-        const maxPeople = mediaForm.getValues().maxPeople;
+        // Maximum 5 people to analyze
+        const maxPeople = 5;
         
         // Upload for analysis
         const response = await uploadMedia(
@@ -435,7 +354,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   // Chat with AI
   const chatMutation = useMutation({
     mutationFn: async (content: string) => {
-      const selectedModel = mediaForm.getValues().selectedModel;
       return sendMessage(content, sessionId, selectedModel);
     },
     onSuccess: (data) => {
@@ -456,6 +374,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   });
 
   // Email sharing
+  const shareForm = useForm<z.infer<typeof shareSchema>>({
+    resolver: zodResolver(shareSchema),
+  });
+  
   const shareMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shareSchema>) => {
       if (!analysisId) throw new Error("No analysis to share");
@@ -477,57 +399,38 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     },
   });
 
-  // Dropzone for media files
-  const onDropMedia = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      handleUploadMedia.mutate(acceptedFiles[0]);
+  // Handle file upload
+  const handleFileUpload = (file: File) => {
+    const fileType = file.type.split('/')[0];
+    
+    if (fileType === 'image' || fileType === 'video') {
+      handleUploadMedia.mutate(file);
+    } else if (
+      file.type === 'application/pdf' || 
+      file.type === 'application/msword' || 
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.type === 'text/plain'
+    ) {
+      handleDocumentAnalysis.mutate(file);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Unsupported File Type",
+        description: "Please upload an image, video, PDF, DOC, DOCX, or TXT file."
+      });
     }
-  }, [handleUploadMedia]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: onDropMedia,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
-      'video/*': ['.mp4', '.mov', '.webm']
-    },
-    maxFiles: 1,
-    maxSize: 50 * 1024 * 1024, // 50MB limit
-  });
-
-  // Dropzone for document files
-  const onDropDocument = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      handleDocumentAnalysis.mutate(acceptedFiles[0]);
-    }
-  }, [handleDocumentAnalysis]);
-
-  const { 
-    getRootProps: getDocumentRootProps, 
-    getInputProps: getDocumentInputProps, 
-    isDragActive: isDocumentDragActive 
-  } = useDropzone({
-    onDrop: onDropDocument,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'text/plain': ['.txt']
-    },
-    maxFiles: 1,
-    maxSize: 25 * 1024 * 1024, // 25MB limit
-  });
-
-  // Form submission handlers
-  const onTextSubmit = (data: z.infer<typeof textSchema>) => {
-    handleTextAnalysis.mutate(data);
   };
 
-  const onShareSubmit = (data: z.infer<typeof shareSchema>) => {
-    shareMutation.mutate(data);
+  // Handle text analysis submission
+  const handleTextSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (textInput.trim()) {
+      handleTextAnalysis.mutate(textInput);
+    }
   };
-
-  // Chat message submission
-  const handleSubmit = (e: React.FormEvent) => {
+  
+  // Handle chat message submission
+  const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
       // Add user message immediately to UI
@@ -537,305 +440,217 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent, submitHandler: (e: React.FormEvent) => void) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      submitHandler(e as unknown as React.FormEvent);
+    }
+  };
+  
+  const onShareSubmit = (data: z.infer<typeof shareSchema>) => {
+    shareMutation.mutate(data);
+  };
+  
+  // Generic dropzone for all file types
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      handleFileUpload(acceptedFiles[0]);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    noClick: true,
+    noKeyboard: true,
+    maxFiles: 1,
+    maxSize: 50 * 1024 * 1024, // 50MB limit
+  });
+
+  // Click handlers for different upload types
+  const handleImageVideoClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleDocumentClick = () => {
+    if (documentInputRef.current) {
+      documentInputRef.current.click();
+    }
+  };
+  
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'media' | 'document') => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (type === 'media') {
+        const fileType = file.type.split('/')[0];
+        if (fileType === 'image' || fileType === 'video') {
+          handleUploadMedia.mutate(file);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Unsupported File Type",
+            description: "Please upload an image or video file."
+          });
+        }
+      } else {
+        handleDocumentAnalysis.mutate(file);
+      }
     }
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
+    <div className="container mx-auto p-4 max-w-6xl" {...getRootProps()}>
       <h1 className="text-4xl font-bold text-center mb-8">AI Personality Analysis</h1>
       
-      <Tabs 
-        defaultValue="upload" 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="w-full mb-6"
-      >
-        <TabsList className="grid w-full grid-cols-4 mb-8">
-          <TabsTrigger value="upload" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            <span>Media</span>
-          </TabsTrigger>
-          <TabsTrigger value="text" className="flex items-center gap-2">
-            <Text className="h-4 w-4" />
-            <span>Text</span>
-          </TabsTrigger>
-          <TabsTrigger value="document" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span>Document</span>
-          </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <span>Chat</span>
-          </TabsTrigger>
-        </TabsList>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left side - Input section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        {/* Left Column - Inputs and Upload */}
+        <div className="space-y-6">
+          {/* Model Selector */}
           <Card className="p-6">
-            <TabsContent value="upload" className="space-y-4">
-              <h2 className="text-2xl font-semibold mb-4">Upload Images & Videos</h2>
-              
-              <Form {...mediaForm}>
-                <form className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={mediaForm.control}
-                      name="selectedModel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>AI Model</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            disabled={isAnalyzing}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select AI Model" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
-                              <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                              <SelectItem value="perplexity">Perplexity</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={mediaForm.control}
-                      name="maxPeople"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Max People</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={10}
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                              disabled={isAnalyzing}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </form>
-              </Form>
-              
-              <div
-                {...getRootProps()}
-                className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
-                  ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
+            <h2 className="text-xl font-semibold mb-4">Step 1: Select AI Model</h2>
+            <Select
+              value={selectedModel}
+              onValueChange={(value) => setSelectedModel(value as ModelType)}
+              disabled={isAnalyzing}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select AI Model" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
+                <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                <SelectItem value="perplexity">Perplexity</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+          
+          {/* Upload Options */}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Step 2: Choose Input Type</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center" 
+                onClick={handleImageVideoClick}
+                disabled={isAnalyzing}
               >
-                <input {...getInputProps()} />
-                {isAnalyzing ? (
-                  <div className="space-y-4">
-                    <div className="animate-pulse">Analyzing media...</div>
-                    <Progress value={analysisProgress} className="w-full" />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center space-x-2">
-                      <FileImage className="w-8 h-8 text-muted-foreground" />
-                      <Film className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground">
-                      Drag & drop an image or video, or click to select
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Supports JPG, PNG, MP4, MOV, WEBM (max 50MB)
-                    </p>
-                  </div>
-                )}
-              </div>
+                <FileImage className="h-8 w-8 mb-2" />
+                <span>Image</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileInputChange(e, 'media')}
+                />
+              </Button>
               
-              {uploadedMedia && mediaType === "image" && (
-                <div className="mt-4">
-                  <img 
-                    src={uploadedMedia} 
-                    alt="Uploaded" 
-                    className="max-w-full h-auto rounded-lg shadow-md"
-                  />
-                </div>
-              )}
-              
-              {uploadedMedia && mediaType === "video" && (
-                <div className="mt-4">
-                  <video 
-                    ref={videoRef}
-                    src={uploadedMedia} 
-                    controls
-                    className="max-w-full h-auto rounded-lg shadow-md"
-                  />
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="text" className="space-y-4">
-              <h2 className="text-2xl font-semibold mb-4">Text Analysis</h2>
-              
-              <Form {...textForm}>
-                <form onSubmit={textForm.handleSubmit(onTextSubmit)} className="space-y-4">
-                  <FormField
-                    control={textForm.control}
-                    name="selectedModel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AI Model</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          disabled={isAnalyzing}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select AI Model" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
-                            <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                            <SelectItem value="perplexity">Perplexity</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={textForm.control}
-                    name="content"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Text Content</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="Enter your text for personality analysis (journal entry, conversation, etc.)"
-                            className="min-h-[200px]"
-                            disabled={isAnalyzing}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" className="w-full" disabled={isAnalyzing || textForm.formState.isSubmitting}>
-                    {isAnalyzing ? "Analyzing..." : "Analyze Text"}
-                  </Button>
-                  {isAnalyzing && <Progress value={analysisProgress} className="w-full mt-2" />}
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="document" className="space-y-4">
-              <h2 className="text-2xl font-semibold mb-4">Document Analysis</h2>
-              
-              <Form {...documentForm}>
-                <form className="space-y-4">
-                  <FormField
-                    control={documentForm.control}
-                    name="selectedModel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AI Model</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          disabled={isAnalyzing}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select AI Model" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
-                            <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                            <SelectItem value="perplexity">Perplexity</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </form>
-              </Form>
-              
-              <div
-                {...getDocumentRootProps()}
-                className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
-                  ${isDocumentDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center" 
+                onClick={handleDocumentClick}
+                disabled={isAnalyzing}
               >
-                <input {...getDocumentInputProps()} />
-                {isAnalyzing ? (
-                  <div className="space-y-4">
-                    <div className="animate-pulse">Analyzing document...</div>
-                    <Progress value={analysisProgress} className="w-full" />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <FileText className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground">
-                      Drag & drop a document, or click to select
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Supports PDF, DOC, DOCX, TXT (max 25MB)
-                    </p>
-                  </div>
-                )}
-              </div>
+                <FileText className="h-8 w-8 mb-2" />
+                <span>Document</span>
+                <input
+                  ref={documentInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileInputChange(e, 'document')}
+                />
+              </Button>
               
-              {documentName && (
-                <div className="mt-4 p-4 bg-muted rounded-lg flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-6 h-6" />
-                    <span>{documentName}</span>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center" 
+                onClick={() => setTextInput(textInput ? textInput : "Enter text for analysis...")}
+                disabled={isAnalyzing}
+              >
+                <Film className="h-8 w-8 mb-2" />
+                <span>Video</span>
+              </Button>
+            </div>
             
-            <TabsContent value="chat" className="space-y-4">
-              <h2 className="text-2xl font-semibold mb-4">Chat with AI</h2>
-              <p className="text-muted-foreground mb-4">
-                Discuss your analysis with the AI or ask follow-up questions.
+            {isAnalyzing && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Analyzing...</span>
+                  <span>{analysisProgress}%</span>
+                </div>
+                <Progress value={analysisProgress} className="w-full" />
+              </div>
+            )}
+            
+            {/* Drag area info */}
+            <div className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}>
+              <input {...getInputProps()} />
+              <p className="text-muted-foreground">
+                Drag & drop files here to analyze
               </p>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Supports JPG, PNG, MP4, MOV, PDF, DOC, DOCX (max 50MB)
+              </p>
+            </div>
+          </Card>
+          
+          {/* Input Preview */}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Input Preview</h2>
+            {uploadedMedia && mediaType === "image" && (
+              <img 
+                src={uploadedMedia} 
+                alt="Uploaded" 
+                className="max-w-full h-auto rounded-lg shadow-md"
+              />
+            )}
+            
+            {uploadedMedia && mediaType === "video" && (
+              <video 
+                ref={videoRef}
+                src={uploadedMedia} 
+                controls
+                className="max-w-full h-auto rounded-lg shadow-md"
+              />
+            )}
+            
+            {documentName && (
+              <div className="p-4 bg-muted rounded-lg flex items-center">
+                <FileText className="w-6 h-6 mr-2" />
+                <span>{documentName}</span>
+              </div>
+            )}
+            
+            {!uploadedMedia && !documentName && (
+              <form onSubmit={handleTextSubmit} className="space-y-4">
                 <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Type your message here..."
-                  className="min-h-[120px] resize-y"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => handleKeyPress(e, handleTextSubmit)}
+                  placeholder="Type or paste text to analyze..."
+                  className="min-h-[200px] resize-y"
+                  disabled={isAnalyzing}
                 />
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={!input.trim() || chatMutation.isPending}
+                  disabled={!textInput.trim() || isAnalyzing}
                 >
-                  {chatMutation.isPending ? "Sending..." : "Send Message"}
+                  Analyze Text
                 </Button>
               </form>
-            </TabsContent>
+            )}
           </Card>
-          
-          {/* Right side - Results section */}
+        </div>
+        
+        {/* Right Column - Results and Chat */}
+        <div className="space-y-6">
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Analysis Results</h2>
+              <h2 className="text-xl font-semibold">Analysis & Chat</h2>
               
               {messages.length > 0 && emailServiceAvailable && (
                 <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
@@ -893,44 +708,65 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               )}
             </div>
             
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center space-y-4 min-h-[400px] text-center text-muted-foreground">
-                <AlertCircle className="h-12 w-12" />
-                <div>
-                  <p className="text-lg font-medium">No analysis yet</p>
-                  <p>Upload media, enter text, or select a document to analyze.</p>
+            <div className="h-[400px] flex flex-col">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center space-y-4 h-full text-center text-muted-foreground">
+                  <AlertCircle className="h-12 w-12" />
+                  <div>
+                    <p className="text-lg font-medium">No analysis yet</p>
+                    <p>Upload media, enter text, or select a document to analyze.</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-4">
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex flex-col p-4 rounded-lg ${
-                        message.role === "user" ? "bg-primary/10 ml-8" : "bg-muted mr-8"
-                      }`}
-                    >
-                      <span className="font-medium text-sm mb-1">
-                        {message.role === "user" ? "You" : "AI Analysis"}
-                      </span>
-                      <div 
-                        className="whitespace-pre-wrap"
-                        dangerouslySetInnerHTML={{ 
-                          __html: message.content
-                            .replace(/\n/g, '<br/>')
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        }} 
-                      />
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
+              ) : (
+                <ScrollArea className="flex-1 pr-4 mb-4">
+                  <div className="space-y-4">
+                    {messages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex flex-col p-4 rounded-lg ${
+                          message.role === "user" ? "bg-primary/10 ml-8" : "bg-muted mr-8"
+                        }`}
+                      >
+                        <span className="font-medium text-sm mb-1">
+                          {message.role === "user" ? "You" : "AI Analysis"}
+                        </span>
+                        <div 
+                          className="whitespace-pre-wrap"
+                          dangerouslySetInnerHTML={{ 
+                            __html: message.content
+                              .replace(/\n/g, '<br/>')
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          }} 
+                        />
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+              )}
+              
+              <form onSubmit={handleChatSubmit} className="mt-auto">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => handleKeyPress(e, handleChatSubmit)}
+                    placeholder="Ask a question about the analysis..."
+                    className="min-h-[80px] resize-none"
+                  />
+                  <Button 
+                    type="submit" 
+                    className="self-end"
+                    disabled={!input.trim() || chatMutation.isPending}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
-              </ScrollArea>
-            )}
+              </form>
+            </div>
           </Card>
         </div>
-      </Tabs>
+      </div>
     </div>
   );
 }
