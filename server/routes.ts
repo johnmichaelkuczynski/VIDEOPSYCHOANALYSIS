@@ -1577,6 +1577,73 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
     }
   });
   
+  // Test email endpoint (for troubleshooting only, disable in production)
+  app.get("/api/test-email", async (req, res) => {
+    try {
+      if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_VERIFIED_SENDER) {
+        return res.status(503).json({ 
+          error: "Email service is not available. Please check environment variables." 
+        });
+      }
+      
+      // Create a test share
+      const testShare = {
+        id: 9999,
+        analysisId: 9999,
+        senderEmail: "test@example.com",
+        recipientEmail: process.env.SENDGRID_VERIFIED_SENDER, // Use the verified sender as recipient for testing
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+      
+      // Create a test analysis
+      const testAnalysis = {
+        id: 9999,
+        sessionId: "test-session",
+        title: "Test Analysis",
+        mediaType: "text",
+        mediaUrl: null,
+        peopleCount: 1,
+        personalityInsights: {
+          summary: "This is a test analysis summary for email testing purposes.",
+          personality_core: {
+            summary: "Test personality core summary."
+          },
+          thought_patterns: {
+            summary: "Test thought patterns summary."
+          },
+          professional_insights: {
+            summary: "Test professional insights summary."
+          },
+          growth_areas: {
+            strengths: ["Test strength 1", "Test strength 2"],
+            challenges: ["Test challenge 1", "Test challenge 2"],
+            development_path: "Test development path."
+          }
+        },
+        downloaded: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Send test email
+      console.log("Sending test email...");
+      const emailSent = await sendAnalysisEmail({
+        share: testShare,
+        analysis: testAnalysis,
+        shareUrl: "https://example.com/test-share"
+      });
+      
+      if (emailSent) {
+        res.json({ success: true, message: "Test email sent successfully" });
+      } else {
+        res.status(500).json({ success: false, error: "Failed to send test email" });
+      }
+    } catch (error) {
+      console.error("Test email error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+  
   // Download analysis as PDF or DOCX
   app.get("/api/download/:analysisId", async (req, res) => {
     try {

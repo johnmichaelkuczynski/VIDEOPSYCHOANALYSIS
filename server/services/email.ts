@@ -179,14 +179,36 @@ export async function sendAnalysisEmail({
       
     } else {
       // Get data for single-person format (traditional format)
-      if (personalityInsights.individualProfiles?.length === 1) {
-        const profile = personalityInsights.individualProfiles[0];
+      if (typeSafeInsights.individualProfiles?.length === 1) {
+        const profile = typeSafeInsights.individualProfiles[0];
         summary = profile.summary || 'No summary available';
-        detailedAnalysis = profile.detailed_analysis || {};
+        // Ensure detailedAnalysis has the expected structure
+        const profileAnalysis = profile.detailed_analysis || {};
+        detailedAnalysis = {
+          personality_core: profileAnalysis.personality_core || '',
+          thought_patterns: profileAnalysis.thought_patterns || '',
+          professional_insights: profileAnalysis.professional_insights || '',
+          growth_areas: {
+            strengths: Array.isArray(profileAnalysis.growth_areas?.strengths) ? profileAnalysis.growth_areas.strengths : [],
+            challenges: Array.isArray(profileAnalysis.growth_areas?.challenges) ? profileAnalysis.growth_areas.challenges : [],
+            development_path: profileAnalysis.growth_areas?.development_path || ''
+          }
+        };
       } else {
         // Legacy format
-        summary = personalityInsights.summary || 'No summary available';
-        detailedAnalysis = personalityInsights.detailed_analysis || {};
+        summary = typeSafeInsights.summary;
+        // Ensure detailedAnalysis has the expected structure using the typeSafeInsights
+        const legacyAnalysis = personalityInsights.detailed_analysis || {};
+        detailedAnalysis = {
+          personality_core: legacyAnalysis.personality_core || '',
+          thought_patterns: legacyAnalysis.thought_patterns || '',
+          professional_insights: legacyAnalysis.professional_insights || '',
+          growth_areas: {
+            strengths: Array.isArray(legacyAnalysis.growth_areas?.strengths) ? legacyAnalysis.growth_areas.strengths : [],
+            challenges: Array.isArray(legacyAnalysis.growth_areas?.challenges) ? legacyAnalysis.growth_areas.challenges : [],
+            development_path: legacyAnalysis.growth_areas?.development_path || ''
+          }
+        };
       }
       
       // Generate single-person email content (original format)
