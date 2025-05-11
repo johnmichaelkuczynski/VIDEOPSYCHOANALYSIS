@@ -22,6 +22,8 @@ export async function uploadMedia(
     documentType
   } = options;
   
+  console.log(`Uploading ${mediaType} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
+  
   const res = await apiRequest("POST", "/api/analyze", { 
     mediaData, 
     mediaType, 
@@ -31,7 +33,53 @@ export async function uploadMedia(
     title,
     documentType
   });
-  return res.json();
+  
+  const data = await res.json();
+  console.log("Media analysis response:", data);
+  
+  // Extract the analysis text into a proper message format if missing
+  if (data.analysisId && (!data.messages || data.messages.length === 0)) {
+    if (data.personalityInsights) {
+      console.log("Creating message from personality insights");
+      let analysisContent = '';
+      
+      // Try to extract analysis text from different possible formats
+      if (typeof data.personalityInsights === 'string') {
+        analysisContent = data.personalityInsights;
+      } else if (data.personalityInsights.analysis) {
+        analysisContent = data.personalityInsights.analysis;
+      } else if (data.personalityInsights.individualProfiles && 
+                data.personalityInsights.individualProfiles.length > 0) {
+        // Format multiple profiles into a single analysis
+        const profiles = data.personalityInsights.individualProfiles;
+        analysisContent = `# Personality Analysis\n\n`;
+        
+        profiles.forEach((profile: any, index: number) => {
+          const summary = profile.summary || '';
+          analysisContent += `## Person ${index + 1}\n\n${summary}\n\n`;
+          
+          if (profile.detailed_analysis) {
+            Object.entries(profile.detailed_analysis).forEach(([key, value]) => {
+              analysisContent += `### ${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n${value}\n\n`;
+            });
+          }
+        });
+      }
+      
+      if (analysisContent) {
+        data.messages = [{
+          id: Date.now(),
+          analysisId: data.analysisId,
+          sessionId,
+          role: "assistant",
+          content: analysisContent,
+          createdAt: new Date().toISOString()
+        }];
+      }
+    }
+  }
+  
+  return data;
 }
 
 export async function sendMessage(content: string, sessionId: string, selectedModel: ModelType = "openai") {
@@ -49,13 +97,45 @@ export async function analyzeText(
   selectedModel: ModelType = "openai",
   title?: string
 ) {
+  console.log(`Analyzing text with model: ${selectedModel}, sessionId: ${sessionId}`);
+  
   const res = await apiRequest("POST", "/api/analyze/text", { 
     content, 
     sessionId,
     selectedModel,
     title
   });
-  return res.json();
+  
+  const data = await res.json();
+  console.log("Text analysis response:", data);
+  
+  // Extract the analysis text into a proper message format if missing
+  if (data.analysisId && (!data.messages || data.messages.length === 0)) {
+    if (data.personalityInsights) {
+      console.log("Creating message from text analysis insights");
+      let analysisContent = '';
+      
+      // Try to extract analysis text from different possible formats
+      if (typeof data.personalityInsights === 'string') {
+        analysisContent = data.personalityInsights;
+      } else if (data.personalityInsights.analysis) {
+        analysisContent = data.personalityInsights.analysis;
+      }
+      
+      if (analysisContent) {
+        data.messages = [{
+          id: Date.now(),
+          analysisId: data.analysisId,
+          sessionId,
+          role: "assistant",
+          content: analysisContent,
+          createdAt: new Date().toISOString()
+        }];
+      }
+    }
+  }
+  
+  return data;
 }
 
 export async function analyzeDocument(
@@ -66,6 +146,8 @@ export async function analyzeDocument(
   selectedModel: ModelType = "openai",
   title?: string
 ) {
+  console.log(`Analyzing document "${fileName}" with model: ${selectedModel}, sessionId: ${sessionId}`);
+  
   const res = await apiRequest("POST", "/api/analyze/document", { 
     fileData, 
     fileName,
@@ -74,7 +156,37 @@ export async function analyzeDocument(
     selectedModel,
     title
   });
-  return res.json();
+  
+  const data = await res.json();
+  console.log("Document analysis response:", data);
+  
+  // Extract the analysis text into a proper message format if missing
+  if (data.analysisId && (!data.messages || data.messages.length === 0)) {
+    if (data.personalityInsights) {
+      console.log("Creating message from document analysis insights");
+      let analysisContent = '';
+      
+      // Try to extract analysis text from different possible formats
+      if (typeof data.personalityInsights === 'string') {
+        analysisContent = data.personalityInsights;
+      } else if (data.personalityInsights.analysis) {
+        analysisContent = data.personalityInsights.analysis;
+      }
+      
+      if (analysisContent) {
+        data.messages = [{
+          id: Date.now(),
+          analysisId: data.analysisId,
+          sessionId,
+          role: "assistant",
+          content: analysisContent,
+          createdAt: new Date().toISOString()
+        }];
+      }
+    }
+  }
+  
+  return data;
 }
 
 export async function shareAnalysis(analysisId: number, senderEmail: string, recipientEmail: string) {

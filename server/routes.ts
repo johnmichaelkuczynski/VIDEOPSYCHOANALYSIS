@@ -261,6 +261,9 @@ const getSharedAnalysisSchema = z.object({
   shareId: z.coerce.number(),
 });
 
+// Flag to check if email service is configured
+const isEmailServiceConfigured = !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_VERIFIED_SENDER;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Text analysis endpoint
   app.post("/api/analyze/text", async (req, res) => {
