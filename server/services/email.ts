@@ -1,21 +1,22 @@
-import { MailService } from '@sendgrid/mail';
+import mail from '@sendgrid/mail';
 import { Share, Analysis } from '../../shared/schema';
 
 // Check if required environment variables are set
 if (!process.env.SENDGRID_API_KEY) {
   console.warn("Warning: SENDGRID_API_KEY environment variable is not set. Email functionality will be disabled.");
+} else {
+  // Initialize the SendGrid client with the API key
+  mail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log("SendGrid client initialized with API key");
 }
 
 if (!process.env.SENDGRID_VERIFIED_SENDER) {
   console.warn("Warning: SENDGRID_VERIFIED_SENDER environment variable is not set. Using default sender.");
 }
 
-const mailService = new MailService();
-if (process.env.SENDGRID_API_KEY) {
-  mailService.setApiKey(process.env.SENDGRID_API_KEY);
-}
-
+// Set verified sender email or use a default (which won't work without verification)
 const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'notifications@personality-insights.app';
+console.log(`SendGrid configured with sender email: ${FROM_EMAIL}`);
 
 interface SendAnalysisEmailParams {
   share: Share;
@@ -43,17 +44,35 @@ export async function sendAnalysisEmail({
     // Parse the JSON data from the database
     const personalityInsights = analysis.personalityInsights as any || {};
     
+    // Create a type-safe object to ensure we can safely access properties
+    const typeSafeInsights = {
+      individualProfiles: personalityInsights.individualProfiles || [],
+      peopleCount: personalityInsights.peopleCount || 1,
+      summary: personalityInsights.summary || 'No summary available',
+      personality_core: personalityInsights.personality_core || {},
+      thought_patterns: personalityInsights.thought_patterns || {},
+      professional_insights: personalityInsights.professional_insights || {},
+      growth_areas: personalityInsights.growth_areas || {},
+    };
+    
     // Detect if we have a multi-person analysis
-    const isMultiPersonAnalysis = personalityInsights.individualProfiles && 
-                                  Array.isArray(personalityInsights.individualProfiles) && 
-                                  personalityInsights.individualProfiles.length > 1;
+    const isMultiPersonAnalysis = typeSafeInsights.individualProfiles.length > 1;
     
     // Get total people count
-    const peopleCount = personalityInsights.peopleCount || 1;
+    const peopleCount = typeSafeInsights.peopleCount;
     
     // For backward compatibility with single-person analysis
-    let summary = 'No summary available';
-    let detailedAnalysis = {};
+    let summary = typeSafeInsights.summary;
+    let detailedAnalysis: any = {
+      personality_core: '',
+      thought_patterns: '',
+      professional_insights: '',
+      growth_areas: {
+        strengths: [],
+        challenges: [],
+        development_path: ''
+      }
+    };
 
     // Determine if this was a video analysis that includes transcription
     const isVideoAnalysis = analysis.mediaType === 'video';
@@ -228,7 +247,7 @@ export async function sendAnalysisEmail({
     }
 
     // Prepare email data object
-    const emailData = {
+    const msg = {
       to: share.recipientEmail,
       from: {
         email: FROM_EMAIL,
@@ -238,17 +257,33 @@ export async function sendAnalysisEmail({
       html: emailContent,
     };
     
-    console.log(`[SendGrid] Preparing to send email with subject: ${emailData.subject}`);
-    console.log(`[SendGrid] From: ${emailData.from.name} <${emailData.from.email}>`);
-    console.log(`[SendGrid] To: ${emailData.to}`);
+    console.log(`[SendGrid] Preparing to send email with subject: ${msg.subject}`);
+    console.log(`[SendGrid] From: ${msg.from.name} <${msg.from.email}>`);
+    console.log(`[SendGrid] To: ${msg.to}`);
     
     try {
       console.log('[SendGrid] Attempting to send email via SendGrid API...');
-      const response = await mailService.send(emailData);
+      
+      // Verify SendGrid is properly configured before sending
+      if (!process.env.SENDGRID_API_KEY) {
+        throw new Error('SendGrid API key is missing');
+      }
+      
+      if (!process.env.SENDGRID_VERIFIED_SENDER) {
+        console.warn('[SendGrid] Warning: Using unverified sender email, email may not be delivered');
+      }
+      
+      const response = await mail.send(msg);
       console.log('[SendGrid] Email sent successfully!', response);
       return true;
-    } catch (sendError) {
-      console.error('[SendGrid] Error while sending email:', sendError);
+    } catch (error) {
+      console.error('[SendGrid] Error while sending email:', error);
+      // Type assertion for SendGrid error response type
+      const sendGridError = error as any;
+      if (sendGridError && sendGridError.response) {
+        console.error('[SendGrid] Error status code:', sendGridError.response.statusCode);
+        console.error('[SendGrid] Error body:', sendGridError.response.body);
+      }
       return false;
     }
   } catch (error) {
