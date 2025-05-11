@@ -13,7 +13,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, ModelType, MediaType } from "@/lib/api";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, downloadAnalysis, ModelType, MediaType } from "@/lib/api";
 import { Upload, Send, FileImage, Film, Share2, AlertCircle, FileText, File, Download } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -748,59 +748,90 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">ANALYSIS</h2>
               
-              {messages.length > 0 && emailServiceAvailable && (
-                <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Share2 className="h-4 w-4" />
-                      <span>Share</span>
+              {messages.length > 0 && (
+                <div className="flex gap-2">
+                  {/* Download PDF button */}
+                  {analysisId && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2"
+                      onClick={() => downloadAnalysis(analysisId, 'pdf')}
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>PDF</span>
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Share Analysis</DialogTitle>
-                    </DialogHeader>
-                    <Form {...shareForm}>
-                      <form onSubmit={shareForm.handleSubmit(onShareSubmit)} className="space-y-4">
-                        <FormField
-                          control={shareForm.control}
-                          name="senderEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Your Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="email" placeholder="youremail@example.com" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={shareForm.control}
-                          name="recipientEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Recipient's Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="email" placeholder="recipient@example.com" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <DialogFooter>
-                          <Button 
-                            type="submit" 
-                            disabled={shareMutation.isPending}
-                            className="w-full"
-                          >
-                            {shareMutation.isPending ? "Sending..." : "Share Analysis"}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
+                  )}
+                  
+                  {/* Download DOCX button */}
+                  {analysisId && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2"
+                      onClick={() => downloadAnalysis(analysisId, 'docx')}
+                    >
+                      <File className="h-4 w-4" />
+                      <span>DOCX</span>
+                    </Button>
+                  )}
+                  
+                  {/* Share button */}
+                  {emailServiceAvailable && (
+                    <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                          <Share2 className="h-4 w-4" />
+                          <span>Share</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Share Analysis</DialogTitle>
+                        </DialogHeader>
+                        <Form {...shareForm}>
+                          <form onSubmit={shareForm.handleSubmit(onShareSubmit)} className="space-y-4">
+                            <FormField
+                              control={shareForm.control}
+                              name="senderEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Your Email</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} type="email" placeholder="youremail@example.com" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={shareForm.control}
+                              name="recipientEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Recipient's Email</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} type="email" placeholder="recipient@example.com" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <DialogFooter>
+                              <Button 
+                                type="submit" 
+                                disabled={shareMutation.isPending}
+                                className="w-full"
+                              >
+                                {shareMutation.isPending ? "Sending..." : "Share Analysis"}
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               )}
             </div>
             
