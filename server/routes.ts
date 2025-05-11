@@ -254,15 +254,15 @@ const sendMessageSchema = z.object({
 });
 
 // Check if email service is configured
-const isEmailServiceConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_VERIFIED_SENDER);
+let isEmailServiceConfigured = false;
+if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_VERIFIED_SENDER) {
+  isEmailServiceConfigured = true;
+}
 
 // Define the schema for retrieving a shared analysis
 const getSharedAnalysisSchema = z.object({
   shareId: z.coerce.number(),
 });
-
-// Flag to check if email service is configured
-const isEmailServiceConfigured = !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_VERIFIED_SENDER;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Text analysis endpoint
