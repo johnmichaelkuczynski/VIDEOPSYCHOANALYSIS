@@ -1576,6 +1576,53 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
       res.status(500).json({ error: "Failed to check API status" });
     }
   });
+  
+  // Download analysis as PDF or DOCX
+  app.get("/api/download/:analysisId", async (req, res) => {
+    try {
+      const { analysisId } = req.params;
+      const format = req.query.format as string || 'pdf';
+      
+      // Get the analysis from storage
+      const analysis = await storage.getAnalysisById(parseInt(analysisId));
+      if (!analysis) {
+        return res.status(404).json({ error: "Analysis not found" });
+      }
+      
+      // Import document generation services
+      const { generateAnalysisHtml, generatePdf, generateDocx } = require('./services/document');
+      
+      let buffer: Buffer;
+      let contentType: string;
+      let filename: string;
+      
+      if (format === 'docx') {
+        // Generate DOCX
+        buffer = await generateDocx(analysis);
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        filename = `personality-analysis-${analysisId}.docx`;
+      } else {
+        // Default to PDF
+        const htmlContent = generateAnalysisHtml(analysis);
+        buffer = await generatePdf(htmlContent);
+        contentType = 'application/pdf';
+        filename = `personality-analysis-${analysisId}.pdf`;
+      }
+      
+      // Mark as downloaded in the database
+      await storage.updateAnalysisDownloadStatus(analysis.id, true);
+      
+      // Send the file
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+      
+    } catch (error) {
+      console.error("Download error:", error);
+      res.status(500).json({ error: "Failed to generate document" });
+    }
+  });
 
   app.post("/api/share", async (req, res) => {
     try {

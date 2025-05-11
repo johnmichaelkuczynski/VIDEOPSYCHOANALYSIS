@@ -225,9 +225,10 @@ export async function getAllAnalysesBySession(sessionId: string) {
   return res.json();
 }
 
-export async function downloadAnalysis(analysisId: number, format: "json" | "pdf" | "text" = "pdf", includeCharts: boolean = true) {
-  const res = await apiRequest("GET", `/api/analysis/${analysisId}/download?format=${format}&includeCharts=${includeCharts}`, null);
-  return res;
+export async function downloadAnalysis(analysisId: number, format: "pdf" | "docx" = "pdf") {
+  // Direct download approach using window.open
+  window.open(`/api/download/${analysisId}?format=${format}`, '_blank');
+  return true;
 }
 
 export async function updateAnalysisTitle(analysisId: number, title: string) {
