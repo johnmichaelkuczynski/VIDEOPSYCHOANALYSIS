@@ -811,11 +811,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div>
                     <p className="text-lg font-medium">No analysis yet</p>
                     <p>Upload media, enter text, or select a document to analyze.</p>
+                    <p className="text-xs mt-4">Debug: {JSON.stringify({ messageCount: messages.length, sessionId })}</p>
                   </div>
                 </div>
               ) : (
                 <ScrollArea className="flex-1 pr-4 mb-4">
                   <div className="space-y-4">
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Debug: Found {messages.length} messages, {messages.filter(m => m.role === "assistant").length} are from assistant
+                    </div>
                     {messages.filter(message => message.role === "assistant").map((message, index) => (
                       <div
                         key={index}
