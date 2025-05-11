@@ -1,15 +1,19 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   uploadMedia, 
   sendMessage, 
@@ -41,44 +45,33 @@ import {
   Trash2, 
   Edit, 
   RefreshCw, 
-  Check, 
-  BarChart4, 
-  Video,
-  MessageSquare 
+  MessageSquare
 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Badge } from "@/components/ui/badge";
-import { useIsMobile } from "@/hooks/use-mobile";
 
-// Helper function to resize images to keep them under the AWS 5MB limit
+// Define schemas for forms
+const shareSchema = z.object({
+  senderEmail: z.string().email("Please enter a valid email"),
+  recipientEmail: z.string().email("Please enter a valid email"),
+});
+
+const textSchema = z.object({
+  content: z.string().min(1, "Content is required"),
+  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai")
+});
+
+const documentSchema = z.object({
+  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai")
+});
+
+const mediaSchema = z.object({
+  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
+  maxPeople: z.number().min(1).max(10).default(5)
+});
+
+// Helper function to resize images
 async function resizeImage(file: File, maxWidth: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -108,9 +101,13 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
         
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to data URL with reduced quality for JPEG to ensure smaller file size
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        resolve(dataUrl);
+        // Convert canvas to data URL
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          resolve(dataUrl);
+        } catch (e) {
+          reject(e);
+        }
       };
       
       img.onerror = () => {
@@ -132,44 +129,12 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
   });
 }
 
-// Schema for validating media uploads
-const mediaSchema = z.object({
-  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
-  maxPeople: z.number().min(1).max(10).default(5),
-  title: z.string().optional(),
-});
-
-// Schema for text analysis
-const textSchema = z.object({
-  content: z.string().min(1, "Text content is required").max(500000, "Text content cannot exceed 500,000 characters"),
-  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
-  title: z.string().optional(),
-});
-
-// Schema for document analysis
-const documentSchema = z.object({
-  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
-  title: z.string().optional(),
-});
-
-// Schema for session renaming
-const sessionSchema = z.object({
-  name: z.string().min(1, "Session name is required").max(50, "Session name cannot exceed 50 characters"),
-});
-
-// Schema for sharing analysis via email
-const shareSchema = z.object({
-  senderEmail: z.string().email("Please enter a valid email"),
-  recipientEmail: z.string().email("Please enter a valid email"),
-});
-
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
   const { toast } = useToast();
   const [sessionId] = useState(() => nanoid());
-  const [messages, setMessages] = useState<Array<{ role: string; content: string; id?: number }>>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
-  const [textInput, setTextInput] = useState("");
-  const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   
   // Media states
   const [uploadedMedia, setUploadedMedia] = useState<string | null>(null);
@@ -179,26 +144,62 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
   const [activeTab, setActiveTab] = useState<string>("upload");
-  
-  // Document states
   const [documentName, setDocumentName] = useState<string>("");
-  const [documentType, setDocumentType] = useState<"pdf" | "docx" | "other">("pdf");
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Session management
-  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [analyses, setAnalyses] = useState<any[]>([]);
-  
-  // Status
-  const [apiStatus, setApiStatus] = useState<Record<string, boolean>>({});
-  
-  // References 
+  // Check for mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  // References
   const videoRef = useRef<HTMLVideoElement>(null);
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const queryClient = useQueryClient();
+  // Forms 
+  const shareForm = useForm<z.infer<typeof shareSchema>>({
+    resolver: zodResolver(shareSchema),
+  });
+  
+  const textForm = useForm<z.infer<typeof textSchema>>({
+    resolver: zodResolver(textSchema),
+    defaultValues: {
+      content: "",
+      selectedModel: "openai"
+    }
+  });
+  
+  const documentForm = useForm<z.infer<typeof documentSchema>>({
+    resolver: zodResolver(documentSchema),
+    defaultValues: {
+      selectedModel: "openai"
+    }
+  });
+  
+  const mediaForm = useForm<z.infer<typeof mediaSchema>>({
+    resolver: zodResolver(mediaSchema),
+    defaultValues: {
+      selectedModel: "openai",
+      maxPeople: 5
+    }
+  });
+
+  // Check API status on component mount
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await checkAPIStatus();
+        setEmailServiceAvailable(status.sendgrid || false);
+      } catch (error) {
+        console.error("Error checking API status:", error);
+      }
+    };
+    
+    checkStatus();
+  }, []);
 
   // Load shared analysis when shareId is provided
   useEffect(() => {
@@ -213,7 +214,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             // Set uploaded media preview if available
             if (data.analysis.mediaUrl) {
               setUploadedMedia(data.analysis.mediaUrl);
-              setMediaType(data.analysis.mediaType);
+              setMediaType(data.analysis.mediaType as MediaType);
             }
             
             // Set messages
@@ -239,196 +240,222 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
   }, [shareId, toast]);
   
-  // Open share dialog when in share mode
+  // Scroll to bottom of messages
   useEffect(() => {
-    if (isShareMode && messages.length > 0 && emailServiceAvailable && !shareId) {
-      setIsShareDialogOpen(true);
-    }
-  }, [isShareMode, messages.length, emailServiceAvailable, shareId]);
-
-
-  // Simulate analysis progress
-  useEffect(() => {
-    if (isAnalyzing) {
-      const interval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 5;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  
+  // Text analysis form submission
+  const handleTextAnalysis = useMutation({
+    mutationFn: async (data: z.infer<typeof textSchema>) => {
+      try {
+        setIsAnalyzing(true);
+        setAnalysisProgress(10);
+        setMessages([]);
+        
+        const response = await analyzeText(data.content, sessionId, data.selectedModel);
+        
+        setAnalysisProgress(80);
+        setAnalysisId(response.analysisId);
+        
+        if (response.messages && response.messages.length > 0) {
+          setMessages(response.messages);
+        }
+        
+        setAnalysisProgress(100);
+        return response;
+      } catch (error: any) {
+        console.error('Text analysis error:', error);
+        toast({
+          title: "Analysis Failed",
+          description: error.message || "Failed to analyze text. Please try again.",
+          variant: "destructive",
         });
-      }, 500);
-      
-      return () => clearInterval(interval);
+        setAnalysisProgress(0);
+        throw error;
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Analysis Complete",
+        description: "Your text has been successfully analyzed.",
+      });
+      textForm.reset();
     }
-  }, [isAnalyzing]);
+  });
 
-  const uploadMutation = useMutation({
+  // Document analysis with file upload
+  const handleDocumentAnalysis = useMutation({
     mutationFn: async (file: File) => {
-      // Determine media type based on file type
-      const fileType = file.type.split('/')[0];
-      const isMimeTypeVideo = fileType === 'video';
-      const currentMediaType = isMimeTypeVideo ? "video" : "image";
-      
-      setMediaType(currentMediaType);
-      setIsAnalyzing(true);
-      setAnalysisProgress(0);
-      
-      // For images, we need to resize to ensure it's under AWS Rekognition's 5MB limit
-      let mediaData: string;
-      
-      if (currentMediaType === "image") {
-        // Resize the image
-        mediaData = await resizeImage(file, 1200); // Resize to max width of 1200px
-      } else {
-        // Read video as data URL without resizing
+      try {
+        setIsAnalyzing(true);
+        setAnalysisProgress(10);
+        setMessages([]);
+        
+        setDocumentName(file.name);
+        setAnalysisProgress(30);
+        
+        // Read the file as data URL
         const reader = new FileReader();
-        mediaData = await new Promise<string>((resolve) => {
+        const fileData = await new Promise<string>((resolve) => {
           reader.onload = (e) => resolve(e.target?.result as string);
           reader.readAsDataURL(file);
         });
-      }
-      
-      // Set previews
-      setUploadedMedia(mediaData);
-      
-      // Upload for analysis
-      return uploadMedia(mediaData, currentMediaType, sessionId);
-    },
-    onSuccess: (data) => {
-      setIsAnalyzing(false);
-      setAnalysisProgress(100);
-      setAnalysisId(data.id);
-      setEmailServiceAvailable(data.emailServiceAvailable);
-      
-      // Clear previous messages when a new analysis is completed
-      setMessages([]);
-      
-      // Get the latest messages that were created for this session
-      // This contains the properly formatted content for both single and multi-person analyses
-      const messagesQuery = `/api/messages?sessionId=${sessionId}`;
-      
-      fetch(messagesQuery)
-        .then(response => response.json())
-        .then(messagesData => {
-          if (messagesData.length > 0) {
-            // Only show messages from the latest analysis
-            const latestAnalysisId = Math.max(...messagesData.filter(msg => msg.analysisId).map(msg => msg.analysisId));
-            const latestMessages = messagesData.filter(msg => msg.analysisId === latestAnalysisId);
-            
-            if (latestMessages.length > 0) {
-              setMessages(latestMessages);
-              toast({
-                title: "Analysis Complete",
-                description: "New analysis completed successfully."
-              });
-            } else {
-              setMessages(messagesData); // Fallback to all messages if filtering fails
-            }
-          } else {
-            // Fallback in case messages aren't available
-            toast({
-              title: "Analysis Complete",
-              description: "Analysis completed, but message content could not be loaded."
-            });
-          }
-        })
-        .catch(err => {
-          console.error("Failed to fetch messages:", err);
-          toast({
-            title: "Analysis Complete",
-            description: "Analysis completed, but message content could not be loaded."
-          });
-        });
         
-      queryClient.invalidateQueries({ queryKey: ["/api/analyze"] });
+        // Extract file type
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+        const fileType = fileExt === 'pdf' ? 'pdf' : 'docx';
+        
+        setAnalysisProgress(50);
+        
+        const selectedModel = documentForm.getValues().selectedModel;
+        const response = await analyzeDocument(
+          fileData,
+          file.name,
+          fileType,
+          sessionId,
+          selectedModel
+        );
+        
+        setAnalysisProgress(80);
+        setAnalysisId(response.analysisId);
+        
+        if (response.messages && response.messages.length > 0) {
+          setMessages(response.messages);
+        }
+        
+        setAnalysisProgress(100);
+        return response;
+      } catch (error: any) {
+        console.error('Document analysis error:', error);
+        toast({
+          title: "Analysis Failed",
+          description: error.message || "Failed to analyze document. Please try again.",
+          variant: "destructive",
+        });
+        setAnalysisProgress(0);
+        throw error;
+      } finally {
+        setIsAnalyzing(false);
+      }
     },
-    onError: (error) => {
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
+    onSuccess: () => {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to analyze media. Please try again.",
+        title: "Analysis Complete",
+        description: "Your document has been successfully analyzed.",
       });
-    },
+      documentForm.reset();
+    }
   });
 
+  // Media upload and analysis
+  const handleUploadMedia = useMutation({
+    mutationFn: async (file: File) => {
+      try {
+        setIsAnalyzing(true);
+        setAnalysisProgress(0);
+        setMessages([]);
+        
+        // Determine media type and set it
+        const fileType = file.type.split('/')[0];
+        const isVideo = fileType === 'video';
+        const mediaFileType: MediaType = isVideo ? "video" : "image";
+        setMediaType(mediaFileType);
+        
+        // Update progress
+        setAnalysisProgress(20);
+        
+        // For images, resize if needed to meet AWS limits
+        let mediaData: string;
+        if (mediaFileType === "image" && file.size > 4 * 1024 * 1024) {
+          mediaData = await resizeImage(file, 1600);
+        } else {
+          // For videos or smaller images, read as data URL
+          const reader = new FileReader();
+          mediaData = await new Promise<string>((resolve) => {
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+        }
+        
+        // Set preview
+        setUploadedMedia(mediaData);
+        setAnalysisProgress(50);
+        
+        // Get form values
+        const selectedModel = mediaForm.getValues().selectedModel;
+        const maxPeople = mediaForm.getValues().maxPeople;
+        
+        // Upload for analysis
+        const response = await uploadMedia(
+          mediaData, 
+          mediaFileType, 
+          sessionId, 
+          { 
+            selectedModel, 
+            maxPeople 
+          }
+        );
+        
+        setAnalysisProgress(90);
+        setAnalysisId(response.analysisId);
+        
+        if (response.messages && response.messages.length > 0) {
+          setMessages(response.messages);
+        }
+        
+        setAnalysisProgress(100);
+        return response;
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Upload Failed",
+          description: error.message || "Failed to upload media. Please try again.",
+          variant: "destructive",
+        });
+        setAnalysisProgress(0);
+        throw error;
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Analysis Complete",
+        description: "Your media has been successfully analyzed.",
+      });
+    },
+    onError: () => {
+      setUploadedMedia(null);
+    }
+  });
+
+  // Chat with AI
   const chatMutation = useMutation({
     mutationFn: async (content: string) => {
-      console.log("Sending chat message:", { content, sessionId });
-      return sendMessage(content, sessionId);
+      const selectedModel = mediaForm.getValues().selectedModel;
+      return sendMessage(content, sessionId, selectedModel);
     },
     onSuccess: (data) => {
-      console.log("Chat response data:", data);
-      
-      // If we received messages, add them to the state
       if (data && data.messages && Array.isArray(data.messages)) {
-        console.log("Adding new messages to state:", data.messages);
-        
-        // Add only the new messages that aren't already in the state
-        // Get the IDs of existing messages
-        const existingMessageIds = messages.map(msg => (msg as any).id).filter(Boolean);
-        
-        // Filter out messages that are already in the state
-        const newMessages = data.messages.filter(msg => !msg.id || !existingMessageIds.includes(msg.id));
-        
-        if (newMessages.length > 0) {
-          // Make sure each message has a valid role and content property
-          const validMessages = newMessages.map(msg => ({
-            ...msg,
-            role: msg.role || 'assistant',
-            content: msg.content || '',
-          }));
-          
-          console.log("Final messages to add:", validMessages);
-          setMessages(prev => [...prev, ...validMessages]);
-          queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
-        } else {
-          console.log("No new messages to add");
-        }
-      } else {
-        console.warn("Received invalid message data format:", data);
-      }
-      
-      // Check for configError that indicates an API key issue
-      if (data.configError === "OPENAI_API_KEY_MISSING") {
-        toast({
-          variant: "destructive",
-          title: "API Key Missing",
-          description: "OpenAI API key is required for chat functionality. Please configure the API key.",
-        });
+        // Add the new messages
+        setMessages((prev) => [...prev, ...data.messages]);
+        queryClient.invalidateQueries({ queryKey: ["/api/chat"] });
       }
     },
     onError: (error: any) => {
       console.error("Chat error:", error);
-      
-      // Check if the error has a response with details
-      const errorMessage = error.response?.data?.error || "Failed to send message. Please try again.";
-      const configError = error.response?.data?.configError;
-      
-      if (configError === "OPENAI_API_KEY_MISSING") {
-        toast({
-          variant: "destructive",
-          title: "API Key Missing",
-          description: "OpenAI API key is required for chat functionality. Please configure the API key.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage,
-        });
-      }
-      
-      // If we received a user message in the error response, add it to the messages
-      if (error.response?.data?.messages) {
-        setMessages((prev) => [...prev, ...error.response.data.messages]);
-      }
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send message.",
+      });
     },
   });
 
+  // Email sharing
   const shareMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shareSchema>) => {
       if (!analysisId) throw new Error("No analysis to share");
@@ -450,29 +477,61 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     },
   });
 
-  const shareForm = useForm<z.infer<typeof shareSchema>>({
-    resolver: zodResolver(shareSchema),
-  });
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  // Dropzone for media files
+  const onDropMedia = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
-      uploadMutation.mutate(acceptedFiles[0]);
+      handleUploadMedia.mutate(acceptedFiles[0]);
     }
-  }, [uploadMutation]);
+  }, [handleUploadMedia]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: onDropMedia,
     accept: {
-      "image/*": [".jpeg", ".jpg", ".png"],
-      "video/*": [".mp4", ".mov", ".webm"]
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
+      'video/*': ['.mp4', '.mov', '.webm']
     },
     maxFiles: 1,
     maxSize: 50 * 1024 * 1024, // 50MB limit
   });
 
+  // Dropzone for document files
+  const onDropDocument = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      handleDocumentAnalysis.mutate(acceptedFiles[0]);
+    }
+  }, [handleDocumentAnalysis]);
+
+  const { 
+    getRootProps: getDocumentRootProps, 
+    getInputProps: getDocumentInputProps, 
+    isDragActive: isDocumentDragActive 
+  } = useDropzone({
+    onDrop: onDropDocument,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
+    },
+    maxFiles: 1,
+    maxSize: 25 * 1024 * 1024, // 25MB limit
+  });
+
+  // Form submission handlers
+  const onTextSubmit = (data: z.infer<typeof textSchema>) => {
+    handleTextAnalysis.mutate(data);
+  };
+
+  const onShareSubmit = (data: z.infer<typeof shareSchema>) => {
+    shareMutation.mutate(data);
+  };
+
+  // Chat message submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
+      // Add user message immediately to UI
+      setMessages(prev => [...prev, { role: 'user', content: input }]);
       chatMutation.mutate(input);
       setInput("");
     }
@@ -485,298 +544,393 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
   };
 
-  const onShareSubmit = (data: z.infer<typeof shareSchema>) => {
-    shareMutation.mutate(data);
-  };
-
   return (
     <div className="container mx-auto p-4 max-w-6xl">
       <h1 className="text-4xl font-bold text-center mb-8">AI Personality Analysis</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <Card className="p-6">
-          <h2 className="text-2xl font-semibold mb-4">Upload Media</h2>
-          <div
-            {...getRootProps()}
-            className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
-              ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
-          >
-            <input {...getInputProps()} />
-            {isAnalyzing ? (
-              <div className="space-y-4">
-                <div className="animate-pulse">Analyzing media...</div>
-                <Progress value={analysisProgress} className="w-full" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-center space-x-2">
-                  <FileImage className="w-8 h-8 text-muted-foreground" />
-                  <Film className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground">
-                  Drag & drop an image or video, or click to select
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Supports JPG, PNG, MP4, MOV, WEBM (max 50MB)
-                </p>
-              </div>
-            )}
-          </div>
-          {uploadedMedia && (
-            <div className="mt-4">
-              {mediaType === "image" ? (
-                <img 
-                  src={uploadedMedia} 
-                  alt="Uploaded" 
-                  className="max-w-full h-auto rounded-lg shadow-md"
-                />
-              ) : (
-                <video 
-                  ref={videoRef}
-                  src={uploadedMedia} 
-                  controls
-                  className="max-w-full h-auto rounded-lg shadow-md"
-                />
-              )}
-            </div>
-          )}
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Analysis Results</h2>
-            {messages.length > 0 && emailServiceAvailable && (
-              <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      // Update URL to include /share
-                      window.history.pushState({}, "Share Analysis", "/share");
-                      
-                      // For Replit deployment URLs, ensure the /share segment is included
-                      if (!window.location.pathname.includes("/share")) {
-                        const newUrl = new URL(window.location.href);
-                        newUrl.pathname = "/share";
-                        window.history.replaceState({}, "Share Analysis", newUrl.toString());
-                      }
-                    }}
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Share Analysis</DialogTitle>
-                  </DialogHeader>
-                  <Form {...shareForm}>
-                    <form onSubmit={shareForm.handleSubmit(onShareSubmit)} className="space-y-4">
-                      <FormField
-                        control={shareForm.control}
-                        name="senderEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Your Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="your@email.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={shareForm.control}
-                        name="recipientEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Recipient's Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="recipient@email.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={shareMutation.isPending}
-                      >
-                        {shareMutation.isPending ? "Sending..." : "Send"}
-                      </Button>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-          <ScrollArea className="h-[600px] pr-4">
-            {messages.map((msg: any, i) => {
-              console.log("Rendering message:", msg);
+      
+      <Tabs 
+        defaultValue="upload" 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        className="w-full mb-6"
+      >
+        <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsTrigger value="upload" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            <span>Media</span>
+          </TabsTrigger>
+          <TabsTrigger value="text" className="flex items-center gap-2">
+            <Text className="h-4 w-4" />
+            <span>Text</span>
+          </TabsTrigger>
+          <TabsTrigger value="document" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>Document</span>
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            <span>Chat</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Left side - Input section */}
+          <Card className="p-6">
+            <TabsContent value="upload" className="space-y-4">
+              <h2 className="text-2xl font-semibold mb-4">Upload Images & Videos</h2>
               
-              return (
-                <div
-                  key={i}
-                  className={`mb-6 p-6 rounded-lg ${
-                    msg.role === "assistant"
-                      ? "bg-primary/10"
-                      : "bg-muted"
-                  }`}
-                >
-                  <p className="text-xs text-gray-500 mb-2">
-                    {msg.role === "assistant" ? "AI Assistant" : "You"}
-                  </p>
+              <Form {...mediaForm}>
+                <form className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={mediaForm.control}
+                      name="selectedModel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>AI Model</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            disabled={isAnalyzing}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select AI Model" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
+                              <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                              <SelectItem value="perplexity">Perplexity</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={mediaForm.control}
+                      name="maxPeople"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Max People</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={10}
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              disabled={isAnalyzing}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </form>
+              </Form>
+              
+              <div
+                {...getRootProps()}
+                className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
+                  ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
+              >
+                <input {...getInputProps()} />
+                {isAnalyzing ? (
+                  <div className="space-y-4">
+                    <div className="animate-pulse">Analyzing media...</div>
+                    <Progress value={analysisProgress} className="w-full" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center space-x-2">
+                      <FileImage className="w-8 h-8 text-muted-foreground" />
+                      <Film className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">
+                      Drag & drop an image or video, or click to select
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Supports JPG, PNG, MP4, MOV, WEBM (max 50MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {uploadedMedia && mediaType === "image" && (
+                <div className="mt-4">
+                  <img 
+                    src={uploadedMedia} 
+                    alt="Uploaded" 
+                    className="max-w-full h-auto rounded-lg shadow-md"
+                  />
+                </div>
+              )}
+              
+              {uploadedMedia && mediaType === "video" && (
+                <div className="mt-4">
+                  <video 
+                    ref={videoRef}
+                    src={uploadedMedia} 
+                    controls
+                    className="max-w-full h-auto rounded-lg shadow-md"
+                  />
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="text" className="space-y-4">
+              <h2 className="text-2xl font-semibold mb-4">Text Analysis</h2>
+              
+              <Form {...textForm}>
+                <form onSubmit={textForm.handleSubmit(onTextSubmit)} className="space-y-4">
+                  <FormField
+                    control={textForm.control}
+                    name="selectedModel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AI Model</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          disabled={isAnalyzing}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select AI Model" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
+                            <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                            <SelectItem value="perplexity">Perplexity</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
                   
-                  <div className="prose prose-sm max-w-none">
-                    {typeof msg.content === 'string' && msg.content.split('\n').map((rawLine: string, j: number) => {
-                      // Clean up the line by removing markdown symbols
-                      const line = rawLine
-                        .replace(/^\s*#{1,3}\s+/, '') // Remove heading markers (### Title)
-                        .replace(/^\s*\*\*/, '') // Remove leading asterisks
-                        .replace(/\*\*\s*$/, '') // Remove trailing asterisks
-                        .replace(/\*\*/g, '') // Remove all other asterisks pairs
-                        .replace(/^>\s*/, '') // Remove block quotes
-
-                      // Check if line is a divider (─────)
-                      if (line.startsWith('─')) {
-                        return <hr key={j} className="my-3 border-gray-300" />;
-                      }
-                      
-                      // Check if line is a section header with emoji (e.g., "👤 Subject 1")
-                      if (/^[👤🧠🖼️📷🧾🧬💼❤️📈🤝]/.test(line)) {
-                        return <h3 key={j} className="text-lg font-bold mt-4 mb-2 text-primary">{line}</h3>;
-                      }
-                      
-                      // Check for numbered lists (e.g., "1. Item")
-                      if (/^\d+\./.test(line)) {
-                        return <p key={j} className="ml-8 mb-1">{line}</p>;
-                      }
-                      
-                      // Special formatting for Growth Areas with bullet points
-                      if (line.startsWith('•')) {
-                        return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
-                      }
-                      
-                      // Handle bullet lists
-                      if (line.startsWith('-') || line.startsWith('*')) {
-                        return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
-                      }
-                      
-                      // For subsections like "Strengths:", "Challenges:", etc.
-                      if (line.endsWith(':')) {
-                        return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
-                      }
-                      
-                      // Regular paragraph - clean up and display
-                      return <p key={j} className="mb-2">{line}</p>;
-                    })}
+                  <FormField
+                    control={textForm.control}
+                    name="content"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Text Content</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Enter your text for personality analysis (journal entry, conversation, etc.)"
+                            className="min-h-[200px]"
+                            disabled={isAnalyzing}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit" className="w-full" disabled={isAnalyzing || textForm.formState.isSubmitting}>
+                    {isAnalyzing ? "Analyzing..." : "Analyze Text"}
+                  </Button>
+                  {isAnalyzing && <Progress value={analysisProgress} className="w-full mt-2" />}
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="document" className="space-y-4">
+              <h2 className="text-2xl font-semibold mb-4">Document Analysis</h2>
+              
+              <Form {...documentForm}>
+                <form className="space-y-4">
+                  <FormField
+                    control={documentForm.control}
+                    name="selectedModel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AI Model</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          disabled={isAnalyzing}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select AI Model" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
+                            <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                            <SelectItem value="perplexity">Perplexity</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+              
+              <div
+                {...getDocumentRootProps()}
+                className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
+                  ${isDocumentDragActive ? "border-primary bg-primary/5" : "border-muted"}`}
+              >
+                <input {...getDocumentInputProps()} />
+                {isAnalyzing ? (
+                  <div className="space-y-4">
+                    <div className="animate-pulse">Analyzing document...</div>
+                    <Progress value={analysisProgress} className="w-full" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center">
+                      <FileText className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">
+                      Drag & drop a document, or click to select
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Supports PDF, DOC, DOCX, TXT (max 25MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {documentName && (
+                <div className="mt-4 p-4 bg-muted rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-6 h-6" />
+                    <span>{documentName}</span>
                   </div>
                 </div>
-              );
-            })}
-          </ScrollArea>
-        </Card>
-      </div>
-
-      <Card className="p-6">
-        <h2 className="text-2xl font-semibold mb-4">Chat with AI</h2>
-        
-        {messages.length > 0 && messages.some(msg => msg.role === "user") && messages.length === 1 && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>API Key Required</AlertTitle>
-            <AlertDescription>
-              OpenAI API key is required for chat functionality. Please configure the API key in the server's environment variables.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <ScrollArea className="h-[400px] pr-4 mb-4">
-          {messages.map((msg: any, i) => {
-            console.log("Rendering message:", msg);
+              )}
+            </TabsContent>
             
-            return (
-              <div
-                key={i}
-                className={`mb-6 p-6 rounded-lg ${
-                  msg.role === "assistant"
-                    ? "bg-primary/10"
-                    : "bg-muted"
-                }`}
-              >
-                <p className="text-xs text-gray-500 mb-2">
-                  {msg.role === "assistant" ? "AI Assistant" : "You"}
-                </p>
-                
-                <div className="prose prose-sm max-w-none">
-                  {typeof msg.content === 'string' && msg.content.split('\n').map((rawLine: string, j: number) => {
-                    // Clean up the line by removing markdown symbols
-                    const line = rawLine
-                      .replace(/^\s*#{1,3}\s+/, '') // Remove heading markers (### Title)
-                      .replace(/^\s*\*\*/, '') // Remove leading asterisks
-                      .replace(/\*\*\s*$/, '') // Remove trailing asterisks
-                      .replace(/\*\*/g, '') // Remove all other asterisks pairs
-                      .replace(/^>\s*/, '') // Remove block quotes
-
-                    // Check if line is a divider (─────)
-                    if (line.startsWith('─')) {
-                      return <hr key={j} className="my-3 border-gray-300" />;
-                    }
-                    
-                    // Check if line is a section header with emoji (e.g., "👤 Subject 1")
-                    if (/^[👤🧠🖼️📷🧾🧬💼❤️📈🤝]/.test(line)) {
-                      return <h3 key={j} className="text-lg font-bold mt-4 mb-2 text-primary">{line}</h3>;
-                    }
-                    
-                    // Check for numbered lists (e.g., "1. Item")
-                    if (/^\d+\./.test(line)) {
-                      return <p key={j} className="ml-8 mb-1">{line}</p>;
-                    }
-                    
-                    // Special formatting for Growth Areas with bullet points
-                    if (line.startsWith('•')) {
-                      return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
-                    }
-                    
-                    // Handle bullet lists
-                    if (line.startsWith('-') || line.startsWith('*')) {
-                      return <li key={j} className="ml-8 mb-1">{line.substring(1).trim()}</li>;
-                    }
-                    
-                    // For subsections like "Strengths:", "Challenges:", etc.
-                    if (line.endsWith(':')) {
-                      return <h4 key={j} className="font-semibold mt-2 mb-1">{line}</h4>;
-                    }
-                    
-                    // Regular paragraph - clean up and display
-                    return <p key={j} className="mb-2">{line}</p>;
-                  })}
+            <TabsContent value="chat" className="space-y-4">
+              <h2 className="text-2xl font-semibold mb-4">Chat with AI</h2>
+              <p className="text-muted-foreground mb-4">
+                Discuss your analysis with the AI or ask follow-up questions.
+              </p>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Type your message here..."
+                  className="min-h-[120px] resize-y"
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={!input.trim() || chatMutation.isPending}
+                >
+                  {chatMutation.isPending ? "Sending..." : "Send Message"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Card>
+          
+          {/* Right side - Results section */}
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold">Analysis Results</h2>
+              
+              {messages.length > 0 && emailServiceAvailable && (
+                <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Share Analysis</DialogTitle>
+                    </DialogHeader>
+                    <Form {...shareForm}>
+                      <form onSubmit={shareForm.handleSubmit(onShareSubmit)} className="space-y-4">
+                        <FormField
+                          control={shareForm.control}
+                          name="senderEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Your Email</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="email" placeholder="youremail@example.com" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={shareForm.control}
+                          name="recipientEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Recipient's Email</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="email" placeholder="recipient@example.com" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <DialogFooter>
+                          <Button 
+                            type="submit" 
+                            disabled={shareMutation.isPending}
+                            className="w-full"
+                          >
+                            {shareMutation.isPending ? "Sending..." : "Share Analysis"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+            
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center space-y-4 min-h-[400px] text-center text-muted-foreground">
+                <AlertCircle className="h-12 w-12" />
+                <div>
+                  <p className="text-lg font-medium">No analysis yet</p>
+                  <p>Upload media, enter text, or select a document to analyze.</p>
                 </div>
               </div>
-            );
-          })}
-        </ScrollArea>
-        
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask questions about the analysis..."
-            disabled={isAnalyzing || chatMutation.isPending}
-            className="flex-1"
-          />
-          <Button
-            type="submit"
-            disabled={!input.trim() || isAnalyzing || chatMutation.isPending}
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Send
-          </Button>
-        </form>
-      </Card>
+            ) : (
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-4">
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex flex-col p-4 rounded-lg ${
+                        message.role === "user" ? "bg-primary/10 ml-8" : "bg-muted mr-8"
+                      }`}
+                    >
+                      <span className="font-medium text-sm mb-1">
+                        {message.role === "user" ? "You" : "AI Analysis"}
+                      </span>
+                      <div 
+                        className="whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{ 
+                          __html: message.content
+                            .replace(/\n/g, '<br/>')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        }} 
+                      />
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+            )}
+          </Card>
+        </div>
+      </Tabs>
     </div>
   );
 }
