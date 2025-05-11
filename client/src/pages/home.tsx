@@ -199,7 +199,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setIsAnalyzing(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Get all messages for the session to be sure we have the latest
+      if (data?.analysisId) {
+        // If we received an analysis ID, fetch any messages related to it
+        fetch(`/api/messages?sessionId=${sessionId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+              console.log("Fetched messages after text analysis:", data);
+              setMessages(data);
+            }
+          })
+          .catch(err => console.error("Error fetching messages after text analysis:", err));
+      }
+      
       toast({
         title: "Analysis Complete",
         description: "Your text has been successfully analyzed.",
@@ -262,7 +276,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setIsAnalyzing(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Get all messages for the session to be sure we have the latest
+      if (data?.analysisId) {
+        // If we received an analysis ID, try to fetch any messages related to it
+        fetch(`/api/messages?sessionId=${sessionId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+              console.log("Fetched messages after document analysis:", data);
+              setMessages(data);
+            }
+          })
+          .catch(err => console.error("Error fetching messages after document analysis:", err));
+      }
+      
       toast({
         title: "Analysis Complete",
         description: "Your document has been successfully analyzed.",
