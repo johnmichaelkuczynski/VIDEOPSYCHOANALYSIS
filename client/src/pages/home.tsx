@@ -567,7 +567,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center" 
-                onClick={() => setTextInput(textInput ? textInput : "Enter text for analysis...")}
+                onClick={handleImageVideoClick}
                 disabled={isAnalyzing}
               >
                 <Film className="h-8 w-8 mb-2" />
@@ -599,28 +599,61 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           
           {/* Input Preview */}
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Input Preview</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Input Preview</h2>
+              {!uploadedMedia && !documentName && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    // Clear other inputs and focus on text
+                    setUploadedMedia(null);
+                    setDocumentName("");
+                    setTextInput(textInput || "");
+                  }}
+                  className="flex items-center gap-2"
+                  disabled={isAnalyzing}
+                >
+                  <span>Text Input</span>
+                </Button>
+              )}
+            </div>
+            
             {uploadedMedia && mediaType === "image" && (
-              <img 
-                src={uploadedMedia} 
-                alt="Uploaded" 
-                className="max-w-full h-auto rounded-lg shadow-md"
-              />
+              <div className="space-y-2">
+                <img 
+                  src={uploadedMedia} 
+                  alt="Uploaded" 
+                  className="max-w-full h-auto rounded-lg shadow-md mx-auto"
+                />
+                <div className="text-center text-sm text-muted-foreground">
+                  Face detection will analyze personality traits and emotions
+                </div>
+              </div>
             )}
             
             {uploadedMedia && mediaType === "video" && (
-              <video 
-                ref={videoRef}
-                src={uploadedMedia} 
-                controls
-                className="max-w-full h-auto rounded-lg shadow-md"
-              />
+              <div className="space-y-2">
+                <video 
+                  ref={videoRef}
+                  src={uploadedMedia} 
+                  controls
+                  className="max-w-full h-auto rounded-lg shadow-md mx-auto"
+                />
+                <div className="text-center text-sm text-muted-foreground">
+                  Video analysis will extract visual and audio insights
+                </div>
+              </div>
             )}
             
             {documentName && (
-              <div className="p-4 bg-muted rounded-lg flex items-center">
-                <FileText className="w-6 h-6 mr-2" />
-                <span>{documentName}</span>
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg flex items-center">
+                  <FileText className="w-6 h-6 mr-2" />
+                  <span>{documentName}</span>
+                </div>
+                <div className="text-center text-sm text-muted-foreground">
+                  Document content will be analyzed for personality insights
+                </div>
               </div>
             )}
             
@@ -631,7 +664,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   onChange={(e) => setTextInput(e.target.value)}
                   onKeyDown={(e) => handleKeyPress(e, handleTextSubmit)}
                   placeholder="Type or paste text to analyze..."
-                  className="min-h-[200px] resize-y"
+                  className="min-h-[250px] resize-y"
                   disabled={isAnalyzing}
                 />
                 <Button 
@@ -708,7 +741,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               )}
             </div>
             
-            <div className="h-[400px] flex flex-col">
+            <div className="h-[600px] flex flex-col">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center space-y-4 h-full text-center text-muted-foreground">
                   <AlertCircle className="h-12 w-12" />
@@ -724,18 +757,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       <div
                         key={index}
                         className={`flex flex-col p-4 rounded-lg ${
-                          message.role === "user" ? "bg-primary/10 ml-8" : "bg-muted mr-8"
+                          message.role === "user" ? "bg-primary/10 ml-8" : "bg-primary/5 mr-4"
                         }`}
                       >
-                        <span className="font-medium text-sm mb-1">
+                        <span className="font-semibold text-sm mb-2">
                           {message.role === "user" ? "You" : "AI Analysis"}
                         </span>
                         <div 
-                          className="whitespace-pre-wrap"
+                          className="whitespace-pre-wrap text-md"
                           dangerouslySetInnerHTML={{ 
                             __html: message.content
                               .replace(/\n/g, '<br/>')
                               .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/^(#+)\s+(.*?)$/gm, (_, hashes, text) => 
+                                `<h${hashes.length} class="font-bold text-lg mt-3 mb-1">${text}</h${hashes.length}>`)
+                              .replace(/- (.*?)$/gm, '<li class="ml-4">• $1</li>')
                           }} 
                         />
                       </div>

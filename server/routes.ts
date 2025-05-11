@@ -626,10 +626,395 @@ You can ask follow-up questions about this analysis.
       }
     }
   });
+  // Text analysis endpoint
+  app.post("/api/analyze/text", async (req, res) => {
+    try {
+      const { content, sessionId, selectedModel = "openai", title } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Text content is required" });
+      }
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      console.log(`Processing text analysis with model: ${selectedModel}`);
+      
+      // Get personality insights based on text content
+      const textAnalysisPrompt = `
+Please analyze the following text to provide comprehensive personality insights about the author:
+
+TEXT:
+${content}
+
+Provide a detailed psychological, emotional, and behavioral analysis of the author based on their writing style, tone, word choice, and content. Include:
+
+1. Personality core traits (Big Five traits, strengths, challenges)
+2. Thought patterns and cognitive style
+3. Emotional tendencies and expression
+4. Communication style and social dynamics
+5. Professional insights and work style
+6. Decision-making process
+7. Relationship approach
+8. Areas for growth or self-awareness
+`;
+
+      // Get personality analysis from selected AI model
+      let analysisText: string;
+      
+      if (selectedModel === "openai" && openai) {
+        console.log('Using OpenAI for text analysis');
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+          messages: [
+            { role: "system", content: "You are an expert in personality analysis and psychological assessment." },
+            { role: "user", content: textAnalysisPrompt }
+          ]
+        });
+        
+        analysisText = completion.choices[0].message.content || "";
+      } 
+      else if (selectedModel === "anthropic" && anthropic) {
+        console.log('Using Anthropic for text analysis');
+        const response = await anthropic.messages.create({
+          model: "claude-3-7-sonnet-20250219", // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+          max_tokens: 4000,
+          system: "You are an expert in personality analysis and psychological assessment.",
+          messages: [{ role: "user", content: textAnalysisPrompt }],
+        });
+        
+        analysisText = response.content[0].text;
+      }
+      else if (selectedModel === "perplexity" && process.env.PERPLEXITY_API_KEY) {
+        console.log('Using Perplexity for text analysis');
+        const response = await perplexity.query({
+          model: "llama-3.1-sonar-small-128k-online",
+          query: textAnalysisPrompt
+        });
+        
+        analysisText = response.text;
+      }
+      else {
+        return res.status(503).json({ 
+          error: "Selected AI model is not available. Please try again with a different model." 
+        });
+      }
+      
+      // Create an analysis with a dummy mediaUrl since the schema requires it but we don't have
+      // media for text analysis
+      const dummyMediaUrl = `text:${Date.now()}`;
+      
+      // Create analysis record in storage
+      const analysis = await storage.createAnalysis({
+        sessionId,
+        mediaUrl: dummyMediaUrl,
+        mediaType: "text",
+        personalityInsights: { analysis: analysisText },
+        title: title || "Text Analysis"
+      });
+      
+      // Create initial message
+      const initialMessage = await storage.createMessage({
+        sessionId,
+        analysisId: analysis.id,
+        role: "assistant",
+        content: analysisText
+      });
+      
+      // Return data to client
+      res.json({
+        analysisId: analysis.id,
+        messages: [initialMessage],
+        emailServiceAvailable: isEmailServiceConfigured
+      });
+    } catch (error) {
+      console.error("Text analysis error:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to analyze text" });
+      }
+    }
+  });
+  
+  // Document analysis endpoint
+  app.post("/api/analyze/document", async (req, res) => {
+    try {
+      const { fileData, fileName, fileType, sessionId, selectedModel = "openai", title } = req.body;
+      
+      if (!fileData || typeof fileData !== 'string') {
+        return res.status(400).json({ error: "Document data is required" });
+      }
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      console.log(`Processing document analysis with model: ${selectedModel}, file: ${fileName}`);
+      
+      // Extract base64 content from data URL
+      const base64Data = fileData.split(',')[1];
+      if (!base64Data) {
+        return res.status(400).json({ error: "Invalid document data format" });
+      }
+      
+      // Save the document to a temporary file
+      const fileBuffer = Buffer.from(base64Data, 'base64');
+      const tempDocPath = path.join(tempDir, `doc_${Date.now()}_${fileName}`);
+      await writeFileAsync(tempDocPath, fileBuffer);
+      
+      // Document analysis prompt
+      const documentAnalysisPrompt = `
+I'm going to analyze the uploaded document: ${fileName} (${fileType}).
+
+Provide a comprehensive analysis of this document, including:
+
+1. Document overview and key topics
+2. Main themes and insights
+3. Emotional tone and sentiment
+4. Writing style assessment
+5. Author personality assessment based on the document
+`;
+
+      // Get document analysis from selected AI model
+      let analysisText: string;
+      
+      if (selectedModel === "openai" && openai) {
+        console.log('Using OpenAI for document analysis');
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+          messages: [
+            { role: "system", content: "You are an expert in document analysis and personality assessment." },
+            { role: "user", content: documentAnalysisPrompt }
+          ]
+        });
+        
+        analysisText = completion.choices[0].message.content || "";
+      } 
+      else if (selectedModel === "anthropic" && anthropic) {
+        console.log('Using Anthropic for document analysis');
+        const response = await anthropic.messages.create({
+          model: "claude-3-7-sonnet-20250219", // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+          max_tokens: 4000,
+          system: "You are an expert in document analysis and psychological assessment.",
+          messages: [{ role: "user", content: documentAnalysisPrompt }],
+        });
+        
+        analysisText = response.content[0].text;
+      }
+      else if (selectedModel === "perplexity" && process.env.PERPLEXITY_API_KEY) {
+        console.log('Using Perplexity for document analysis');
+        const response = await perplexity.query({
+          model: "llama-3.1-sonar-small-128k-online",
+          query: documentAnalysisPrompt
+        });
+        
+        analysisText = response.text;
+      }
+      else {
+        return res.status(503).json({ 
+          error: "Selected AI model is not available. Please try again with a different model." 
+        });
+      }
+      
+      // Clean up temporary file
+      try {
+        await unlinkAsync(tempDocPath);
+      } catch (e) {
+        console.warn("Error removing temporary document file:", e);
+      }
+      
+      // Create an analysis with a dummy mediaUrl since the schema requires it but we don't have media for document analysis
+      const dummyMediaUrl = `document:${Date.now()}`;
+      
+      // Create analysis record in storage
+      const analysis = await storage.createAnalysis({
+        sessionId,
+        mediaUrl: dummyMediaUrl,
+        mediaType: "document",
+        personalityInsights: { analysis: analysisText },
+        documentType: fileType === "pdf" ? "pdf" : "docx",
+        title: title || fileName
+      });
+      
+      // Create initial message
+      const initialMessage = await storage.createMessage({
+        sessionId,
+        analysisId: analysis.id,
+        role: "assistant",
+        content: analysisText
+      });
+      
+      // Return data to client
+      res.json({
+        analysisId: analysis.id,
+        messages: [initialMessage],
+        emailServiceAvailable: isEmailServiceConfigured
+      });
+    } catch (error) {
+      console.error("Document analysis error:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to analyze document" });
+      }
+    }
+  });
+  
+  // Chat endpoint to continue conversation with AI
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { content, sessionId, selectedModel = "openai" } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Message content is required" });
+      }
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      console.log(`Processing chat with model: ${selectedModel}, sessionId: ${sessionId}`);
+      
+      // Get existing messages for this session
+      const existingMessages = await storage.getMessagesBySessionId(sessionId);
+      const analysisId = existingMessages.length > 0 ? existingMessages[0].analysisId : null;
+      
+      // Create user message
+      const userMessage = await storage.createMessage({
+        sessionId,
+        analysisId,
+        role: "user",
+        content
+      });
+      
+      // Get analysis if available
+      let analysisContext = "";
+      if (analysisId) {
+        const analysis = await storage.getAnalysisById(analysisId);
+        if (analysis && analysis.personalityInsights) {
+          // Add the analysis context for better AI responses
+          analysisContext = "This conversation is about a personality analysis. Here's the context: " + 
+            JSON.stringify(analysis.personalityInsights);
+        }
+      }
+      
+      // Format the conversation history for the AI
+      const conversationHistory = existingMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
+      // Add the new user message
+      conversationHistory.push({
+        role: "user",
+        content
+      });
+      
+      // Get AI response based on selected model
+      let aiResponseText: string;
+      
+      if (selectedModel === "openai" && openai) {
+        console.log('Using OpenAI for chat');
+        const systemPrompt = analysisContext ? 
+          `You are an AI assistant specialized in personality analysis. ${analysisContext}` :
+          "You are an AI assistant specialized in personality analysis. Be helpful, informative, and engaging.";
+        
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+          messages: [
+            { 
+              role: "system", 
+              content: systemPrompt
+            },
+            ...conversationHistory.map(msg => ({
+              role: msg.role as any,
+              content: msg.content
+            }))
+          ]
+        });
+        
+        aiResponseText = completion.choices[0].message.content || "";
+      } 
+      else if (selectedModel === "anthropic" && anthropic) {
+        console.log('Using Anthropic for chat');
+        const systemPrompt = analysisContext ? 
+          `You are an AI assistant specialized in personality analysis. ${analysisContext}` :
+          "You are an AI assistant specialized in personality analysis. Be helpful, informative, and engaging.";
+          
+        // Format conversation history for Claude
+        const messages = conversationHistory.map(msg => ({
+          role: msg.role as any, 
+          content: msg.content
+        }));
+        
+        const response = await anthropic.messages.create({
+          model: "claude-3-7-sonnet-20250219", // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+          max_tokens: 4000,
+          system: systemPrompt,
+          messages
+        });
+        
+        aiResponseText = response.content[0].text;
+      }
+      else if (selectedModel === "perplexity" && process.env.PERPLEXITY_API_KEY) {
+        console.log('Using Perplexity for chat');
+        // Format conversation for Perplexity
+        // We need to format the entire conversation as a single prompt
+        let formattedConversation = "You are an AI assistant specialized in personality analysis. ";
+        if (analysisContext) {
+          formattedConversation += analysisContext + "\n\n";
+        }
+        
+        formattedConversation += "Here's the conversation so far:\n\n";
+        
+        for (const message of conversationHistory) {
+          formattedConversation += `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content}\n\n`;
+        }
+        
+        formattedConversation += "Please provide your next response as the assistant:";
+        
+        const response = await perplexity.query({
+          model: "llama-3.1-sonar-small-128k-online",
+          query: formattedConversation
+        });
+        
+        aiResponseText = response.text;
+      }
+      else {
+        return res.status(503).json({ 
+          error: "Selected AI model is not available. Please try again with a different model." 
+        });
+      }
+      
+      // Create AI response message
+      const aiMessage = await storage.createMessage({
+        sessionId,
+        analysisId,
+        role: "assistant",
+        content: aiResponseText
+      });
+      
+      // Return both the user message and AI response
+      res.json({
+        messages: [userMessage, aiMessage],
+        success: true
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to process chat message" });
+      }
+    }
+  });
+
   app.post("/api/analyze", async (req, res) => {
     try {
       // Use the new schema that supports both image and video with optional maxPeople
-      const { mediaData, mediaType, sessionId, maxPeople = 5 } = uploadMediaSchema.parse(req.body);
+      const { mediaData, mediaType, sessionId, maxPeople = 5, selectedModel = "openai" } = uploadMediaSchema.parse(req.body);
 
       // Extract base64 data
       const base64Data = mediaData.replace(/^data:(image|video)\/\w+;base64,/, "");
