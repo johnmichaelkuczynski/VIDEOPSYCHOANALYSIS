@@ -66,9 +66,7 @@ export const sessions = pgTable("sessions", {
 export const insertAnalysisSchema = createInsertSchema(analyses).omit({
   id: true,
   createdAt: true,
-  videoAnalysis: true,
-  audioTranscription: true,
-  peopleCount: true,
+  hasDownloaded: true,
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
