@@ -13,7 +13,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, downloadAnalysis, ModelType, MediaType } from "@/lib/api";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
 import { Upload, Send, FileImage, Film, Share2, AlertCircle, FileText, File, Download } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -879,19 +879,35 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   variant="outline" 
                   size="sm" 
                   className="flex items-center gap-2"
-                  onClick={() => {
-                    // Clear all current state to start a new analysis
-                    setMessages([]);
-                    setUploadedMedia(null);
-                    setMediaData(null);
-                    setDocumentName("");
-                    setTextInput("");
-                    setAnalysisId(null);
-                    setAnalysisProgress(0);
-                    toast({
-                      title: "New Analysis",
-                      description: "You can now start a new analysis",
-                    });
+                  onClick={async () => {
+                    try {
+                      // First clear the session on the server
+                      await clearSession(sessionId);
+                      
+                      // Generate a new session ID to ensure a completely clean state
+                      const newSessionId = nanoid();
+                      window.location.href = `/?session=${newSessionId}`;
+                      
+                      // Clear all current state to start a new analysis
+                      setMessages([]);
+                      setUploadedMedia(null);
+                      setMediaData(null);
+                      setDocumentName("");
+                      setTextInput("");
+                      setAnalysisId(null);
+                      setAnalysisProgress(0);
+                      toast({
+                        title: "New Analysis",
+                        description: "Starting a completely new analysis session",
+                      });
+                    } catch (error) {
+                      console.error("Error clearing session:", error);
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "Failed to clear previous analysis. Please refresh the page.",
+                      });
+                    }
                   }}
                   disabled={isAnalyzing}
                 >

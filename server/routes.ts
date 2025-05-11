@@ -1577,6 +1577,53 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
     }
   });
   
+  // Session management endpoints
+  app.get("/api/sessions", async (req, res) => {
+    try {
+      const sessions = await storage.getAllSessions();
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error getting sessions:", error);
+      res.status(500).json({ error: "Failed to get sessions" });
+    }
+  });
+  
+  app.post("/api/session/clear", async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      await storage.clearSession(sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error clearing session:", error);
+      res.status(500).json({ error: "Failed to clear session" });
+    }
+  });
+  
+  app.patch("/api/session/name", async (req, res) => {
+    try {
+      const { sessionId, name } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      if (!name) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+      
+      await storage.updateSessionName(sessionId, name);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating session name:", error);
+      res.status(500).json({ error: "Failed to update session name" });
+    }
+  });
+  
   // Test email endpoint (for troubleshooting only, disable in production)
   app.get("/api/test-email", async (req, res) => {
     try {
