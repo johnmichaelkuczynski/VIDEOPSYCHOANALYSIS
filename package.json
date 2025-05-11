@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
     "@aws-sdk/client-rekognition": "^3.758.0",
+    "@deepgram/sdk": "^4.1.0",
     "@google-cloud/speech": "^7.0.1",
     "@google-cloud/storage": "^7.15.2",
     "@google-cloud/video-intelligence": "^6.0.1",
@@ -49,6 +50,7 @@
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
     "@sendgrid/mail": "^8.1.5",
     "@tanstack/react-query": "^5.60.5",
+    "assemblyai": "^4.12.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -63,6 +65,7 @@
     "file-saver": "^2.0.5",
     "fluent-ffmpeg": "^2.1.3",
     "framer-motion": "^11.13.1",
+    "gladia": "^0.1.3",
     "html-pdf": "^3.0.1",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.453.0",

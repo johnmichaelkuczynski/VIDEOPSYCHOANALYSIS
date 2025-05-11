@@ -17,10 +17,84 @@ import * as os from 'os';
 import { promisify } from 'util';
 import ffmpeg from 'fluent-ffmpeg';
 import Anthropic from '@anthropic-ai/sdk';
+import { Deepgram } from "@deepgram/sdk";
+import fetch from 'node-fetch';
 
 // Initialize API clients with proper error handling for missing keys
 let openai: OpenAI | null = null;
 let anthropic: Anthropic | null = null;
+let deepgram: Deepgram | null = null;
+let azureOpenAI: OpenAI | null = null;
+
+// API Keys available for various services
+const GLADIA_API_KEY = process.env.GLADIA_API_KEY;
+const ASSEMBLYAI_API_KEY = process.env.ASSEMBLYAI_API_KEY;
+const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
+const FACEPP_API_KEY = process.env.FACEPP_API_KEY;
+const FACEPP_API_SECRET = process.env.FACEPP_API_SECRET;
+const AZURE_FACE_API_KEY = process.env.AZURE_FACE_API_KEY;
+const AZURE_FACE_ENDPOINT = process.env.AZURE_FACE_ENDPOINT;
+const GOOGLE_CLOUD_VISION_API_KEY = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+const AZURE_VIDEO_INDEXER_KEY = process.env.AZURE_VIDEO_INDEXER_KEY;
+const AZURE_VIDEO_INDEXER_LOCATION = process.env.AZURE_VIDEO_INDEXER_LOCATION;
+const AZURE_VIDEO_INDEXER_ACCOUNT_ID = process.env.AZURE_VIDEO_INDEXER_ACCOUNT_ID;
+
+// Log available APIs for transcription
+if (GLADIA_API_KEY) {
+  console.log("Gladia transcription API available");
+}
+
+if (ASSEMBLYAI_API_KEY) {
+  console.log("AssemblyAI transcription API available");
+}
+
+if (DEEPGRAM_API_KEY) {
+  console.log("Deepgram transcription API available");
+}
+
+// Availability of face analysis APIs
+if (FACEPP_API_KEY && FACEPP_API_SECRET) {
+  console.log("Face++ API available for face analysis");
+}
+
+if (AZURE_FACE_API_KEY && AZURE_FACE_ENDPOINT) {
+  console.log("Azure Face API available for face analysis");
+}
+
+if (GOOGLE_CLOUD_VISION_API_KEY) {
+  console.log("Google Cloud Vision API available for image analysis");
+}
+
+// Availability of video analysis
+if (AZURE_VIDEO_INDEXER_KEY && AZURE_VIDEO_INDEXER_LOCATION && AZURE_VIDEO_INDEXER_ACCOUNT_ID) {
+  console.log("Azure Video Indexer API available for deep video analysis");
+}
+
+// Initialize Deepgram if available
+if (DEEPGRAM_API_KEY) {
+  try {
+    deepgram = new Deepgram(DEEPGRAM_API_KEY);
+    console.log("Deepgram client initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Deepgram client:", error);
+  }
+}
+
+// Initialize Azure OpenAI if available
+if (process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_ENDPOINT) {
+  try {
+    // Initialize the Azure OpenAI client
+    azureOpenAI = new OpenAI({
+      apiKey: process.env.AZURE_OPENAI_KEY,
+      baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-4/`,
+      defaultQuery: { "api-version": "2023-12-01-preview" },
+      defaultHeaders: { "api-key": process.env.AZURE_OPENAI_KEY }
+    });
+    console.log("Azure OpenAI client initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Azure OpenAI client:", error);
+  }
+}
 
 // Check if OpenAI API key is available
 if (process.env.OPENAI_API_KEY) {
