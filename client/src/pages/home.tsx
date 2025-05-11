@@ -94,6 +94,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   // Media states
   const [uploadedMedia, setUploadedMedia] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<MediaType>("image");
+  const [mediaData, setMediaData] = useState<string | null>(null); // Store media data for re-analysis
   const [analysisId, setAnalysisId] = useState<number | null>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
@@ -328,8 +329,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           });
         }
         
-        // Set preview
+        // Set preview and store media data for re-analysis
         setUploadedMedia(mediaData);
+        setMediaData(mediaData);
         setAnalysisProgress(50);
         
         // Maximum 5 people to analyze
@@ -694,22 +696,50 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 {/* Re-analyze with current model button */}
                 <Button 
                   onClick={() => {
-                    // Keep the same media but re-analyze with current model
-                    const mediaData = uploadedMedia;
-                    handleUploadMedia.mutate({
-                      type: "image/jpeg",
-                      size: 0,
-                      name: "reanalyzed-image.jpg",
-                      lastModified: Date.now(),
-                      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-                      slice: () => new Blob(),
-                      stream: () => new ReadableStream(),
-                      text: () => Promise.resolve(""),
-                      webkitRelativePath: ""
-                    } as File);
+                    if (mediaData) {
+                      // Clear messages for new analysis
+                      setMessages([]);
+                      setIsAnalyzing(true);
+                      setAnalysisProgress(0);
+                      
+                      // Use the stored media data directly
+                      uploadMedia(
+                        mediaData, 
+                        "image", 
+                        sessionId, 
+                        { 
+                          selectedModel, 
+                          maxPeople: 5 
+                        }
+                      ).then(response => {
+                        setAnalysisProgress(100);
+                        
+                        if (response && response.analysisId) {
+                          setAnalysisId(response.analysisId);
+                        }
+                        
+                        if (response && response.messages && Array.isArray(response.messages)) {
+                          setMessages(response.messages);
+                        }
+                        
+                        toast({
+                          title: "Analysis Complete",
+                          description: "Your image has been re-analyzed with " + 
+                            (selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"),
+                        });
+                      }).catch(error => {
+                        toast({
+                          variant: "destructive",
+                          title: "Error",
+                          description: "Failed to re-analyze image. Please try again.",
+                        });
+                      }).finally(() => {
+                        setIsAnalyzing(false);
+                      });
+                    }
                   }}
                   className="w-full"
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || !mediaData}
                 >
                   Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
                 </Button>
@@ -731,22 +761,50 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 {/* Re-analyze with current model button */}
                 <Button 
                   onClick={() => {
-                    // Keep the same media but re-analyze with current model
-                    const mediaData = uploadedMedia;
-                    handleUploadMedia.mutate({
-                      type: "video/mp4",
-                      size: 0,
-                      name: "reanalyzed-video.mp4",
-                      lastModified: Date.now(),
-                      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-                      slice: () => new Blob(),
-                      stream: () => new ReadableStream(),
-                      text: () => Promise.resolve(""),
-                      webkitRelativePath: ""
-                    } as File);
+                    if (mediaData) {
+                      // Clear messages for new analysis
+                      setMessages([]);
+                      setIsAnalyzing(true);
+                      setAnalysisProgress(0);
+                      
+                      // Use the stored media data directly
+                      uploadMedia(
+                        mediaData, 
+                        "video", 
+                        sessionId, 
+                        { 
+                          selectedModel, 
+                          maxPeople: 5 
+                        }
+                      ).then(response => {
+                        setAnalysisProgress(100);
+                        
+                        if (response && response.analysisId) {
+                          setAnalysisId(response.analysisId);
+                        }
+                        
+                        if (response && response.messages && Array.isArray(response.messages)) {
+                          setMessages(response.messages);
+                        }
+                        
+                        toast({
+                          title: "Analysis Complete",
+                          description: "Your video has been re-analyzed with " + 
+                            (selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"),
+                        });
+                      }).catch(error => {
+                        toast({
+                          variant: "destructive",
+                          title: "Error",
+                          description: "Failed to re-analyze video. Please try again.",
+                        });
+                      }).finally(() => {
+                        setIsAnalyzing(false);
+                      });
+                    }
                   }}
                   className="w-full"
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || !mediaData}
                 >
                   Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
                 </Button>
@@ -825,10 +883,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     // Clear all current state to start a new analysis
                     setMessages([]);
                     setUploadedMedia(null);
+                    setMediaData(null);
                     setDocumentName("");
                     setTextInput("");
                     setAnalysisId(null);
                     setAnalysisProgress(0);
+                    toast({
+                      title: "New Analysis",
+                      description: "You can now start a new analysis",
+                    });
                   }}
                   disabled={isAnalyzing}
                 >
