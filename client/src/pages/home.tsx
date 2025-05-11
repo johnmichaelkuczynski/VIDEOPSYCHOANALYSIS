@@ -1,26 +1,82 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis } from "@/lib/api";
-import { Upload, Send, FileImage, Film, Share2, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
+import { 
+  uploadMedia, 
+  sendMessage, 
+  shareAnalysis, 
+  getSharedAnalysis, 
+  analyzeText, 
+  analyzeDocument, 
+  getAllSessions, 
+  clearSession, 
+  updateSessionName, 
+  getAllAnalysesBySession, 
+  downloadAnalysis, 
+  updateAnalysisTitle,
+  checkAPIStatus,
+  ModelType,
+  MediaType
+} from "@/lib/api";
+import { 
+  Upload, 
+  Send, 
+  FileImage, 
+  Film, 
+  Share2, 
+  AlertCircle, 
+  FileText, 
+  File, 
+  Text, 
+  Download, 
+  Trash2, 
+  Edit, 
+  RefreshCw, 
+  Check, 
+  BarChart4, 
+  Video,
+  MessageSquare 
+} from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Helper function to resize images to keep them under the AWS 5MB limit
 async function resizeImage(file: File, maxWidth: number): Promise<string> {
@@ -76,6 +132,32 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
   });
 }
 
+// Schema for validating media uploads
+const mediaSchema = z.object({
+  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
+  maxPeople: z.number().min(1).max(10).default(5),
+  title: z.string().optional(),
+});
+
+// Schema for text analysis
+const textSchema = z.object({
+  content: z.string().min(1, "Text content is required").max(500000, "Text content cannot exceed 500,000 characters"),
+  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
+  title: z.string().optional(),
+});
+
+// Schema for document analysis
+const documentSchema = z.object({
+  selectedModel: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
+  title: z.string().optional(),
+});
+
+// Schema for session renaming
+const sessionSchema = z.object({
+  name: z.string().min(1, "Session name is required").max(50, "Session name cannot exceed 50 characters"),
+});
+
+// Schema for sharing analysis via email
 const shareSchema = z.object({
   senderEmail: z.string().email("Please enter a valid email"),
   recipientEmail: z.string().email("Please enter a valid email"),
@@ -84,20 +166,37 @@ const shareSchema = z.object({
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
   const { toast } = useToast();
   const [sessionId] = useState(() => nanoid());
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
+  const [messages, setMessages] = useState<Array<{ role: string; content: string; id?: number }>>([]);
   const [input, setInput] = useState("");
+  const [textInput, setTextInput] = useState("");
+  const isMobile = useIsMobile();
   
   // Media states
   const [uploadedMedia, setUploadedMedia] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [mediaType, setMediaType] = useState<MediaType>("image");
   const [analysisId, setAnalysisId] = useState<number | null>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
+  const [activeTab, setActiveTab] = useState<string>("upload");
   
-  // Reference for video element
+  // Document states
+  const [documentName, setDocumentName] = useState<string>("");
+  const [documentType, setDocumentType] = useState<"pdf" | "docx" | "other">("pdf");
+  
+  // Session management
+  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [analyses, setAnalyses] = useState<any[]>([]);
+  
+  // Status
+  const [apiStatus, setApiStatus] = useState<Record<string, boolean>>({});
+  
+  // References 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const queryClient = useQueryClient();
 
