@@ -799,6 +799,26 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
     }
   });
 
+  // API status endpoint - returns the availability of various services
+  app.get("/api/status", async (req, res) => {
+    try {
+      const statusData = {
+        openai: !!openai,
+        anthropic: !!anthropic,
+        perplexity: !!process.env.PERPLEXITY_API_KEY,
+        aws: !!process.env.AWS_ACCESS_KEY_ID && !!process.env.AWS_SECRET_ACCESS_KEY,
+        facepp: !!process.env.FACEPP_API_KEY && !!process.env.FACEPP_API_SECRET,
+        sendgrid: !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_VERIFIED_SENDER,
+        timestamp: new Date().toISOString()
+      };
+      
+      res.json(statusData);
+    } catch (error) {
+      console.error("Error checking API status:", error);
+      res.status(500).json({ error: "Failed to check API status" });
+    }
+  });
+
   app.post("/api/share", async (req, res) => {
     try {
       // Check if email service is configured
