@@ -34,6 +34,11 @@ export async function sendAnalysisEmail({
       console.error('SendGrid is not configured. Emails cannot be sent.');
       return false;
     }
+    
+    console.log(`[SendGrid] Attempting to send email from ${FROM_EMAIL} to ${share.recipientEmail}`);
+    console.log(`[SendGrid] Using analysis ID: ${analysis.id}, share ID: ${share.id}`);
+    console.log(`[SendGrid] Share URL: ${shareUrl}`);
+    
 
     // Parse the JSON data from the database
     const personalityInsights = analysis.personalityInsights as any || {};
@@ -222,7 +227,8 @@ export async function sendAnalysisEmail({
       `;
     }
 
-    await mailService.send({
+    // Prepare email data object
+    const emailData = {
       to: share.recipientEmail,
       from: {
         email: FROM_EMAIL,
@@ -230,14 +236,26 @@ export async function sendAnalysisEmail({
       },
       subject: 'Your Personality Analysis Results',
       html: emailContent,
-    });
-
-    return true;
+    };
+    
+    console.log(`[SendGrid] Preparing to send email with subject: ${emailData.subject}`);
+    console.log(`[SendGrid] From: ${emailData.from.name} <${emailData.from.email}>`);
+    console.log(`[SendGrid] To: ${emailData.to}`);
+    
+    try {
+      console.log('[SendGrid] Attempting to send email via SendGrid API...');
+      const response = await mailService.send(emailData);
+      console.log('[SendGrid] Email sent successfully!', response);
+      return true;
+    } catch (sendError) {
+      console.error('[SendGrid] Error while sending email:', sendError);
+      return false;
+    }
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('[SendGrid] Email preparation error:', error);
     const sendGridError = error as any;
     if (sendGridError.response?.body?.errors) {
-      console.error('SendGrid detailed errors:', sendGridError.response.body.errors);
+      console.error('[SendGrid] SendGrid detailed errors:', sendGridError.response.body.errors);
     }
     return false;
   }
