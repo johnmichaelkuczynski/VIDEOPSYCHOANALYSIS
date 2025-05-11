@@ -1367,17 +1367,23 @@ Provide a comprehensive analysis of this document, including:
       }
 
       // Send initial message with comprehensive analysis
-      await storage.createMessage({
+      const message = await storage.createMessage({
         sessionId,
         analysisId: analysis.id,
         content: formattedContent,
         role: "assistant",
       });
 
+      // Get all messages to return to client
+      const messages = await storage.getMessagesBySessionId(sessionId);
+
       res.json({ 
         ...analysis, 
+        messages,
         emailServiceAvailable: isEmailServiceConfigured 
       });
+      
+      console.log(`Analysis complete. Created message with ID ${message.id} and returning ${messages.length} messages`);
     } catch (error) {
       console.error("Analyze error:", error);
       if (error instanceof Error) {
