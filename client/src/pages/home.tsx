@@ -1166,30 +1166,41 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               
               {messages.length > 0 && (
                 <div className="flex gap-2">
-                  {/* Download PDF button */}
+                  {/* Download buttons */}
                   {analysisId && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-2"
-                      onClick={() => downloadAnalysis(analysisId, 'pdf')}
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>PDF</span>
-                    </Button>
-                  )}
-                  
-                  {/* Download DOCX button */}
-                  {analysisId && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-2"
-                      onClick={() => downloadAnalysis(analysisId, 'docx')}
-                    >
-                      <File className="h-4 w-4" />
-                      <span>DOCX</span>
-                    </Button>
+                    <>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading PDF",
+                            description: "Your analysis is being downloaded as PDF"
+                          });
+                          downloadAnalysis(analysisId, 'pdf');
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download PDF</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading Word Document",
+                            description: "Your analysis is being downloaded as DOCX"
+                          });
+                          downloadAnalysis(analysisId, 'docx');
+                        }}
+                      >
+                        <File className="h-4 w-4" />
+                        <span>Download Word</span>
+                      </Button>
+                    </>
                   )}
                   
                   {/* Share button */}
@@ -1267,6 +1278,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     <div className="text-xs text-muted-foreground mb-2">
                       Debug: Found {messages.length} messages, {messages.filter(m => m.role === "assistant").length} are from assistant
                     </div>
+                    
+                    {/* Download info message */}
+                    {analysisId && (
+                      <div className="bg-blue-50 text-blue-800 p-3 rounded-md mb-4 flex items-center gap-2 text-sm">
+                        <Download className="h-5 w-5" />
+                        <span>
+                          <strong>Save your analysis!</strong> Use the download buttons to save as a PDF or Word document.
+                        </span>
+                      </div>
+                    )}
                     {messages.filter(message => message.role === "assistant").map((message, index) => (
                       <div
                         key={index}
@@ -1283,6 +1304,43 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                               .replace(/- (.*?)$/gm, '<li class="ml-4">• $1</li>')
                           }} 
                         />
+                        
+                        {/* Download buttons at bottom of each analysis */}
+                        {analysisId && index === messages.filter(m => m.role === "assistant").length - 1 && (
+                          <div className="flex gap-2 mt-4 justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 text-xs"
+                              onClick={() => {
+                                toast({
+                                  title: "Downloading PDF",
+                                  description: "Your analysis is being downloaded as PDF"
+                                });
+                                downloadAnalysis(analysisId, 'pdf');
+                              }}
+                            >
+                              <Download className="h-3 w-3" />
+                              <span>Save as PDF</span>
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 text-xs"
+                              onClick={() => {
+                                toast({
+                                  title: "Downloading Word Document",
+                                  description: "Your analysis is being downloaded as DOCX"
+                                });
+                                downloadAnalysis(analysisId, 'docx');
+                              }}
+                            >
+                              <File className="h-3 w-3" />
+                              <span>Save as Word</span>
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
