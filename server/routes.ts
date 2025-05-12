@@ -2178,6 +2178,26 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
     }
   });
   
+  // Get a specific analysis by ID
+  app.get("/api/analysis/:id", async (req, res) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      if (isNaN(analysisId)) {
+        return res.status(400).json({ error: 'Invalid analysis ID' });
+      }
+      
+      const analysis = await storage.getAnalysisById(analysisId);
+      if (!analysis) {
+        return res.status(404).json({ error: 'Analysis not found' });
+      }
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error fetching analysis:', error);
+      res.status(500).json({ error: 'Failed to fetch analysis' });
+    }
+  });
+  
   // Download analysis as PDF or DOCX
   app.get("/api/download/:analysisId", async (req, res) => {
     try {
@@ -2810,6 +2830,11 @@ Return a JSON object with the following structure:
     "thought_patterns": "Analysis of cognitive processes and decision-making style",
     "cognitive_style": "Description of learning and problem-solving approaches",
     "professional_insights": "Career inclinations and work style",
+    "speech_analysis": {
+      "key_quotes": ["Include 3-5 direct quotes from the transcription that reveal personality traits"],
+      "speech_patterns": "Analysis of speech patterns, word choice, and communication style",
+      "emotional_tone": "Analysis of emotional tone in speech"
+    },
     "relationships": {
       "current_status": "Likely relationship status",
       "parental_status": "Insights about parenting style or potential",
