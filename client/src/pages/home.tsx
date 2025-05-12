@@ -103,19 +103,76 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
   const [documentName, setDocumentName] = useState<string>("");
   
+  // UI states
+  const [showAdvancedServices, setShowAdvancedServices] = useState<boolean>(false);
+  
   // References
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
+  // Available services state
+  const [availableServices, setAvailableServices] = useState<{
+    openai: boolean;
+    anthropic: boolean;
+    perplexity: boolean;
+    azure_face: boolean;
+    facepp: boolean;
+    google_vision: boolean;
+    aws_rekognition: boolean;
+    gladia: boolean;
+    assemblyai: boolean;
+    deepgram: boolean;
+    azure_video_indexer: boolean;
+  }>({
+    openai: false,
+    anthropic: false,
+    perplexity: false,
+    azure_face: false,
+    facepp: false,
+    google_vision: false,
+    aws_rekognition: false,
+    gladia: false,
+    assemblyai: false,
+    deepgram: false,
+    azure_video_indexer: false
+  });
+  
   // Check API status on component mount
   useEffect(() => {
     const checkStatus = async () => {
       try {
         const res = await fetch('/api/status');
         const status = await res.json();
+        console.log("API Status:", status);
+        
+        // Set email service availability
         setEmailServiceAvailable(status.sendgrid || false);
+        
+        // Set available services
+        setAvailableServices({
+          openai: status.openai || false,
+          anthropic: status.anthropic || false,
+          perplexity: status.perplexity || false,
+          azure_face: status.azure_face || false,
+          facepp: status.facepp || false,
+          google_vision: status.google_vision || false,
+          aws_rekognition: status.aws_rekognition || false,
+          gladia: status.gladia || false,
+          assemblyai: status.assemblyai || false,
+          deepgram: status.deepgram || false,
+          azure_video_indexer: status.azure_video_indexer || false
+        });
+        
+        // Set default selected model based on availability
+        if (status.openai) {
+          setSelectedModel("openai");
+        } else if (status.anthropic) {
+          setSelectedModel("anthropic");
+        } else if (status.perplexity) {
+          setSelectedModel("perplexity");
+        }
       } catch (error) {
         console.error("Error checking API status:", error);
       }
@@ -577,17 +634,93 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             <Select
               value={selectedModel}
               onValueChange={(value) => setSelectedModel(value as ModelType)}
-              disabled={isAnalyzing}
+              disabled={isAnalyzing || (!availableServices.openai && !availableServices.anthropic && !availableServices.perplexity)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="openai">OpenAI GPT-4o</SelectItem>
-                <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                <SelectItem value="perplexity">Perplexity</SelectItem>
+                {availableServices.openai && <SelectItem value="openai">OpenAI GPT-4o</SelectItem>}
+                {availableServices.anthropic && <SelectItem value="anthropic">Anthropic Claude</SelectItem>}
+                {availableServices.perplexity && <SelectItem value="perplexity">Perplexity</SelectItem>}
+                {!availableServices.openai && !availableServices.anthropic && !availableServices.perplexity && 
+                  <SelectItem value="none" disabled>No AI models available</SelectItem>}
               </SelectContent>
             </Select>
+            
+            <div className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-medium">Available Services</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs px-2"
+                  onClick={() => setShowAdvancedServices(prev => !prev)}
+                >
+                  {showAdvancedServices ? "Hide Details" : "Show All"}
+                </Button>
+              </div>
+              
+              <div className="text-xs space-y-1 text-muted-foreground">
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>OpenAI</span>
+                </div>
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>Anthropic</span>
+                </div>
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.perplexity ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>Perplexity</span>
+                </div>
+                
+                {showAdvancedServices && (
+                  <>
+                    <div className="h-px bg-gray-200 my-2"></div>
+                    <h4 className="font-medium mb-1">Face Analysis</h4>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.azure_face ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>Azure Face API</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.facepp ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>Face++</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.google_vision ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>Google Vision</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.aws_rekognition ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>AWS Rekognition</span>
+                    </div>
+                    
+                    <div className="h-px bg-gray-200 my-2"></div>
+                    <h4 className="font-medium mb-1">Transcription</h4>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.gladia ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>Gladia</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.assemblyai ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>AssemblyAI</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.deepgram ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>Deepgram</span>
+                    </div>
+                    
+                    <div className="h-px bg-gray-200 my-2"></div>
+                    <h4 className="font-medium mb-1">Video Analysis</h4>
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.azure_video_indexer ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>Azure Video Indexer</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </Card>
           
           {/* Upload Options */}
