@@ -2849,7 +2849,13 @@ Return a JSON object with the following structure:
 }
 
 Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
-Important: Pay careful attention to gender, facial expressions, emotional indicators, and any video/audio data provided. Base your insights on the actual analysis data provided.`;
+
+Important instructions:
+1. When audio transcription is available, extract 3-5 direct quotes that reveal personality traits. Include them in double quotes in the speech_analysis.key_quotes array and analyze their significance.
+2. For video data, focus on gestures, expressions, and movements to inform your analysis.
+3. Pay careful attention to gender, facial expressions, emotional indicators, and body language.
+4. The speech_analysis section should be detailed when audio is available; if no speech data exists, note this in the section.
+5. Base all insights on the actual data provided, not stereotypes or assumptions.`;
 
         // Use OpenAI as primary source for consistency across multiple analyses
         try {
@@ -2988,6 +2994,11 @@ Return a JSON object with the following structure:
     "thought_patterns": "Analysis of cognitive processes and decision-making style",
     "cognitive_style": "Description of learning and problem-solving approaches",
     "professional_insights": "Career inclinations and work style",
+    "speech_analysis": {
+      "key_quotes": ["Include 3-5 direct quotes from the transcription that reveal personality traits"],
+      "speech_patterns": "Analysis of speech patterns, word choice, and communication style",
+      "emotional_tone": "Analysis of emotional tone in speech"
+    },
     "relationships": {
       "current_status": "Likely relationship status",
       "parental_status": "Insights about parenting style or potential",
@@ -3002,7 +3013,13 @@ Return a JSON object with the following structure:
 }
 
 Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
-Important: Pay careful attention to gender, facial expressions, emotional indicators, and any video/audio data provided. Base your insights on the actual analysis data provided.`;
+
+Important instructions:
+1. When audio transcription is available, extract 3-5 direct quotes that reveal personality traits. Include them in double quotes in the speech_analysis.key_quotes array and analyze their significance.
+2. For video data, focus on gestures, expressions, and movements to inform your analysis.
+3. Pay careful attention to gender, facial expressions, emotional indicators, and body language.
+4. The speech_analysis section should be detailed when audio is available; if no speech data exists, note this in the section.
+5. Base all insights on the actual data provided, not stereotypes or assumptions.`;
 
     // Try to get analysis from all three services in parallel for maximum depth
     try {
