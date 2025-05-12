@@ -205,6 +205,191 @@ async function splitVideoIntoChunks(videoPath: string, outputDir: string, chunkD
 }
 
 /**
+ * Helper function to analyze video using Azure Video Indexer
+ * Extracts insights about scenes, emotions, and content
+ */
+async function analyzeVideoWithAzureIndexer(videoBuffer: Buffer): Promise<any> {
+  // Check if Azure Video Indexer keys are available
+  if (!AZURE_VIDEO_INDEXER_KEY || !AZURE_VIDEO_INDEXER_LOCATION || !AZURE_VIDEO_INDEXER_ACCOUNT_ID) {
+    console.warn('Azure Video Indexer credentials not available');
+    return null;
+  }
+  
+  try {
+    console.log('Starting Azure Video Indexer analysis...');
+    
+    // Step 1: Get an access token for the Video Indexer API
+    const accessTokenResponse = await fetch(
+      `https://api.videoindexer.ai/auth/${AZURE_VIDEO_INDEXER_LOCATION}/Accounts/${AZURE_VIDEO_INDEXER_ACCOUNT_ID}/AccessToken?allowEdit=true`,
+      {
+        method: 'GET',
+        headers: {
+          'Ocp-Apim-Subscription-Key': AZURE_VIDEO_INDEXER_KEY
+        }
+      }
+    );
+    
+    if (!accessTokenResponse.ok) {
+      throw new Error(`Failed to get access token: ${await accessTokenResponse.text()}`);
+    }
+    
+    const accessToken = await accessTokenResponse.text();
+    console.log('Obtained Azure Video Indexer access token');
+    
+    // Step 2: Create a random ID for the video
+    const videoId = `video_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    
+    // Step 3: Upload the video
+    // Create form data with the video buffer
+    const formData = new FormData();
+    formData.append('file', videoBuffer, 'video.mp4');
+    
+    // @ts-ignore: FormData is compatible with fetch API's Body type
+    const uploadResponse = await fetch(
+      `https://api.videoindexer.ai/${AZURE_VIDEO_INDEXER_LOCATION}/Accounts/${AZURE_VIDEO_INDEXER_ACCOUNT_ID}/Videos?accessToken=${accessToken}&name=${videoId}&privacy=private&indexingPreset=Default`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    );
+    
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload video: ${await uploadResponse.text()}`);
+    }
+    
+    const uploadResult = await uploadResponse.json();
+    const indexingVideoId = uploadResult.id;
+    console.log(`Video uploaded, ID: ${indexingVideoId}`);
+    
+    // Step 4: Wait for indexing to complete
+    let isIndexingComplete = false;
+    let indexingState = "";
+    let indexingRetries = 0;
+    const maxRetries = 20; // Maximum number of retries
+    
+    while (!isIndexingComplete && indexingRetries < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds between checks
+      
+      const indexingStateResponse = await fetch(
+        `https://api.videoindexer.ai/${AZURE_VIDEO_INDEXER_LOCATION}/Accounts/${AZURE_VIDEO_INDEXER_ACCOUNT_ID}/Videos/${indexingVideoId}/Index?accessToken=${accessToken}`,
+        {
+          method: 'GET'
+        }
+      );
+      
+      if (indexingStateResponse.ok) {
+        const indexingData = await indexingStateResponse.json();
+        indexingState = indexingData.state;
+        
+        if (indexingState === "Processed") {
+          isIndexingComplete = true;
+          console.log('Video indexing completed successfully');
+          
+          // Step 5: Get the insights from the video
+          // The indexingData already contains all the insights
+          
+          // Step 6: Clean up - delete the video from Azure
+          try {
+            await fetch(
+              `https://api.videoindexer.ai/${AZURE_VIDEO_INDEXER_LOCATION}/Accounts/${AZURE_VIDEO_INDEXER_ACCOUNT_ID}/Videos/${indexingVideoId}?accessToken=${accessToken}`,
+              {
+                method: 'DELETE'
+              }
+            );
+            console.log('Video deleted from Azure Video Indexer');
+          } catch (deleteError) {
+            console.warn('Failed to delete video from Azure Video Indexer:', deleteError);
+          }
+          
+          // Process and return the insights
+          return processVideoIndexerResults(indexingData);
+        } else if (indexingState === "Failed") {
+          throw new Error("Video indexing failed on Azure Video Indexer");
+        } else {
+          console.log(`Indexing in progress, state: ${indexingState}`);
+        }
+      } else {
+        console.warn(`Failed to get indexing state: ${await indexingStateResponse.text()}`);
+      }
+      
+      indexingRetries++;
+    }
+    
+    if (!isIndexingComplete) {
+      throw new Error(`Video indexing timed out after ${maxRetries} retries, last state: ${indexingState}`);
+    }
+    
+  } catch (error) {
+    console.error('Azure Video Indexer analysis error:', error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to process Azure Video Indexer results
+ */
+function processVideoIndexerResults(indexingData: any): any {
+  // Extract the most useful information from the indexing data
+  const videoInsights = {
+    provider: "azure_video_indexer",
+    duration: indexingData.summarizedInsights?.duration || 0,
+    
+    // Scene analysis
+    scenes: indexingData.summarizedInsights?.scenes?.map((scene: any) => ({
+      id: scene.id,
+      instances: scene.instances?.map((instance: any) => ({
+        start: instance.start,
+        end: instance.end
+      }))
+    })) || [],
+    
+    // Emotion analysis
+    emotions: indexingData.summarizedInsights?.emotions?.map((emotion: any) => ({
+      type: emotion.type,
+      instances: emotion.instances?.map((instance: any) => ({
+        start: instance.start,
+        end: instance.end,
+        confidence: instance.confidence
+      }))
+    })) || [],
+    
+    // Face detection and tracking
+    faces: indexingData.summarizedInsights?.faces?.map((face: any) => ({
+      id: face.id,
+      name: face.name || "Unknown person",
+      confidence: face.confidence,
+      instances: face.instances?.map((instance: any) => ({
+        start: instance.start,
+        end: instance.end,
+        thumbnailId: instance.thumbnailId
+      }))
+    })) || [],
+    
+    // Keywords/topics
+    topics: indexingData.summarizedInsights?.topics?.map((topic: any) => ({
+      name: topic.name,
+      confidence: topic.confidence,
+      instances: topic.instances?.map((instance: any) => ({
+        start: instance.start,
+        end: instance.end
+      }))
+    })) || [],
+    
+    // Labels (objects, actions)
+    labels: indexingData.summarizedInsights?.labels?.map((label: any) => ({
+      name: label.name,
+      confidence: label.confidence,
+      instances: label.instances?.map((instance: any) => ({
+        start: instance.start,
+        end: instance.end
+      }))
+    })) || []
+  };
+  
+  return videoInsights;
+}
+
+/**
  * Helper function to extract audio from video and transcribe it using multiple transcription services
  * Uses Gladia (primary), AssemblyAI (secondary with emotion tagging), or Deepgram (fallback)
  */
@@ -1382,11 +1567,31 @@ Provide a comprehensive analysis of this document, including:
             }
           }
           
-          // Create a comprehensive video analysis based on chunk data
+          // Try to get Azure Video Indexer analysis if available
+          let azureVideoInsights = null;
+          
+          if (AZURE_VIDEO_INDEXER_KEY && AZURE_VIDEO_INDEXER_LOCATION && AZURE_VIDEO_INDEXER_ACCOUNT_ID) {
+            try {
+              console.log('Attempting deep video analysis with Azure Video Indexer...');
+              azureVideoInsights = await analyzeVideoWithAzureIndexer(mediaBuffer);
+              
+              if (azureVideoInsights) {
+                console.log('Azure Video Indexer analysis successful!');
+              }
+            } catch (error) {
+              console.warn('Azure Video Indexer analysis failed:', error);
+              // Continue with basic analysis if Azure Video Indexer fails
+            }
+          }
+          
+          // Create a comprehensive video analysis
           videoAnalysis = {
+            provider: azureVideoInsights ? "azure_video_indexer" : "basic",
             totalChunks: videoChunks.length,
             successfullyProcessedChunks: chunkAnalyses.length,
             chunkData: chunkAnalyses,
+            
+            // Basic temporal analysis (always available)
             temporalAnalysis: {
               emotionOverTime: chunkAnalyses.map(chunk => ({
                 timestamp: chunk.timestamp,
@@ -1394,7 +1599,10 @@ Provide a comprehensive analysis of this document, including:
               })),
               gestureDetection: ["Speaking", "Hand movement"],
               attentionShifts: Math.min(3, Math.floor(videoDuration / 2)) // Estimate based on duration
-            }
+            },
+            
+            // If Azure Video Indexer analysis is available, include its results
+            ...(azureVideoInsights && { azureInsights: azureVideoInsights })
           };
           
           // Extract audio transcription from the video using OpenAI Whisper API
@@ -1817,12 +2025,32 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
   app.get("/api/status", async (req, res) => {
     try {
       const statusData = {
+        // LLM Services
         openai: !!openai,
         anthropic: !!anthropic,
         perplexity: !!process.env.PERPLEXITY_API_KEY,
-        aws: !!process.env.AWS_ACCESS_KEY_ID && !!process.env.AWS_SECRET_ACCESS_KEY,
+        azureOpenai: !!process.env.AZURE_OPENAI_ENDPOINT && !!process.env.AZURE_OPENAI_KEY,
+        
+        // Facial Analysis Services
+        aws_rekognition: !!process.env.AWS_ACCESS_KEY_ID && !!process.env.AWS_SECRET_ACCESS_KEY,
         facepp: !!process.env.FACEPP_API_KEY && !!process.env.FACEPP_API_SECRET,
+        azure_face: !!process.env.AZURE_FACE_ENDPOINT && !!process.env.AZURE_FACE_API_KEY,
+        google_vision: !!process.env.GOOGLE_CLOUD_VISION_API_KEY,
+        
+        // Transcription Services
+        gladia: !!process.env.GLADIA_API_KEY,
+        assemblyai: !!process.env.ASSEMBLYAI_API_KEY,
+        deepgram: !!process.env.DEEPGRAM_API_KEY,
+        
+        // Video Analysis Services
+        azure_video_indexer: !!process.env.AZURE_VIDEO_INDEXER_KEY && 
+                            !!process.env.AZURE_VIDEO_INDEXER_LOCATION && 
+                            !!process.env.AZURE_VIDEO_INDEXER_ACCOUNT_ID,
+        
+        // Email Service
         sendgrid: !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_VERIFIED_SENDER,
+        
+        // Service status timestamp
         timestamp: new Date().toISOString()
       };
       
@@ -2050,79 +2278,433 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
   return httpServer;
 }
 
-async function analyzeFaceWithRekognition(imageBuffer: Buffer, maxPeople: number = 5) {
-  const command = new DetectFacesCommand({
-    Image: {
-      Bytes: imageBuffer
-    },
-    Attributes: ['ALL']
-  });
-
-  console.log('Sending request to AWS Rekognition...');
-  const response = await rekognition.send(command);
-  console.log('Received response from AWS Rekognition');
-  const faces = response.FaceDetails || [];
-
-  if (faces.length === 0) {
-    throw new Error("No faces detected in the image");
-  }
-
-  // Limit the number of faces to analyze
-  const facesToProcess = faces.slice(0, maxPeople);
+/**
+ * Enhanced face analysis function that uses multiple services with fallback
+ * Tries Azure Face API first, then Face++, and finally AWS Rekognition
+ */
+async function analyzeFaces(imageBuffer: Buffer, maxPeople: number = 5) {
+  let analysisResult = {
+    provider: "none",
+    faces: [],
+    success: false
+  };
   
-  // Process each face and add descriptive labels
-  return facesToProcess.map((face, index) => {
-    // Create a descriptive label for each person
-    let personLabel = `Person ${index + 1}`;
-    
-    // Add gender and approximate age to label if available
-    if (face.Gender?.Value) {
-      const genderLabel = face.Gender.Value.toLowerCase() === 'male' ? 'Male' : 'Female';
-      const ageRange = face.AgeRange ? `${face.AgeRange.Low}-${face.AgeRange.High}` : '';
-      personLabel = `${personLabel} (${genderLabel}${ageRange ? ', ~' + ageRange + ' years' : ''})`;
-    }
-  
-  return {
-    personLabel,
-    positionInImage: index + 1,
-    boundingBox: face.BoundingBox || {
-      Width: 0,
-      Height: 0,
-      Left: 0,
-      Top: 0
-    },
-    age: {
-      low: face.AgeRange?.Low || 0,
-      high: face.AgeRange?.High || 0
-    },
-      gender: face.Gender?.Value?.toLowerCase() || "unknown",
-      emotion: face.Emotions?.reduce((acc, emotion) => {
-        if (emotion.Type && emotion.Confidence) {
-          acc[emotion.Type.toLowerCase()] = emotion.Confidence / 100;
-        }
-        return acc;
-      }, {} as Record<string, number>),
-      faceAttributes: {
-        smile: face.Smile?.Value ? (face.Smile.Confidence || 0) / 100 : 0,
-        eyeglasses: face.Eyeglasses?.Value ? "Glasses" : "NoGlasses",
-        sunglasses: face.Sunglasses?.Value ? "Sunglasses" : "NoSunglasses",
-        beard: face.Beard?.Value ? "Yes" : "No",
-        mustache: face.Mustache?.Value ? "Yes" : "No",
-        eyesOpen: face.EyesOpen?.Value ? "Yes" : "No",
-        mouthOpen: face.MouthOpen?.Value ? "Yes" : "No",
-        quality: {
-          brightness: face.Quality?.Brightness || 0,
-          sharpness: face.Quality?.Sharpness || 0,
+  // First try Azure Face API if available
+  if (AZURE_FACE_API_KEY && AZURE_FACE_ENDPOINT) {
+    try {
+      console.log('Attempting face analysis with Azure Face API...');
+      
+      // Convert buffer to base64 for Azure API
+      const base64Image = imageBuffer.toString('base64');
+      
+      const azureResponse = await fetch(`${AZURE_FACE_ENDPOINT}/face/v1.0/detect?returnFaceId=true&returnFaceLandmarks=false&returnFaceAttributes=age,gender,smile,emotion,glasses,hair,makeup,accessories,blur,exposure,noise`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Ocp-Apim-Subscription-Key': AZURE_FACE_API_KEY
         },
-        pose: {
-          pitch: face.Pose?.Pitch || 0,
-          roll: face.Pose?.Roll || 0,
-          yaw: face.Pose?.Yaw || 0,
+        body: imageBuffer
+      });
+      
+      if (azureResponse.ok) {
+        const facesData = await azureResponse.json();
+        
+        if (facesData && Array.isArray(facesData) && facesData.length > 0) {
+          // Process and format the Azure response
+          const processedFaces = facesData.slice(0, maxPeople).map((face: any, index: number) => {
+            // Create descriptive label
+            const genderLabel = face.faceAttributes?.gender === 'male' ? 'Male' : 'Female';
+            const ageValue = face.faceAttributes?.age || 0;
+            const personLabel = `Person ${index + 1} (${genderLabel}, ~${Math.round(ageValue)} years)`;
+            
+            // Map emotions to standardized format
+            const emotions = face.faceAttributes?.emotion || {};
+            const emotionMap: Record<string, number> = {};
+            
+            Object.keys(emotions).forEach(emotion => {
+              emotionMap[emotion.toLowerCase()] = emotions[emotion];
+            });
+            
+            return {
+              personLabel,
+              positionInImage: index + 1,
+              boundingBox: {
+                Width: face.faceRectangle.width / 100,
+                Height: face.faceRectangle.height / 100,
+                Left: face.faceRectangle.left / 100,
+                Top: face.faceRectangle.top / 100
+              },
+              age: {
+                low: Math.max(0, Math.round(ageValue) - 5),
+                high: Math.round(ageValue) + 5
+              },
+              gender: face.faceAttributes?.gender?.toLowerCase() || "unknown",
+              emotion: emotionMap,
+              faceAttributes: {
+                smile: face.faceAttributes?.smile || 0,
+                eyeglasses: face.faceAttributes?.glasses === 'ReadingGlasses' ? "Glasses" : "NoGlasses",
+                sunglasses: face.faceAttributes?.glasses === 'Sunglasses' ? "Sunglasses" : "NoSunglasses",
+                beard: face.faceAttributes?.facialHair?.beard > 0.5 ? "Yes" : "No",
+                mustache: face.faceAttributes?.facialHair?.moustache > 0.5 ? "Yes" : "No",
+                eyesOpen: "Unknown", // Azure doesn't provide this directly
+                mouthOpen: "Unknown", // Azure doesn't provide this directly
+                quality: {
+                  brightness: face.faceAttributes?.exposure?.exposureLevel || 0,
+                  sharpness: face.faceAttributes?.blur?.blurLevel || 0,
+                },
+                pose: {
+                  pitch: 0, // Not directly provided by Azure
+                  roll: 0,  // Not directly provided by Azure
+                  yaw: 0    // Not directly provided by Azure
+                }
+              },
+              dominant: index === 0
+            };
+          });
+          
+          analysisResult = {
+            provider: "azure",
+            faces: processedFaces,
+            success: true
+          };
+          
+          console.log('Azure Face API analysis successful!');
+          return processedFaces;
         }
+      } else {
+        console.warn('Azure Face API returned an error:', await azureResponse.text());
+      }
+    } catch (error) {
+      console.error('Azure Face API analysis error:', error);
+    }
+  }
+  
+  // If Azure failed, try Face++ if available
+  if (!analysisResult.success && FACEPP_API_KEY && FACEPP_API_SECRET) {
+    try {
+      console.log('Attempting face analysis with Face++ API...');
+      
+      // Format the image data for Face++ API
+      const formData = new FormData();
+      formData.append('api_key', FACEPP_API_KEY);
+      formData.append('api_secret', FACEPP_API_SECRET);
+      formData.append('image_file', imageBuffer, 'image.jpg');
+      formData.append('return_landmark', '0');
+      formData.append('return_attributes', 'gender,age,smiling,emotion,eyestatus,mouthstatus,eyegaze,beauty,skinstatus');
+      
+      // @ts-ignore: FormData is compatible with fetch API's Body type
+      const faceppResponse = await fetch('https://api-us.faceplusplus.com/facepp/v3/detect', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (faceppResponse.ok) {
+        const facesData = await faceppResponse.json();
+        
+        if (facesData && facesData.faces && facesData.faces.length > 0) {
+          // Process and format the Face++ response
+          const processedFaces = facesData.faces.slice(0, maxPeople).map((face: any, index: number) => {
+            // Create descriptive label
+            const genderValue = face.attributes?.gender?.value || 'unknown';
+            const genderLabel = genderValue.toLowerCase() === 'male' ? 'Male' : 'Female';
+            const ageValue = face.attributes?.age?.value || 0;
+            const personLabel = `Person ${index + 1} (${genderLabel}, ~${ageValue} years)`;
+            
+            // Map emotions to standardized format
+            const emotions = face.attributes?.emotion || {};
+            const emotionMap: Record<string, number> = {};
+            
+            Object.keys(emotions).forEach(emotion => {
+              emotionMap[emotion.toLowerCase()] = emotions[emotion] / 100;
+            });
+            
+            const faceRect = face.face_rectangle || {};
+            
+            return {
+              personLabel,
+              positionInImage: index + 1,
+              boundingBox: {
+                Width: faceRect.width / 100,
+                Height: faceRect.height / 100,
+                Left: faceRect.left / 100,
+                Top: faceRect.top / 100
+              },
+              age: {
+                low: Math.max(0, ageValue - 5),
+                high: ageValue + 5
+              },
+              gender: genderValue.toLowerCase(),
+              emotion: emotionMap,
+              faceAttributes: {
+                smile: face.attributes?.smile?.value / 100 || 0,
+                eyeglasses: face.attributes?.eyeglass?.value > 50 ? "Glasses" : "NoGlasses",
+                sunglasses: face.attributes?.sunglass?.value > 50 ? "Sunglasses" : "NoSunglasses",
+                beard: face.attributes?.beard?.value > 50 ? "Yes" : "No",
+                mustache: face.attributes?.moustache?.value > 50 ? "Yes" : "No",
+                eyesOpen: face.attributes?.eyestatus?.left_eye_status?.eye_open > 50 ? "Yes" : "No",
+                mouthOpen: face.attributes?.mouthstatus?.open > 50 ? "Yes" : "No",
+                quality: {
+                  brightness: 0, // Not directly provided
+                  sharpness: 0, // Not directly provided
+                },
+                pose: {
+                  pitch: 0, // Not directly provided in basic mode
+                  roll: 0,  // Not directly provided in basic mode
+                  yaw: 0    // Not directly provided in basic mode
+                }
+              },
+              dominant: index === 0
+            };
+          });
+          
+          analysisResult = {
+            provider: "facepp",
+            faces: processedFaces,
+            success: true
+          };
+          
+          console.log('Face++ API analysis successful!');
+          return processedFaces;
+        }
+      } else {
+        console.warn('Face++ API returned an error:', await faceppResponse.text());
+      }
+    } catch (error) {
+      console.error('Face++ API analysis error:', error);
+    }
+  }
+  
+  // Try Google Cloud Vision if previous methods failed and API key is available
+  if (!analysisResult.success && GOOGLE_CLOUD_VISION_API_KEY) {
+    try {
+      console.log('Attempting face analysis with Google Cloud Vision API...');
+      
+      // Prepare the request to Google Cloud Vision API
+      const requestBody = {
+        requests: [
+          {
+            image: {
+              content: imageBuffer.toString('base64')
+            },
+            features: [
+              {
+                type: "FACE_DETECTION",
+                maxResults: maxPeople
+              }
+            ]
+          }
+        ]
+      };
+      
+      const gcvResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_CLOUD_VISION_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (gcvResponse.ok) {
+        const result = await gcvResponse.json();
+        const faceAnnotations = result.responses?.[0]?.faceAnnotations || [];
+        
+        if (faceAnnotations.length > 0) {
+          // Process and format the Google Cloud Vision response
+          const processedFaces = faceAnnotations.slice(0, maxPeople).map((face: any, index: number) => {
+            // Create a descriptive label for each person
+            const personLabel = `Person ${index + 1}`;
+            
+            // Get vertices of the face bounding polygon
+            const vertices = face.boundingPoly?.vertices || [];
+            let left = 0, top = 0, right = 0, bottom = 0;
+            
+            if (vertices.length >= 4) {
+              left = Math.min(...vertices.map((v: any) => v.x || 0));
+              top = Math.min(...vertices.map((v: any) => v.y || 0));
+              right = Math.max(...vertices.map((v: any) => v.x || 0));
+              bottom = Math.max(...vertices.map((v: any) => v.y || 0));
+            }
+            
+            // Create normalized bounding box (0-1 range)
+            // Note: We're estimating the image size from the face bounds
+            const imageWidth = 1000; // Approximate width for normalization
+            const imageHeight = 1000; // Approximate height for normalization
+            
+            const boundingBox = {
+              Width: (right - left) / imageWidth,
+              Height: (bottom - top) / imageHeight,
+              Left: left / imageWidth,
+              Top: top / imageHeight
+            };
+            
+            // Map Google Cloud Vision emotions to our standard format
+            const emotionMap: Record<string, number> = {
+              joy: face.joyLikelihood === "VERY_LIKELY" ? 0.9 : 
+                   face.joyLikelihood === "LIKELY" ? 0.7 :
+                   face.joyLikelihood === "POSSIBLE" ? 0.5 :
+                   face.joyLikelihood === "UNLIKELY" ? 0.3 : 0.1,
+              sorrow: face.sorrowLikelihood === "VERY_LIKELY" ? 0.9 : 
+                      face.sorrowLikelihood === "LIKELY" ? 0.7 :
+                      face.sorrowLikelihood === "POSSIBLE" ? 0.5 :
+                      face.sorrowLikelihood === "UNLIKELY" ? 0.3 : 0.1,
+              anger: face.angerLikelihood === "VERY_LIKELY" ? 0.9 : 
+                     face.angerLikelihood === "LIKELY" ? 0.7 :
+                     face.angerLikelihood === "POSSIBLE" ? 0.5 :
+                     face.angerLikelihood === "UNLIKELY" ? 0.3 : 0.1,
+              surprise: face.surpriseLikelihood === "VERY_LIKELY" ? 0.9 : 
+                        face.surpriseLikelihood === "LIKELY" ? 0.7 :
+                        face.surpriseLikelihood === "POSSIBLE" ? 0.5 :
+                        face.surpriseLikelihood === "UNLIKELY" ? 0.3 : 0.1
+            };
+            
+            return {
+              personLabel,
+              positionInImage: index + 1,
+              boundingBox,
+              age: {
+                low: 18, // GCV doesn't provide exact age estimates
+                high: 50
+              },
+              gender: "unknown", // GCV doesn't provide gender
+              emotion: emotionMap,
+              faceAttributes: {
+                smile: emotionMap.joy,
+                eyeglasses: "Unknown", // Not provided
+                sunglasses: "Unknown", // Not provided
+                beard: "Unknown", // Not provided
+                mustache: "Unknown", // Not provided
+                eyesOpen: "Unknown", // Not provided
+                mouthOpen: "Unknown", // Not provided
+                quality: {
+                  brightness: 0, // Not directly provided
+                  sharpness: 0 // Not directly provided
+                },
+                pose: {
+                  pitch: face.tiltAngle || 0,
+                  roll: face.rollAngle || 0,
+                  yaw: face.panAngle || 0
+                }
+              },
+              dominant: index === 0
+            };
+          });
+          
+          analysisResult = {
+            provider: "google_cloud_vision",
+            faces: processedFaces,
+            success: true
+          };
+          
+          console.log('Google Cloud Vision face analysis successful!');
+          return processedFaces;
+        }
+      } else {
+        console.warn('Google Cloud Vision API returned an error:', await gcvResponse.text());
+      }
+    } catch (error) {
+      console.error('Google Cloud Vision analysis error:', error);
+    }
+  }
+  
+  // If all previous methods failed, fall back to AWS Rekognition
+  try {
+    console.log('Falling back to AWS Rekognition for face analysis...');
+    
+    const command = new DetectFacesCommand({
+      Image: {
+        Bytes: imageBuffer
       },
-      dominant: index === 0 // Flag the first/largest face as dominant
+      Attributes: ['ALL']
+    });
+
+    const response = await rekognition.send(command);
+    const faces = response.FaceDetails || [];
+
+    if (faces.length === 0) {
+      throw new Error("No faces detected in the image");
+    }
+
+    // Limit the number of faces to analyze
+    const facesToProcess = faces.slice(0, maxPeople);
+    
+    // Process each face and add descriptive labels
+    const processedFaces = facesToProcess.map((face, index) => {
+      // Create a descriptive label for each person
+      let personLabel = `Person ${index + 1}`;
+      
+      // Add gender and approximate age to label if available
+      if (face.Gender?.Value) {
+        const genderLabel = face.Gender.Value.toLowerCase() === 'male' ? 'Male' : 'Female';
+        const ageRange = face.AgeRange ? `${face.AgeRange.Low}-${face.AgeRange.High}` : '';
+        personLabel = `${personLabel} (${genderLabel}${ageRange ? ', ~' + ageRange + ' years' : ''})`;
+      }
+    
+      return {
+        personLabel,
+        positionInImage: index + 1,
+        boundingBox: face.BoundingBox || {
+          Width: 0,
+          Height: 0,
+          Left: 0,
+          Top: 0
+        },
+        age: {
+          low: face.AgeRange?.Low || 0,
+          high: face.AgeRange?.High || 0
+        },
+        gender: face.Gender?.Value?.toLowerCase() || "unknown",
+        emotion: face.Emotions?.reduce((acc, emotion) => {
+          if (emotion.Type && emotion.Confidence) {
+            acc[emotion.Type.toLowerCase()] = emotion.Confidence / 100;
+          }
+          return acc;
+        }, {} as Record<string, number>),
+        faceAttributes: {
+          smile: face.Smile?.Value ? (face.Smile.Confidence || 0) / 100 : 0,
+          eyeglasses: face.Eyeglasses?.Value ? "Glasses" : "NoGlasses",
+          sunglasses: face.Sunglasses?.Value ? "Sunglasses" : "NoSunglasses",
+          beard: face.Beard?.Value ? "Yes" : "No",
+          mustache: face.Mustache?.Value ? "Yes" : "No",
+          eyesOpen: face.EyesOpen?.Value ? "Yes" : "No",
+          mouthOpen: face.MouthOpen?.Value ? "Yes" : "No",
+          quality: {
+            brightness: face.Quality?.Brightness || 0,
+            sharpness: face.Quality?.Sharpness || 0,
+          },
+          pose: {
+            pitch: face.Pose?.Pitch || 0,
+            roll: face.Pose?.Roll || 0,
+            yaw: face.Pose?.Yaw || 0,
+          }
+        },
+        dominant: index === 0 // Flag the first/largest face as dominant
+      };
+    });
+    
+    analysisResult = {
+      provider: "aws_rekognition",
+      faces: processedFaces,
+      success: true
     };
-  });
+    
+    console.log('AWS Rekognition face analysis successful!');
+    return processedFaces;
+  } catch (error) {
+    console.error('AWS Rekognition analysis failed:', error);
+    
+    // If all face detection methods fail, throw an error
+    if (!analysisResult.success) {
+      throw new Error("No faces detected in the image by any provider");
+    }
+    
+    // Return any successful results from previous providers
+    return analysisResult.faces;
+  }
+}
+
+// For backward compatibility
+async function analyzeFaceWithRekognition(imageBuffer: Buffer, maxPeople: number = 5) {
+  return analyzeFaces(imageBuffer, maxPeople);
 }
 
 
