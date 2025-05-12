@@ -11,6 +11,7 @@ import {
   GetFaceDetectionCommand 
 } from "@aws-sdk/client-rekognition";
 import { sendAnalysisEmail } from "./services/email";
+import { generateAnalysisHtml, generatePdf, generateDocx } from './services/document';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -2186,9 +2187,6 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
       if (!analysis) {
         return res.status(404).json({ error: "Analysis not found" });
       }
-      
-      // Import document generation services
-      const { generateAnalysisHtml, generatePdf, generateDocx } = require('./services/document');
       
       let buffer: Buffer;
       let contentType: string;
