@@ -905,24 +905,45 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             // Format transcript for display
                             let formattedTranscript = "# Full Video Transcript\n\n";
                             
-                            // Add provider info
-                            formattedTranscript += `*Transcription provided by ${data.audioTranscription.provider || 'AI transcription service'}*\n\n`;
+                            // Add provider info with emoji
+                            const provider = data.audioTranscription.provider || 'AI transcription service';
+                            formattedTranscript += `*Transcription provided by ${provider}*\n\n`;
                             
-                            // Add timestamps and text if available
-                            if (data.audioTranscription.transcription?.utterances) {
-                              data.audioTranscription.transcription.utterances.forEach((utterance: any) => {
+                            // Get the transcription data from the standardized format
+                            const transcriptionData = data.audioTranscription.transcriptionData || data.audioTranscription.transcription;
+                            
+                            // Add timestamps and text if utterances are available
+                            if (transcriptionData?.utterances && transcriptionData.utterances.length > 0) {
+                              // Sort utterances by start time if available
+                              const sortedUtterances = [...transcriptionData.utterances].sort((a, b) => a.start - b.start);
+                              
+                              // Add sentiment indicators if available
+                              sortedUtterances.forEach((utterance: any) => {
                                 const start = new Date(utterance.start * 1000).toISOString().substr(14, 5);
                                 const end = new Date(utterance.end * 1000).toISOString().substr(14, 5);
-                                formattedTranscript += `**[${start} - ${end}]** ${utterance.text}\n\n`;
+                                
+                                // Add sentiment emoji if available
+                                let sentimentIndicator = '';
+                                if (utterance.sentiment) {
+                                  if (utterance.sentiment === 'positive') sentimentIndicator = ' 😊';
+                                  else if (utterance.sentiment === 'negative') sentimentIndicator = ' 😔';
+                                  else if (utterance.sentiment === 'neutral') sentimentIndicator = ' 😐';
+                                }
+                                
+                                formattedTranscript += `**[${start} - ${end}]**${sentimentIndicator} ${utterance.text}\n\n`;
                               });
-                            } else if (data.audioTranscription.transcription?.words) {
+                            } else if (transcriptionData?.words && transcriptionData.words.length > 0) {
                               // Alternative format with words
                               let lastTimestamp = 0;
                               let currentParagraph = "";
                               
-                              data.audioTranscription.transcription.words.forEach((word: any, index: number) => {
-                                // Start a new paragraph every 15 seconds
-                                if (word.start > lastTimestamp + 15 && currentParagraph) {
+                              // Sort words by start time
+                              const sortedWords = [...transcriptionData.words].sort((a, b) => a.start - b.start);
+                              
+                              sortedWords.forEach((word: any, index: number) => {
+                                // Start a new paragraph every 15 seconds or on punctuation
+                                const isPunctuation = word.text.match(/[.!?]$/);
+                                if ((word.start > lastTimestamp + 15 || isPunctuation) && currentParagraph) {
                                   const paragraphTime = new Date(lastTimestamp * 1000).toISOString().substr(14, 5);
                                   formattedTranscript += `**[${paragraphTime}]** ${currentParagraph}\n\n`;
                                   currentParagraph = word.text + " ";
@@ -932,14 +953,20 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                 }
                                 
                                 // Add final paragraph
-                                if (index === data.audioTranscription.transcription.words.length - 1 && currentParagraph) {
+                                if (index === sortedWords.length - 1 && currentParagraph) {
                                   const paragraphTime = new Date(lastTimestamp * 1000).toISOString().substr(14, 5);
                                   formattedTranscript += `**[${paragraphTime}]** ${currentParagraph}\n\n`;
                                 }
                               });
-                            } else if (data.audioTranscription.text) {
+                            } else if (transcriptionData?.full_text) {
                               // Simple text without timestamps
+                              formattedTranscript += transcriptionData.full_text;
+                            } else if (data.audioTranscription.text) {
+                              // Fallback to text field if available
                               formattedTranscript += data.audioTranscription.text;
+                            } else if (data.audioTranscription.transcription && typeof data.audioTranscription.transcription === 'string') {
+                              // Fallback to old format if needed
+                              formattedTranscript += data.audioTranscription.transcription;
                             } else {
                               formattedTranscript += "No detailed transcript available.";
                             }
