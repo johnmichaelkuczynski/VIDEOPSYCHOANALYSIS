@@ -453,11 +453,61 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
           const result = await gladiaResponse.json();
           
           if (result.prediction && result.prediction.transcription) {
+            // Process utterances from Gladia segments if available
+            const utterances = [];
+            if (result.prediction.utterances && result.prediction.utterances.length > 0) {
+              for (const utterance of result.prediction.utterances) {
+                utterances.push({
+                  text: utterance.text,
+                  start: utterance.start,
+                  end: utterance.end,
+                  sentiment: "unknown" // Gladia doesn't provide sentiment
+                });
+              }
+            } else if (result.prediction.segments && result.prediction.segments.length > 0) {
+              // Use segments as utterances if utterances aren't available
+              for (const segment of result.prediction.segments) {
+                utterances.push({
+                  text: segment.text,
+                  start: segment.start,
+                  end: segment.end,
+                  sentiment: "unknown"
+                });
+              }
+            } else {
+              // If no segments or utterances, create a single utterance
+              utterances.push({
+                text: result.prediction.transcription,
+                start: 0,
+                end: audioDuration || 0,
+                sentiment: "unknown"
+              });
+            }
+            
+            // Process words if available
+            const words = [];
+            if (result.prediction.words && result.prediction.words.length > 0) {
+              for (const word of result.prediction.words) {
+                words.push({
+                  text: word.word || word.text,
+                  start: word.start,
+                  end: word.end,
+                  confidence: word.confidence || 0.9
+                });
+              }
+            }
+            
             transcriptionResult = {
-              transcription: result.prediction.transcription,
+              text: result.prediction.transcription,
               provider: "gladia",
               confidence: result.prediction.confidence || 0.9,
               wordLevelData: true,
+              // Store in standardized format for easy quotation extraction
+              transcription: {
+                full_text: result.prediction.transcription,
+                utterances: utterances,
+                words: words
+              },
               segments: result.prediction.words || []
             };
             console.log('Gladia transcription successful!');
@@ -532,12 +582,52 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
               // Extract emotion data from sentiment analysis
               const emotions = transcript.sentiment_analysis_results || [];
               
+              // Process the sentiment analysis into utterance segments
+              const utterances = [];
+              if (emotions && emotions.length > 0) {
+                for (const segment of emotions) {
+                  utterances.push({
+                    text: segment.text,
+                    start: segment.start / 1000, // Convert to seconds
+                    end: segment.end / 1000,     // Convert to seconds
+                    sentiment: segment.sentiment
+                  });
+                }
+              } else {
+                // If no sentiment analysis, create a single utterance
+                utterances.push({
+                  text: transcript.text,
+                  start: 0,
+                  end: audioDuration || 0,
+                  sentiment: "neutral"
+                });
+              }
+              
+              // Process word-level data
+              const words = [];
+              if (transcript.words && Array.isArray(transcript.words)) {
+                for (const word of transcript.words) {
+                  words.push({
+                    text: word.text,
+                    start: word.start / 1000, // Convert to seconds
+                    end: word.end / 1000,     // Convert to seconds
+                    confidence: word.confidence || 0.9
+                  });
+                }
+              }
+              
               transcriptionResult = {
-                transcription: transcript.text,
+                text: transcript.text,
                 provider: "assemblyai",
                 confidence: 0.9, // AssemblyAI doesn't provide confidence scores directly
                 wordLevelData: true,
                 sentiment: transcript.sentiment,
+                // Store the utterances and words in a format easier for quotation extraction
+                transcription: {
+                  full_text: transcript.text,
+                  utterances: utterances,
+                  words: words
+                },
                 emotion: emotions.map((item: { 
                   text: string, 
                   sentiment: string, 
@@ -585,12 +675,61 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
           if (result.results && result.results.channels && result.results.channels.length > 0) {
             const transcript = result.results.channels[0].alternatives[0];
             
+            // Process words for consistent format
+            const words = [];
+            if (transcript.words && Array.isArray(transcript.words)) {
+              for (const word of transcript.words) {
+                words.push({
+                  text: word.word || word.text,
+                  start: word.start,
+                  end: word.end,
+                  confidence: word.confidence || 0.8
+                });
+              }
+            }
+            
+            // Create utterances from paragraphs or sentences
+            const utterances = [];
+            if (transcript.paragraphs && transcript.paragraphs.length > 0) {
+              for (const paragraph of transcript.paragraphs) {
+                utterances.push({
+                  text: paragraph.text,
+                  start: paragraph.start,
+                  end: paragraph.end,
+                  sentiment: "unknown" // Deepgram doesn't provide sentiment
+                });
+              }
+            } else if (transcript.sentences && transcript.sentences.length > 0) {
+              for (const sentence of transcript.sentences) {
+                utterances.push({
+                  text: sentence.text,
+                  start: sentence.start,
+                  end: sentence.end,
+                  sentiment: "unknown"
+                });
+              }
+            } else {
+              // If no paragraphs or sentences, create a single utterance
+              utterances.push({
+                text: transcript.transcript,
+                start: 0,
+                end: audioDuration || 0,
+                sentiment: "unknown"
+              });
+            }
+            
             transcriptionResult = {
-              transcription: transcript.transcript,
+              text: transcript.transcript,
               provider: "deepgram",
               confidence: transcript.confidence,
               language: result.results.language,
               wordLevelData: true,
+              // Store in standardized format for easy quotation extraction
+              transcription: {
+                full_text: transcript.transcript,
+                utterances: utterances,
+                words: words
+              },
               segments: transcript.words || []
             };
             console.log('Deepgram transcription successful!');
@@ -617,11 +756,51 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
           timestamp_granularities: ['word']
         });
         
+        // Process word-level data if available
+        const words = [];
+        if (transcriptionResponse.words && Array.isArray(transcriptionResponse.words)) {
+          for (const word of transcriptionResponse.words) {
+            words.push({
+              text: word.word,
+              start: word.start,
+              end: word.end,
+              confidence: 0.92 // Whisper doesn't provide per-word confidence
+            });
+          }
+        }
+        
+        // Process utterances from segments
+        const utterances = [];
+        if (transcriptionResponse.segments && transcriptionResponse.segments.length > 0) {
+          for (const segment of transcriptionResponse.segments) {
+            utterances.push({
+              text: segment.text,
+              start: segment.start,
+              end: segment.end,
+              sentiment: "unknown" // Whisper doesn't provide sentiment
+            });
+          }
+        } else {
+          // If no segments, create a single utterance
+          utterances.push({
+            text: transcriptionResponse.text,
+            start: 0,
+            end: audioDuration || 0,
+            sentiment: "unknown"
+          });
+        }
+        
         transcriptionResult = {
-          transcription: transcriptionResponse.text,
+          text: transcriptionResponse.text,
           provider: "openai_whisper",
           confidence: 0.92, // Whisper is generally highly accurate
           wordLevelData: true,
+          // Store in standardized format for easy quotation extraction
+          transcription: {
+            full_text: transcriptionResponse.text,
+            utterances: utterances,
+            words: words
+          },
           segments: transcriptionResponse.segments || []
         };
         
