@@ -891,6 +891,95 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   Video analysis will extract visual and audio insights
                 </div>
                 
+                {/* View full transcript button - only shows after analysis */}
+                {analysisId && (
+                  <Button 
+                    variant="outline"
+                    className="w-full mb-2"
+                    onClick={() => {
+                      // Get the analysis to extract transcript
+                      fetch(`/api/analysis/${analysisId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data.audioTranscription) {
+                            // Format transcript for display
+                            let formattedTranscript = "# Full Video Transcript\n\n";
+                            
+                            // Add provider info
+                            formattedTranscript += `*Transcription provided by ${data.audioTranscription.provider || 'AI transcription service'}*\n\n`;
+                            
+                            // Add timestamps and text if available
+                            if (data.audioTranscription.transcription?.utterances) {
+                              data.audioTranscription.transcription.utterances.forEach((utterance: any) => {
+                                const start = new Date(utterance.start * 1000).toISOString().substr(14, 5);
+                                const end = new Date(utterance.end * 1000).toISOString().substr(14, 5);
+                                formattedTranscript += `**[${start} - ${end}]** ${utterance.text}\n\n`;
+                              });
+                            } else if (data.audioTranscription.transcription?.words) {
+                              // Alternative format with words
+                              let lastTimestamp = 0;
+                              let currentParagraph = "";
+                              
+                              data.audioTranscription.transcription.words.forEach((word: any, index: number) => {
+                                // Start a new paragraph every 15 seconds
+                                if (word.start > lastTimestamp + 15 && currentParagraph) {
+                                  const paragraphTime = new Date(lastTimestamp * 1000).toISOString().substr(14, 5);
+                                  formattedTranscript += `**[${paragraphTime}]** ${currentParagraph}\n\n`;
+                                  currentParagraph = word.text + " ";
+                                  lastTimestamp = word.start;
+                                } else {
+                                  currentParagraph += word.text + " ";
+                                }
+                                
+                                // Add final paragraph
+                                if (index === data.audioTranscription.transcription.words.length - 1 && currentParagraph) {
+                                  const paragraphTime = new Date(lastTimestamp * 1000).toISOString().substr(14, 5);
+                                  formattedTranscript += `**[${paragraphTime}]** ${currentParagraph}\n\n`;
+                                }
+                              });
+                            } else if (data.audioTranscription.text) {
+                              // Simple text without timestamps
+                              formattedTranscript += data.audioTranscription.text;
+                            } else {
+                              formattedTranscript += "No detailed transcript available.";
+                            }
+                            
+                            // Show transcript in a dialog
+                            setMessages(prevMessages => [
+                              ...prevMessages,
+                              {
+                                role: "assistant",
+                                content: formattedTranscript
+                              }
+                            ]);
+                            
+                            toast({
+                              title: "Transcript Loaded",
+                              description: "Full video transcript added to the conversation"
+                            });
+                          } else {
+                            toast({
+                              variant: "destructive",
+                              title: "Transcript Unavailable",
+                              description: "No transcript found for this video"
+                            });
+                          }
+                        })
+                        .catch(error => {
+                          console.error("Error loading transcript:", error);
+                          toast({
+                            variant: "destructive",
+                            title: "Error",
+                            description: "Failed to load transcript"
+                          });
+                        });
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Full Transcript
+                  </Button>
+                )}
+                
                 {/* Re-analyze with current model button */}
                 <Button 
                   onClick={() => {

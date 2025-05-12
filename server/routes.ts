@@ -1656,6 +1656,8 @@ Provide a comprehensive analysis of this document, including:
         mediaUrl: mediaData,
         mediaType,
         faceAnalysis,
+        videoAnalysis: videoAnalysis || undefined,
+        audioTranscription: audioTranscription || undefined,
         personalityInsights,
       });
 
