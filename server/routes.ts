@@ -23,7 +23,6 @@ import FormData from 'form-data';
 // Initialize API clients with proper error handling for missing keys
 let openai: OpenAI | null = null;
 let anthropic: Anthropic | null = null;
-let deepgram: Deepgram | null = null;
 let azureOpenAI: OpenAI | null = null;
 
 // API Keys available for various services
@@ -70,18 +69,7 @@ if (AZURE_VIDEO_INDEXER_KEY && AZURE_VIDEO_INDEXER_LOCATION && AZURE_VIDEO_INDEX
   console.log("Azure Video Indexer API available for deep video analysis");
 }
 
-// Deepgram client initialization (using their v3 SDK)
-if (DEEPGRAM_API_KEY) {
-  try {
-    // Using modern format for Deepgram v3 SDK
-    deepgram = new Deepgram({
-      apiKey: DEEPGRAM_API_KEY
-    });
-    console.log("Deepgram client initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize Deepgram client:", error);
-  }
-}
+// Deepgram API will be used via direct fetch calls instead of SDK
 
 // Initialize Azure OpenAI if available
 if (process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_ENDPOINT) {
@@ -264,16 +252,14 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
       try {
         console.log('Attempting transcription with Gladia API...');
         const formData = new FormData();
-        formData.append('audio', audioBuffer, {
-          filename: 'audio.mp3',
-          contentType: 'audio/mp3'
-        });
+        formData.append('audio', audioBuffer, 'audio.mp3');
         
         const gladiaResponse = await fetch('https://api.gladia.io/v2/transcription', {
           method: 'POST',
           headers: {
             'x-gladia-key': GLADIA_API_KEY,
           },
+          // @ts-ignore: FormData is compatible with fetch API's Body type
           body: formData
         });
         
@@ -366,7 +352,13 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
                 confidence: 0.9, // AssemblyAI doesn't provide confidence scores directly
                 wordLevelData: true,
                 sentiment: transcript.sentiment,
-                emotion: emotions.map(item => ({
+                emotion: emotions.map((item: { 
+                  text: string, 
+                  sentiment: string, 
+                  confidence: number, 
+                  start: number, 
+                  end: number 
+                }) => ({
                   text: item.text,
                   sentiment: item.sentiment,
                   confidence: item.confidence,
