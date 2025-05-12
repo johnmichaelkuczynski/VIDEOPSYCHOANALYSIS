@@ -818,6 +818,11 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
       console.error('All transcription services failed');
       return {
         transcription: "Failed to transcribe audio. None of the transcription services were able to process this video.",
+        transcriptionData: {
+          full_text: "Failed to transcribe audio. None of the transcription services were able to process this video.",
+          utterances: [],
+          words: []
+        },
         speechAnalysis: {
           provider: "none",
           averageConfidence: 0,
@@ -828,12 +833,20 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
     }
     
     // Calculate speaking rate based on word count and duration
-    const words = transcriptionResult.transcription.split(' ').length;
+    const textToCount = transcriptionResult.text || transcriptionResult.transcription;
+    const words = textToCount ? textToCount.split(' ').length : 0;
     const speakingRate = audioDuration > 0 ? words / audioDuration : 0;
     
-    // Return standardized response format
+    // Return standardized response format with detailed transcription data
     return {
-      transcription: transcriptionResult.transcription,
+      // Original transcription text (for backwards compatibility)
+      transcription: transcriptionResult.text || transcriptionResult.transcription,
+      // Complete structured transcription data for UI and quote extraction
+      transcriptionData: transcriptionResult.transcription || {
+        full_text: transcriptionResult.text || transcriptionResult.transcription,
+        utterances: [],
+        words: []
+      },
       speechAnalysis: {
         provider: transcriptionResult.provider,
         averageConfidence: transcriptionResult.confidence,
@@ -2989,7 +3002,17 @@ async function getPersonalityInsights(faceAnalysis: any, videoAnalysis: any = nu
         const personInput = {
           faceAnalysis: personFaceData,
           ...(videoAnalysis && { videoAnalysis }),
-          ...(audioTranscription && { audioTranscription })
+          ...(audioTranscription && { 
+            audioTranscription: {
+              ...audioTranscription,
+              // Ensure we're passing the structured transcription data for quote extraction
+              transcriptionData: audioTranscription.transcriptionData || {
+                full_text: audioTranscription.transcription || "",
+                utterances: [],
+                words: []
+              }
+            } 
+          })
         };
         
         // Use the standard analysis prompt but customized for the person
