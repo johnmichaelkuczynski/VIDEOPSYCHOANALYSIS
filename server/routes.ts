@@ -17,8 +17,8 @@ import * as os from 'os';
 import { promisify } from 'util';
 import ffmpeg from 'fluent-ffmpeg';
 import Anthropic from '@anthropic-ai/sdk';
-import { Deepgram } from "@deepgram/sdk";
 import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 // Initialize API clients with proper error handling for missing keys
 let openai: OpenAI | null = null;
@@ -70,10 +70,13 @@ if (AZURE_VIDEO_INDEXER_KEY && AZURE_VIDEO_INDEXER_LOCATION && AZURE_VIDEO_INDEX
   console.log("Azure Video Indexer API available for deep video analysis");
 }
 
-// Initialize Deepgram if available
+// Deepgram client initialization (using their v3 SDK)
 if (DEEPGRAM_API_KEY) {
   try {
-    deepgram = new Deepgram(DEEPGRAM_API_KEY);
+    // Using modern format for Deepgram v3 SDK
+    deepgram = new Deepgram({
+      apiKey: DEEPGRAM_API_KEY
+    });
     console.log("Deepgram client initialized successfully");
   } catch (error) {
     console.error("Failed to initialize Deepgram client:", error);
@@ -214,7 +217,8 @@ async function splitVideoIntoChunks(videoPath: string, outputDir: string, chunkD
 }
 
 /**
- * Helper function to extract audio from video and transcribe it using OpenAI Whisper API
+ * Helper function to extract audio from video and transcribe it using multiple transcription services
+ * Uses Gladia (primary), AssemblyAI (secondary with emotion tagging), or Deepgram (fallback)
  */
 async function extractAudioTranscription(videoPath: string): Promise<any> {
   try {
@@ -237,68 +241,253 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
         .run();
     });
     
-    console.log('Audio extraction complete, starting transcription with OpenAI...');
+    console.log('Audio extraction complete, starting transcription...');
     
-    // Create a readable stream from the audio file
+    // Get the audio file details
     const audioFile = fs.createReadStream(audioPath);
+    const audioBuffer = await fs.promises.readFile(audioPath);
+    const audioBase64 = audioBuffer.toString('base64');
+    const audioDuration = await getVideoDuration(audioPath);
     
-    // Transcribe using OpenAI's Whisper API
-    let transcriptionResponse;
+    // Initialize results object
+    let transcriptionResult: any = {
+      transcription: "",
+      provider: "none",
+      emotion: null,
+      confidence: 0,
+      wordLevelData: false,
+      segments: []
+    };
     
-    if (openai) {
+    // Try Gladia API first (primary transcription service)
+    if (GLADIA_API_KEY) {
       try {
-        transcriptionResponse = await openai.audio.transcriptions.create({
-          file: audioFile,
+        console.log('Attempting transcription with Gladia API...');
+        const formData = new FormData();
+        formData.append('audio', audioBuffer, {
+          filename: 'audio.mp3',
+          contentType: 'audio/mp3'
+        });
+        
+        const gladiaResponse = await fetch('https://api.gladia.io/v2/transcription', {
+          method: 'POST',
+          headers: {
+            'x-gladia-key': GLADIA_API_KEY,
+          },
+          body: formData
+        });
+        
+        if (gladiaResponse.ok) {
+          const result = await gladiaResponse.json();
+          
+          if (result.prediction && result.prediction.transcription) {
+            transcriptionResult = {
+              transcription: result.prediction.transcription,
+              provider: "gladia",
+              confidence: result.prediction.confidence || 0.9,
+              wordLevelData: true,
+              segments: result.prediction.words || []
+            };
+            console.log('Gladia transcription successful!');
+          }
+        } else {
+          console.warn('Gladia API returned non-OK response:', gladiaResponse.status);
+        }
+      } catch (error) {
+        console.error('Gladia transcription error:', error);
+      }
+    }
+    
+    // If Gladia fails, try AssemblyAI (which adds emotion detection)
+    if (transcriptionResult.provider === "none" && ASSEMBLYAI_API_KEY) {
+      try {
+        console.log('Attempting transcription with AssemblyAI...');
+        
+        // First upload the audio file
+        const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': ASSEMBLYAI_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: audioBuffer
+        });
+        
+        if (uploadResponse.ok) {
+          const { upload_url } = await uploadResponse.json();
+          
+          // Submit for transcription with sentiment analysis
+          const transcribeResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
+            method: 'POST',
+            headers: {
+              'Authorization': ASSEMBLYAI_API_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              audio_url: upload_url,
+              sentiment_analysis: true, // Enable sentiment analysis
+              entity_detection: true,   // Identify entities
+              iab_categories: true      // Topic detection
+            })
+          });
+          
+          if (transcribeResponse.ok) {
+            const { id } = await transcribeResponse.json();
+            
+            // Poll for completion (AssemblyAI is async)
+            let transcript;
+            let completed = false;
+            
+            for (let i = 0; i < 30 && !completed; i++) { // Try up to 30 times (30 seconds)
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+              
+              const pollingResponse = await fetch(`https://api.assemblyai.com/v2/transcript/${id}`, {
+                headers: { 'Authorization': ASSEMBLYAI_API_KEY }
+              });
+              
+              if (pollingResponse.ok) {
+                transcript = await pollingResponse.json();
+                if (transcript.status === 'completed') {
+                  completed = true;
+                } else if (transcript.status === 'error') {
+                  console.error('AssemblyAI transcription error:', transcript.error);
+                  break;
+                }
+              }
+            }
+            
+            if (completed && transcript) {
+              // Extract emotion data from sentiment analysis
+              const emotions = transcript.sentiment_analysis_results || [];
+              
+              transcriptionResult = {
+                transcription: transcript.text,
+                provider: "assemblyai",
+                confidence: 0.9, // AssemblyAI doesn't provide confidence scores directly
+                wordLevelData: true,
+                sentiment: transcript.sentiment,
+                emotion: emotions.map(item => ({
+                  text: item.text,
+                  sentiment: item.sentiment,
+                  confidence: item.confidence,
+                  start: item.start,
+                  end: item.end
+                })),
+                segments: transcript.words || [],
+                entities: transcript.entities || [],
+                topics: transcript.iab_categories_result?.summary || {}
+              };
+              console.log('AssemblyAI transcription successful!');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('AssemblyAI transcription error:', error);
+      }
+    }
+    
+    // If both previous services fail, use Deepgram as final fallback
+    // Note: We'll implement this via direct API call since we had issues with the SDK
+    if (transcriptionResult.provider === "none" && DEEPGRAM_API_KEY) {
+      try {
+        console.log('Attempting transcription with Deepgram API...');
+        
+        const deepgramResponse = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&detect_language=true&punctuate=true&diarize=true', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${DEEPGRAM_API_KEY}`,
+            'Content-Type': 'audio/mp3'
+          },
+          body: audioBuffer
+        });
+        
+        if (deepgramResponse.ok) {
+          const result = await deepgramResponse.json();
+          
+          if (result.results && result.results.channels && result.results.channels.length > 0) {
+            const transcript = result.results.channels[0].alternatives[0];
+            
+            transcriptionResult = {
+              transcription: transcript.transcript,
+              provider: "deepgram",
+              confidence: transcript.confidence,
+              language: result.results.language,
+              wordLevelData: true,
+              segments: transcript.words || []
+            };
+            console.log('Deepgram transcription successful!');
+          }
+        }
+      } catch (error) {
+        console.error('Deepgram transcription error:', error);
+      }
+    }
+    
+    // If all transcription services fail, fall back to OpenAI Whisper if available
+    if (transcriptionResult.provider === "none" && openai) {
+      try {
+        console.log('All primary transcription services failed, falling back to OpenAI Whisper...');
+        
+        // Reset the file stream position
+        const newAudioFile = fs.createReadStream(audioPath);
+        
+        const transcriptionResponse = await openai.audio.transcriptions.create({
+          file: newAudioFile,
           model: 'whisper-1',
           language: 'en',
           response_format: 'verbose_json',
           timestamp_granularities: ['word']
         });
+        
+        transcriptionResult = {
+          transcription: transcriptionResponse.text,
+          provider: "openai_whisper",
+          confidence: 0.92, // Whisper is generally highly accurate
+          wordLevelData: true,
+          segments: transcriptionResponse.segments || []
+        };
+        
+        console.log('OpenAI Whisper transcription successful!');
       } catch (error) {
-        console.error("Error with OpenAI Whisper API:", error);
-        throw new Error("Transcription failed. OpenAI API may not be properly configured.");
+        console.error('OpenAI Whisper transcription error:', error);
       }
-    } else {
-      console.warn("OpenAI client is not initialized. Using mock transcription response.");
-      transcriptionResponse = {
-        text: "OpenAI API key is required for transcription. This is a placeholder transcription.",
-        segments: []
-      };
     }
-    
-    const transcription = transcriptionResponse.text;
-    console.log(`Transcription received: ${transcription.substring(0, 100)}...`);
-    
-    // Calculate speaking rate based on word count and duration
-    const audioDuration = await getVideoDuration(audioPath);
-    const words = transcription.split(' ').length;
-    const speakingRate = audioDuration > 0 ? words / audioDuration : 0;
-    
-    // Advanced analysis for speech patterns
-    // Extract segments with confidence and timestamps
-    const segments = transcriptionResponse.segments || [];
-    
-    // Calculate average confidence across all segments
-    // Note: OpenAI's Whisper API doesn't actually provide confidence values per segment
-    // So we'll use a default high confidence value as an estimate
-    const averageConfidence = 0.92; // Whisper is generally highly accurate
     
     // Clean up temp file
     await unlinkAsync(audioPath).catch(err => console.warn('Error deleting temp audio file:', err));
     
+    // If no transcription service worked
+    if (transcriptionResult.provider === "none") {
+      console.error('All transcription services failed');
+      return {
+        transcription: "Failed to transcribe audio. None of the transcription services were able to process this video.",
+        speechAnalysis: {
+          provider: "none",
+          averageConfidence: 0,
+          speakingRate: 0,
+          error: "All transcription services failed"
+        }
+      };
+    }
+    
+    // Calculate speaking rate based on word count and duration
+    const words = transcriptionResult.transcription.split(' ').length;
+    const speakingRate = audioDuration > 0 ? words / audioDuration : 0;
+    
+    // Return standardized response format
     return {
-      transcription,
+      transcription: transcriptionResult.transcription,
       speechAnalysis: {
-        averageConfidence,
+        provider: transcriptionResult.provider,
+        averageConfidence: transcriptionResult.confidence,
         speakingRate,
         wordCount: words,
         duration: audioDuration,
-        segments: segments.map(s => ({
-          text: s.text,
-          start: s.start,
-          end: s.end,
-          confidence: averageConfidence // Using the same confidence for all segments
-        }))
+        emotion: transcriptionResult.emotion,
+        sentiment: transcriptionResult.sentiment,
+        entities: transcriptionResult.entities,
+        topics: transcriptionResult.topics,
+        segments: transcriptionResult.segments
       }
     };
   } catch (error) {
@@ -307,6 +496,7 @@ async function extractAudioTranscription(videoPath: string): Promise<any> {
     return {
       transcription: "Failed to transcribe audio. Please try again with clearer audio or a different video.",
       speechAnalysis: {
+        provider: "error",
         averageConfidence: 0,
         speakingRate: 0,
         error: error instanceof Error ? error.message : "Unknown transcription error"
