@@ -671,6 +671,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               
               <div className="text-xs space-y-1 text-muted-foreground">
                 <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.deepseek ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>DeepSeek</span>
+                </div>
+                <div className="flex items-center">
                   <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>OpenAI</span>
                 </div>
