@@ -24,6 +24,15 @@ An advanced AI-powered personality insights platform that combines cutting-edge 
 
 ## Recent Changes
 
+### Enhanced Speech/Text Content Integration (July 7, 2025)
+✓ Dramatically enhanced analysis prompts to prioritize speech and text content
+✓ Added comprehensive content analysis that discusses what people actually say/write
+✓ Enhanced cognitive profiling based on vocabulary, reasoning patterns, and idea sophistication
+✓ Increased direct quotations from 3-5 to 5-8 meaningful examples
+✓ Added content themes analysis revealing interests, expertise, and priorities
+✓ Enhanced personality insights based on topics discussed and communication style
+✓ Improved character and values assessment through expressed ideas and perspectives
+
 ### DeepSeek Schema Integration Fix (July 7, 2025)
 ✓ Fixed critical schema validation issue preventing DeepSeek model usage
 ✓ Updated all Zod schemas to include "deepseek" as valid model option

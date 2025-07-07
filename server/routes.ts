@@ -948,33 +948,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get personality insights based on text content
       let personalityInsights;
       const textAnalysisPrompt = `
-Please analyze the following text to provide comprehensive personality insights about the author:
+You are an expert psychologist and personality analyst. Analyze the following text to provide comprehensive personality insights about the author.
+
+FOCUS AREAS:
+1. CONTENT ANALYSIS: Discuss in detail what the author writes about, their interests, concerns, opinions, and perspectives
+2. PERSONALITY INSIGHTS: What does their choice of topics, way of expressing ideas, and communication style reveal about their character?
+3. COGNITIVE ASSESSMENT: Analyze vocabulary complexity, reasoning patterns, problem-solving approaches, and intellectual sophistication
+4. VALUES & WORLDVIEW: What do their expressed ideas, concerns, and perspectives reveal about their deeper values and beliefs?
+5. DIRECT QUOTES: Include 5-8 specific quotes that showcase personality traits, intelligence, values, and communication style
 
 TEXT:
 ${content}
 
 Provide a detailed psychological, emotional, and behavioral analysis of the author based on their writing style, tone, word choice, and content. Include:
 
-1. Personality core traits (Big Five traits, strengths, challenges)
-2. Thought patterns and cognitive style
-3. Emotional tendencies and expression
-4. Communication style and social dynamics
-5. Professional insights and work style
-6. Decision-making process
-7. Relationship approach and attachment style
-8. Potential areas for growth or self-awareness
+1. Content themes and what they reveal about the person's interests and priorities
+2. Personality core traits with specific evidence from the text
+3. Cognitive abilities demonstrated through vocabulary and reasoning
+4. Values and beliefs expressed through their perspectives
+5. Communication style and social intelligence
+6. Professional insights based on demonstrated knowledge and interests
+7. Emotional intelligence and self-awareness
+8. Growth areas and potential development paths
 
 Format your analysis as detailed JSON with the following structure:
 {
-  "summary": "brief overall summary",
+  "summary": "comprehensive overview integrating content analysis with personality insights",
   "detailed_analysis": {
-    "personality_core": "",
-    "thought_patterns": "",
-    "emotional_tendencies": "",
-    "communication_style": "",
-    "professional_insights": "",
-    "decision_making": "",
-    "relationships": {}
+    "content_themes": "detailed analysis of topics discussed and what they reveal about interests and priorities",
+    "personality_core": "personality traits with specific evidence from text content",
+    "cognitive_profile": {
+      "intelligence_assessment": "cognitive abilities demonstrated through vocabulary and reasoning",
+      "cognitive_strengths": ["specific strengths with textual evidence"],
+      "processing_style": "thinking patterns evident in how ideas are expressed"
+    },
+    "speech_analysis": {
+      "key_quotes": ["5-8 meaningful quotes showcasing personality and thinking"],
+      "vocabulary_analysis": "analysis of word choice and communication sophistication",
+      "personality_revealed": "what the content reveals about character and values"
+    },
+    "values_and_worldview": "beliefs and perspectives expressed in the text",
+    "emotional_intelligence": "emotional awareness and expression demonstrated",
+    "professional_insights": "career inclinations based on interests and communication style",
+    "growth_areas": {
+      "strengths": ["key strengths with evidence"],
+      "development_path": "suggested growth direction based on content and style"
+    }
   }
 }
 `;
@@ -3047,10 +3066,11 @@ ${videoAnalysis ? 'This analysis includes video data showing gestures, activitie
 ${audioTranscription ? 'This analysis includes audio transcription and speech pattern data.' : ''}
 
 ANALYSIS REQUIREMENTS:
-1. COGNITIVE PROFILING: Assess intellectual capabilities, specific cognitive strengths/weaknesses, probable intelligence level, processing styles, and mental agility
-2. PSYCHOLOGICAL PROFILING: Analyze personality traits, emotional patterns, social tendencies, and behavioral characteristics  
-3. EVIDENCE-BASED REASONING: For every assessment you make, cite specific observable evidence from the data provided
-4. QUOTATIONS: When analyzing speech/text, include direct quotations that support your conclusions
+1. SPEECH/TEXT INTEGRATION: If audio transcription or text data is available, make this the PRIMARY SOURCE for personality analysis. Analyze word choice, communication patterns, topics discussed, emotional tone, and speaking style in detail
+2. COGNITIVE PROFILING: Assess intellectual capabilities through vocabulary complexity, reasoning patterns in speech, problem-solving approaches mentioned, and communication sophistication
+3. PSYCHOLOGICAL PROFILING: Analyze personality traits revealed through what the person says, how they express themselves, their interests, concerns, and emotional expressions in speech
+4. EVIDENCE-BASED REASONING: For every assessment, cite specific examples from speech content, direct quotes, and observable patterns
+5. COMPREHENSIVE CONTENT ANALYSIS: Discuss the actual topics, ideas, and perspectives shared in speech/text and what these reveal about the person's character, values, and mindset
 
 Return a JSON object with the following structure:
 {
@@ -3068,10 +3088,12 @@ Return a JSON object with the following structure:
     "emotional_intelligence": "Assessment of emotional awareness and social intelligence with observable evidence",
     "behavioral_indicators": "Specific behaviors observed that reveal personality traits",
     "speech_analysis": {
-      "key_quotes": ["Include 3-5 direct quotes from the transcription that reveal personality traits"],
-      "vocabulary_analysis": "Analysis of word choice, complexity, and communication patterns",
-      "speech_patterns": "Analysis of speech patterns, pace, tone, and communication style",
-      "emotional_tone": "Analysis of emotional tone in speech with specific examples"
+      "key_quotes": ["Include 5-8 direct quotes from the transcription that reveal personality traits, interests, values, and thinking patterns"],
+      "content_themes": "Detailed analysis of the main topics, ideas, and subjects the person discusses and what these reveal about their interests, expertise, and priorities",
+      "vocabulary_analysis": "Analysis of word choice, complexity, sophistication level, and communication patterns with specific examples",
+      "speech_patterns": "Analysis of speech patterns, pace, tone, communication style, and conversational approach",
+      "emotional_tone": "Analysis of emotional tone, enthusiasm, concerns, and feelings expressed in speech with specific examples",
+      "personality_revealed": "What the actual content of their speech reveals about their character, values, beliefs, and worldview with direct evidence"
     },
     "visual_evidence": {
       "facial_expressions": "Analysis of facial expressions and what they reveal about personality",
@@ -3095,11 +3117,13 @@ Return a JSON object with the following structure:
 Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
 
 CRITICAL REQUIREMENTS:
-1. EVIDENCE-BASED: Every assessment must be supported by specific observable evidence from the data
-2. COGNITIVE DEPTH: Include detailed cognitive profiling beyond basic personality traits
-3. DIRECT QUOTES: When speech data is available, include actual quotes that support your analysis
-4. VISUAL ANALYSIS: Reference specific facial expressions, body language, and visual cues
-5. PROFESSIONAL RIGOR: Maintain scientific objectivity while providing actionable insights`;
+1. SPEECH-FIRST ANALYSIS: When transcription/text is available, use the actual words spoken/written as the PRIMARY foundation for your analysis
+2. CONTENT INTEGRATION: Thoroughly discuss what the person talks about, their interests, concerns, opinions, and how they express themselves
+3. DIRECT QUOTES: Include 5-8 meaningful quotes that showcase personality, intelligence, values, and communication style
+4. COGNITIVE EVIDENCE: Base intelligence and cognitive assessments on vocabulary, reasoning patterns, and sophistication of ideas expressed
+5. CHARACTER INSIGHTS: Analyze what their choice of topics, perspectives, and expressions reveal about their deeper character and values
+6. VISUAL ANALYSIS: Reference specific facial expressions, body language, and visual cues as secondary supporting evidence
+7. PROFESSIONAL RIGOR: Maintain scientific objectivity while providing actionable insights`;
 
         // Use OpenAI as primary source for consistency across multiple analyses
         try {
