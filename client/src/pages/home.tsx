@@ -387,6 +387,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         // Update progress
         setAnalysisProgress(20);
         
+        // Show appropriate progress message for video vs image
+        if (isVideo) {
+          toast({
+            title: "Processing Video",
+            description: "Extracting segment and analyzing content...",
+          });
+        }
+        
         // For images, resize if needed to meet AWS limits
         let mediaData: string;
         if (mediaFileType === "image" && file.size > 4 * 1024 * 1024) {
@@ -399,8 +407,13 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             reader.readAsDataURL(file);
           });
           
-          // For videos, get duration for segment selection
+          // For videos, get duration for segment selection and enforce size limits
           if (isVideo) {
+            // Check file size - limit to 50MB for better performance
+            if (file.size > 50 * 1024 * 1024) {
+              throw new Error("Video file too large. Please use a video under 50MB for better performance.");
+            }
+            
             const videoElement = document.createElement('video');
             await new Promise<void>((resolve) => {
               videoElement.onloadedmetadata = () => {
@@ -421,16 +434,19 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         const maxPeople = 5;
         
         // Upload for analysis
+        const options = { 
+          selectedModel, 
+          maxPeople,
+          ...(isVideo && { videoSegmentStart, videoSegmentDuration })
+        };
+        
+        console.log(`Starting ${isVideo ? 'video segment' : 'image'} analysis:`, options);
+        
         const response = await uploadMedia(
           mediaData, 
           mediaFileType, 
           sessionId, 
-          { 
-            selectedModel, 
-            maxPeople,
-            videoSegmentStart: isVideo ? videoSegmentStart : undefined,
-            videoSegmentDuration: isVideo ? videoSegmentDuration : undefined
-          }
+          options
         );
         
         setAnalysisProgress(90);
@@ -551,6 +567,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   // Handle file upload
   const handleFileUpload = (file: File) => {
     const fileType = file.type.split('/')[0];
+    
+    // Check file size early for videos
+    if (fileType === 'video' && file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Video files must be under 50MB. Please compress your video or use a shorter clip.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (fileType === 'image' || fileType === 'video') {
       handleUploadMedia.mutate(file);
@@ -925,8 +951,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
                   <p className="text-sm text-blue-700">
-                    Videos longer than 3 seconds are processed in segments. Select which 3-second segment to analyze:
+                    For optimal performance, videos are processed in 3-second segments. Select which segment to analyze:
                   </p>
+                  <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                    💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
+                    audio transcription, and emotional insights from your selected segment.
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
