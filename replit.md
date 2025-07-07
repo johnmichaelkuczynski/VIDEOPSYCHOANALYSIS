@@ -24,6 +24,13 @@ An advanced AI-powered personality insights platform that combines cutting-edge 
 
 ## Recent Changes
 
+### DeepSeek Schema Integration Fix (July 7, 2025)
+✓ Fixed critical schema validation issue preventing DeepSeek model usage
+✓ Updated all Zod schemas to include "deepseek" as valid model option
+✓ Changed default model from "openai" to "deepseek" across all schemas
+✓ Added DeepSeek to service status display with green indicator
+✓ Resolved video upload failures when using DeepSeek model
+
 ### Enhanced Cognitive Profiling System (July 7, 2025)
 ✓ Implemented comprehensive cognitive assessment including:
   - Intelligence level estimation with evidence
