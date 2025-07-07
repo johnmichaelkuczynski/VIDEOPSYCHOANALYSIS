@@ -13,13 +13,17 @@ export async function uploadMedia(
     selectedModel?: ModelType;
     title?: string;
     documentType?: "pdf" | "docx" | "other";
+    videoSegmentStart?: number;
+    videoSegmentDuration?: number;
   } = {}
 ) {
   const { 
     maxPeople = 5, 
     selectedModel = "deepseek", 
     title,
-    documentType
+    documentType,
+    videoSegmentStart = 0,
+    videoSegmentDuration = 3
   } = options;
   
   console.log(`Uploading ${mediaType} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
@@ -31,7 +35,9 @@ export async function uploadMedia(
     maxPeople,
     selectedModel,
     title,
-    documentType
+    documentType,
+    videoSegmentStart,
+    videoSegmentDuration
   });
   
   const data = await res.json();

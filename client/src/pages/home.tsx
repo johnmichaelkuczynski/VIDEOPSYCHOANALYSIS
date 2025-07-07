@@ -114,6 +114,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
   const [documentName, setDocumentName] = useState<string>("");
   
+  // Video segment states
+  const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
+  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(3);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  
   // UI states
   const [showAdvancedServices, setShowAdvancedServices] = useState<boolean>(false);
   
@@ -393,6 +398,18 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             reader.onload = (e) => resolve(e.target?.result as string);
             reader.readAsDataURL(file);
           });
+          
+          // For videos, get duration for segment selection
+          if (isVideo) {
+            const videoElement = document.createElement('video');
+            await new Promise<void>((resolve) => {
+              videoElement.onloadedmetadata = () => {
+                setVideoDuration(videoElement.duration);
+                resolve();
+              };
+              videoElement.src = mediaData;
+            });
+          }
         }
         
         // Set preview and store media data for re-analysis
@@ -410,7 +427,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           sessionId, 
           { 
             selectedModel, 
-            maxPeople 
+            maxPeople,
+            videoSegmentStart: isVideo ? videoSegmentStart : undefined,
+            videoSegmentDuration: isVideo ? videoSegmentDuration : undefined
           }
         );
         
@@ -902,6 +921,53 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   Video analysis will extract visual and audio insights
                 </div>
                 
+                {/* Video Segment Selection */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
+                  <p className="text-sm text-blue-700">
+                    Videos longer than 3 seconds are processed in segments. Select which 3-second segment to analyze:
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-blue-900 mb-1">
+                        Start Time (seconds)
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={Math.max(0, videoDuration - 1)}
+                        step={1}
+                        value={videoSegmentStart}
+                        onChange={(e) => setVideoSegmentStart(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-blue-900 mb-1">
+                        Duration (max 3s)
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={3}
+                        step={1}
+                        value={videoSegmentDuration}
+                        onChange={(e) => setVideoSegmentDuration(Math.min(3, Math.max(1, parseInt(e.target.value) || 3)))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  
+                  {videoDuration > 0 && (
+                    <div className="text-xs text-blue-600">
+                      Video duration: {videoDuration.toFixed(1)}s | 
+                      Analyzing: {videoSegmentStart}s to {Math.min(videoSegmentStart + videoSegmentDuration, videoDuration).toFixed(1)}s
+                    </div>
+                  )}
+                </div>
+                
                 {/* View full transcript button - only shows after analysis */}
                 {analysisId && (
                   <Button 
@@ -1027,14 +1093,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       setIsAnalyzing(true);
                       setAnalysisProgress(0);
                       
-                      // Use the stored media data directly
+                      // Use the stored media data directly with segment parameters
                       uploadMedia(
                         mediaData, 
                         "video", 
                         sessionId, 
                         { 
                           selectedModel, 
-                          maxPeople: 5 
+                          maxPeople: 5,
+                          videoSegmentStart,
+                          videoSegmentDuration
                         }
                       ).then(response => {
                         setAnalysisProgress(100);
@@ -1049,13 +1117,13 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         
                         toast({
                           title: "Analysis Complete",
-                          description: "Your video has been re-analyzed with " + getModelDisplayName(selectedModel),
+                          description: "Your video segment has been re-analyzed with " + getModelDisplayName(selectedModel),
                         });
                       }).catch(error => {
                         toast({
                           variant: "destructive",
                           title: "Error",
-                          description: "Failed to re-analyze video. Please try again.",
+                          description: "Failed to re-analyze video segment. Please try again.",
                         });
                       }).finally(() => {
                         setIsAnalyzing(false);
@@ -1065,7 +1133,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   className="w-full"
                   disabled={isAnalyzing || !mediaData}
                 >
-                  Re-Analyze with {getModelDisplayName(selectedModel)}
+                  Re-Analyze Segment ({videoSegmentStart}s-{videoSegmentStart + videoSegmentDuration}s) with {getModelDisplayName(selectedModel)}
                 </Button>
               </div>
             )}

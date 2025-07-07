@@ -26,7 +26,7 @@ export const analyses = pgTable("analyses", {
   // For image/video: number of people detected, for documents: relevant entities
   peopleCount: integer("people_count").default(1),
   // LLM model used for analysis
-  modelUsed: text("model_used", { enum: ["openai", "anthropic", "perplexity"] }).notNull().default("openai"),
+  modelUsed: text("model_used", { enum: ["deepseek", "openai", "anthropic", "perplexity"] }).notNull().default("deepseek"),
   // For document type tracking
   documentType: text("document_type", { enum: ["pdf", "docx", "other"] }),
   // Feature: Save download status for easy access
@@ -105,6 +105,8 @@ export const uploadMediaSchema = z.object({
   selectedModel: z.enum(["deepseek", "openai", "anthropic", "perplexity"]).optional().default("deepseek"), // Model selection
   documentType: z.enum(["pdf", "docx", "other"]).optional(), // For document uploads
   title: z.string().optional(), // For naming the analysis in history
+  videoSegmentStart: z.number().min(0).optional().default(0), // For video segment selection (start time in seconds)
+  videoSegmentDuration: z.number().min(1).max(3).optional().default(3), // For video segment selection (duration in seconds)
 });
 
 // Schema for getting shared analysis

@@ -220,6 +220,28 @@ async function splitVideoIntoChunks(videoPath: string, outputDir: string, chunkD
 }
 
 /**
+ * Helper function to extract a specific 3-second segment from a video
+ */
+async function extractVideoSegment(videoPath: string, startTime: number, duration: number, outputPath: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    ffmpeg(videoPath)
+      .seekInput(startTime)
+      .duration(duration)
+      .outputOptions(['-c:v libx264', '-c:a aac'])
+      .output(outputPath)
+      .on('end', () => {
+        console.log(`Video segment extracted: ${startTime}s to ${startTime + duration}s`);
+        resolve();
+      })
+      .on('error', (err: Error) => {
+        console.error('Error extracting video segment:', err);
+        reject(err);
+      })
+      .run();
+  });
+}
+
+/**
  * Helper function to analyze video using Azure Video Indexer
  * Extracts insights about scenes, emotions, and content
  */
@@ -1685,7 +1707,7 @@ Provide a comprehensive analysis of this document, including:
   app.post("/api/analyze", async (req, res) => {
     try {
       // Use the new schema that supports both image and video with optional maxPeople
-      const { mediaData, mediaType, sessionId, maxPeople = 5, selectedModel = "openai" } = uploadMediaSchema.parse(req.body);
+      const { mediaData, mediaType, sessionId, maxPeople = 5, selectedModel = "deepseek", videoSegmentStart = 0, videoSegmentDuration = 3 } = uploadMediaSchema.parse(req.body);
 
       // Extract base64 data
       const base64Data = mediaData.replace(/^data:(image|video)\/\w+;base64,/, "");
@@ -1702,7 +1724,7 @@ Provide a comprehensive analysis of this document, including:
         faceAnalysis = await analyzeFaceWithRekognition(mediaBuffer, maxPeople);
         console.log(`Detected ${Array.isArray(faceAnalysis) ? faceAnalysis.length : 1} people in the image`);
       } else {
-        // For videos, we use the chunked processing approach
+        // For videos, we use the new 3-second segment approach
         try {
           console.log(`Video size: ${mediaBuffer.length / 1024 / 1024} MB`);
           
@@ -1713,37 +1735,32 @@ Provide a comprehensive analysis of this document, including:
           // Write the video file temporarily
           await writeFileAsync(videoPath, mediaBuffer);
           
-          // Create directory for chunks
-          const chunkDir = path.join(tempDir, `${randomId}_chunks`);
-          await fs.promises.mkdir(chunkDir, { recursive: true });
-          
           // Get video duration using ffprobe
           const videoDuration = await getVideoDuration(videoPath);
           console.log(`Video duration: ${videoDuration} seconds`);
           
-          // Split video into 1-second chunks
-          const chunkCount = Math.max(1, Math.ceil(videoDuration));
-          console.log(`Splitting video into ${chunkCount} chunks...`);
+          // Extract the specific 3-second segment requested
+          const segmentPath = path.join(tempDir, `${randomId}_segment.mp4`);
+          const actualDuration = Math.min(videoSegmentDuration, videoDuration - videoSegmentStart);
           
-          // Create 1-second chunks
-          await splitVideoIntoChunks(videoPath, chunkDir, 1);
+          if (actualDuration <= 0) {
+            throw new Error(`Invalid segment: starts at ${videoSegmentStart}s but video is only ${videoDuration}s long`);
+          }
           
-          // Process each chunk
-          const chunkAnalyses = [];
-          const chunkFiles = await fs.promises.readdir(chunkDir);
-          const videoChunks = chunkFiles.filter(file => file.endsWith('.mp4'));
+          console.log(`Extracting ${actualDuration}s segment starting at ${videoSegmentStart}s...`);
+          await extractVideoSegment(videoPath, videoSegmentStart, actualDuration, segmentPath);
           
-          console.log(`Processing ${videoChunks.length} video chunks...`);
+          // Process the segment instead of the full video
+          const segmentBuffer = await fs.promises.readFile(segmentPath);
           
-          // Extract a frame from the first chunk for facial analysis
-          const firstChunkPath = path.join(chunkDir, videoChunks[0]);
+          // Extract a frame from the segment for facial analysis
           const frameExtractionPath = path.join(tempDir, `${randomId}_frame.jpg`);
           
-          // Use ffmpeg to extract a frame from the first chunk
+          // Use ffmpeg to extract a frame from the segment
           await new Promise<void>((resolve, reject) => {
-            ffmpeg(firstChunkPath)
+            ffmpeg(segmentPath)
               .screenshots({
-                timestamps: ['50%'], // Take a screenshot at 50% of the chunk
+                timestamps: ['50%'], // Take a screenshot at 50% of the segment
                 filename: `${randomId}_frame.jpg`,
                 folder: tempDir,
                 size: '640x480'
@@ -1759,48 +1776,16 @@ Provide a comprehensive analysis of this document, including:
           faceAnalysis = await analyzeFaceWithRekognition(frameBuffer, maxPeople);
           console.log(`Detected ${Array.isArray(faceAnalysis) ? faceAnalysis.length : 1} people in the video frame`);
           
-          // Process each chunk to gather comprehensive analysis
-          for (let i = 0; i < videoChunks.length; i++) {
-            try {
-              const chunkPath = path.join(chunkDir, videoChunks[i]);
-              const chunkFramePath = path.join(chunkDir, `chunk_${i}_frame.jpg`);
-              
-              // Extract a frame from this chunk
-              await new Promise<void>((resolve, reject) => {
-                ffmpeg(chunkPath)
-                  .screenshots({
-                    timestamps: ['50%'],
-                    filename: `chunk_${i}_frame.jpg`,
-                    folder: chunkDir,
-                    size: '640x480'
-                  })
-                  .on('end', () => resolve())
-                  .on('error', (err: Error) => reject(err));
-              });
-              
-              // Analyze the frame from this chunk
-              const chunkFrameBuffer = await fs.promises.readFile(chunkFramePath);
-              const chunkFaceAnalysis = await analyzeFaceWithRekognition(chunkFrameBuffer).catch(() => null);
-              
-              if (chunkFaceAnalysis) {
-                chunkAnalyses.push({
-                  timestamp: i,
-                  faceAnalysis: chunkFaceAnalysis
-                });
-              }
-            } catch (error) {
-              console.warn(`Error processing chunk ${i}:`, error);
-              // Continue with other chunks
-            }
-          }
+          // Process the segment for comprehensive analysis
+          console.log(`Processing video segment: ${videoSegmentStart}s to ${videoSegmentStart + actualDuration}s`);
           
-          // Try to get Azure Video Indexer analysis if available
+          // Try to get Azure Video Indexer analysis if available (on the segment)
           let azureVideoInsights = null;
           
           if (AZURE_VIDEO_INDEXER_KEY && AZURE_VIDEO_INDEXER_LOCATION && AZURE_VIDEO_INDEXER_ACCOUNT_ID) {
             try {
               console.log('Attempting deep video analysis with Azure Video Indexer...');
-              azureVideoInsights = await analyzeVideoWithAzureIndexer(mediaBuffer);
+              azureVideoInsights = await analyzeVideoWithAzureIndexer(segmentBuffer);
               
               if (azureVideoInsights) {
                 console.log('Azure Video Indexer analysis successful!');
@@ -1811,52 +1796,33 @@ Provide a comprehensive analysis of this document, including:
             }
           }
           
-          // Create a comprehensive video analysis
+          // Create a comprehensive video analysis for the segment
           videoAnalysis = {
             provider: azureVideoInsights ? "azure_video_indexer" : "basic",
-            totalChunks: videoChunks.length,
-            successfullyProcessedChunks: chunkAnalyses.length,
-            chunkData: chunkAnalyses,
-            
-            // Basic temporal analysis (always available)
-            temporalAnalysis: {
-              emotionOverTime: chunkAnalyses.map(chunk => ({
-                timestamp: chunk.timestamp,
-                emotions: chunk.faceAnalysis?.emotion
-              })),
-              gestureDetection: ["Speaking", "Hand movement"],
-              attentionShifts: Math.min(3, Math.floor(videoDuration / 2)) // Estimate based on duration
+            segmentStart: videoSegmentStart,
+            segmentDuration: actualDuration,
+            totalVideoDuration: videoDuration,
+            segmentData: {
+              timestamp: videoSegmentStart,
+              duration: actualDuration,
+              faceAnalysis: faceAnalysis
             },
             
-            // If Azure Video Indexer analysis is available, include its results
+            // Include Azure insights if available
             ...(azureVideoInsights && { azureInsights: azureVideoInsights })
           };
           
-          // Extract audio transcription from the video using OpenAI Whisper API
+          // Get audio transcription from the segment
           console.log('Starting audio transcription with Whisper API...');
-          try {
-            audioTranscription = await extractAudioTranscription(videoPath);
-            console.log(`Audio transcription complete. Text length: ${audioTranscription.transcription.length} characters`);
-          } catch (error) {
-            console.error('Error during audio transcription:', error);
-            audioTranscription = {
-              transcription: "Could not extract audio from video",
-              speechAnalysis: {
-                averageConfidence: 0,
-                speakingRate: 0,
-                error: error instanceof Error ? error.message : "Failed to process audio"
-              }
-            };
-          }
+          audioTranscription = await extractAudioTranscription(segmentPath);
+          console.log(`Audio transcription complete. Text length: ${audioTranscription.transcription.length} characters`);
           
           // Clean up temp files
           try {
-            // Remove the main video file
+            // Remove the main video file, segment, and frame
             await unlinkAsync(videoPath);
+            await unlinkAsync(segmentPath);
             await unlinkAsync(frameExtractionPath);
-            
-            // Clean up chunks directory recursively
-            await fs.promises.rm(chunkDir, { recursive: true, force: true });
           } catch (e) {
             console.warn("Error cleaning up temp files:", e);
           }
