@@ -9,6 +9,291 @@ import * as pdf from 'html-pdf';
 const writeFileAsync = promisify(fs.writeFile);
 const unlinkAsync = promisify(fs.unlink);
 
+// Function to generate plain text format
+export function generateAnalysisTxt(analysis: Analysis): string {
+  const personalityInsights = analysis.personalityInsights as any || {};
+  const isMultiPersonAnalysis = personalityInsights.individualProfiles && 
+                              Array.isArray(personalityInsights.individualProfiles) && 
+                              personalityInsights.individualProfiles.length > 1;
+  
+  let txtContent = '';
+  
+  // Header
+  txtContent += '='.repeat(80) + '\n';
+  txtContent += 'AI-POWERED PSYCHOLOGICAL ANALYSIS REPORT\n';
+  txtContent += '='.repeat(80) + '\n\n';
+  
+  txtContent += `Analysis ID: ${analysis.id}\n`;
+  txtContent += `Created: ${new Date(analysis.createdAt).toLocaleString()}\n`;
+  txtContent += `Media Type: ${analysis.mediaType}\n`;
+  txtContent += `People Detected: ${personalityInsights.peopleCount || 1}\n\n`;
+  
+  if (isMultiPersonAnalysis) {
+    txtContent += personalityInsights.overviewSummary + '\n\n';
+    
+    personalityInsights.individualProfiles.forEach((profile: any, index: number) => {
+      txtContent += '='.repeat(60) + '\n';
+      txtContent += `INDIVIDUAL PROFILE ${index + 1}\n`;
+      txtContent += '='.repeat(60) + '\n\n';
+      
+      txtContent += `SUMMARY:\n${profile.summary || 'No summary available'}\n\n`;
+      
+      const detailed = profile.detailed_analysis || {};
+      
+      if (detailed.cognitive_profile) {
+        txtContent += 'COGNITIVE PROFILE:\n';
+        txtContent += '-'.repeat(40) + '\n';
+        if (detailed.cognitive_profile.intelligence_assessment) {
+          txtContent += `Intelligence Assessment: ${detailed.cognitive_profile.intelligence_assessment}\n\n`;
+        }
+        if (detailed.cognitive_profile.cognitive_strengths) {
+          txtContent += `Cognitive Strengths:\n`;
+          detailed.cognitive_profile.cognitive_strengths.forEach((strength: string) => {
+            txtContent += `• ${strength}\n`;
+          });
+          txtContent += '\n';
+        }
+        if (detailed.cognitive_profile.cognitive_weaknesses) {
+          txtContent += `Cognitive Weaknesses:\n`;
+          detailed.cognitive_profile.cognitive_weaknesses.forEach((weakness: string) => {
+            txtContent += `• ${weakness}\n`;
+          });
+          txtContent += '\n';
+        }
+        if (detailed.cognitive_profile.processing_style) {
+          txtContent += `Processing Style: ${detailed.cognitive_profile.processing_style}\n\n`;
+        }
+        if (detailed.cognitive_profile.mental_agility) {
+          txtContent += `Mental Agility: ${detailed.cognitive_profile.mental_agility}\n\n`;
+        }
+      }
+      
+      if (detailed.personality_core) {
+        txtContent += `PERSONALITY CORE:\n${detailed.personality_core}\n\n`;
+      }
+      
+      if (detailed.thought_patterns) {
+        txtContent += `THOUGHT PATTERNS:\n${detailed.thought_patterns}\n\n`;
+      }
+      
+      if (detailed.emotional_intelligence) {
+        txtContent += `EMOTIONAL INTELLIGENCE:\n${detailed.emotional_intelligence}\n\n`;
+      }
+      
+      if (detailed.speech_analysis) {
+        txtContent += 'SPEECH ANALYSIS:\n';
+        txtContent += '-'.repeat(40) + '\n';
+        
+        if (detailed.speech_analysis.key_quotes && detailed.speech_analysis.key_quotes.length > 0) {
+          txtContent += 'Key Quotes:\n';
+          detailed.speech_analysis.key_quotes.forEach((quote: string, i: number) => {
+            txtContent += `${i + 1}. "${quote}"\n`;
+          });
+          txtContent += '\n';
+        }
+        
+        if (detailed.speech_analysis.vocabulary_analysis) {
+          txtContent += `Vocabulary Analysis: ${detailed.speech_analysis.vocabulary_analysis}\n\n`;
+        }
+        
+        if (detailed.speech_analysis.speech_patterns) {
+          txtContent += `Speech Patterns: ${detailed.speech_analysis.speech_patterns}\n\n`;
+        }
+        
+        if (detailed.speech_analysis.emotional_tone) {
+          txtContent += `Emotional Tone: ${detailed.speech_analysis.emotional_tone}\n\n`;
+        }
+      }
+      
+      if (detailed.visual_evidence) {
+        txtContent += 'VISUAL EVIDENCE:\n';
+        txtContent += '-'.repeat(40) + '\n';
+        
+        if (detailed.visual_evidence.facial_expressions) {
+          txtContent += `Facial Expressions: ${detailed.visual_evidence.facial_expressions}\n\n`;
+        }
+        
+        if (detailed.visual_evidence.body_language) {
+          txtContent += `Body Language: ${detailed.visual_evidence.body_language}\n\n`;
+        }
+        
+        if (detailed.visual_evidence.emotional_indicators) {
+          txtContent += `Emotional Indicators: ${detailed.visual_evidence.emotional_indicators}\n\n`;
+        }
+      }
+      
+      if (detailed.professional_insights) {
+        txtContent += `PROFESSIONAL INSIGHTS:\n${detailed.professional_insights}\n\n`;
+      }
+      
+      if (detailed.relationships) {
+        txtContent += 'RELATIONSHIPS:\n';
+        txtContent += '-'.repeat(40) + '\n';
+        txtContent += `Current Status: ${detailed.relationships.current_status || 'Not specified'}\n`;
+        txtContent += `Parental Status: ${detailed.relationships.parental_status || 'Not specified'}\n`;
+        txtContent += `Ideal Partner: ${detailed.relationships.ideal_partner || 'Not specified'}\n\n`;
+      }
+      
+      if (detailed.growth_areas) {
+        txtContent += 'GROWTH AREAS:\n';
+        txtContent += '-'.repeat(40) + '\n';
+        
+        if (detailed.growth_areas.strengths) {
+          txtContent += 'Strengths:\n';
+          detailed.growth_areas.strengths.forEach((strength: string) => {
+            txtContent += `• ${strength}\n`;
+          });
+          txtContent += '\n';
+        }
+        
+        if (detailed.growth_areas.challenges) {
+          txtContent += 'Challenges:\n';
+          detailed.growth_areas.challenges.forEach((challenge: string) => {
+            txtContent += `• ${challenge}\n`;
+          });
+          txtContent += '\n';
+        }
+        
+        if (detailed.growth_areas.development_path) {
+          txtContent += `Development Path: ${detailed.growth_areas.development_path}\n\n`;
+        }
+      }
+    });
+  } else {
+    // Single person analysis
+    const profile = personalityInsights.individualProfiles?.[0] || personalityInsights;
+    txtContent += `SUMMARY:\n${profile.summary || 'No summary available'}\n\n`;
+    
+    const detailed = profile.detailed_analysis || {};
+    
+    if (detailed.cognitive_profile) {
+      txtContent += 'COGNITIVE PROFILE:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      if (detailed.cognitive_profile.intelligence_assessment) {
+        txtContent += `Intelligence Assessment: ${detailed.cognitive_profile.intelligence_assessment}\n\n`;
+      }
+      if (detailed.cognitive_profile.cognitive_strengths) {
+        txtContent += `Cognitive Strengths:\n`;
+        detailed.cognitive_profile.cognitive_strengths.forEach((strength: string) => {
+          txtContent += `• ${strength}\n`;
+        });
+        txtContent += '\n';
+      }
+      if (detailed.cognitive_profile.cognitive_weaknesses) {
+        txtContent += `Cognitive Weaknesses:\n`;
+        detailed.cognitive_profile.cognitive_weaknesses.forEach((weakness: string) => {
+          txtContent += `• ${weakness}\n`;
+        });
+        txtContent += '\n';
+      }
+      if (detailed.cognitive_profile.processing_style) {
+        txtContent += `Processing Style: ${detailed.cognitive_profile.processing_style}\n\n`;
+      }
+      if (detailed.cognitive_profile.mental_agility) {
+        txtContent += `Mental Agility: ${detailed.cognitive_profile.mental_agility}\n\n`;
+      }
+    }
+    
+    // Continue with other sections like personality_core, thought_patterns, etc.
+    if (detailed.personality_core) {
+      txtContent += `PERSONALITY CORE:\n${detailed.personality_core}\n\n`;
+    }
+    
+    if (detailed.thought_patterns) {
+      txtContent += `THOUGHT PATTERNS:\n${detailed.thought_patterns}\n\n`;
+    }
+    
+    if (detailed.emotional_intelligence) {
+      txtContent += `EMOTIONAL INTELLIGENCE:\n${detailed.emotional_intelligence}\n\n`;
+    }
+    
+    if (detailed.speech_analysis) {
+      txtContent += 'SPEECH ANALYSIS:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      
+      if (detailed.speech_analysis.key_quotes && detailed.speech_analysis.key_quotes.length > 0) {
+        txtContent += 'Key Quotes:\n';
+        detailed.speech_analysis.key_quotes.forEach((quote: string, i: number) => {
+          txtContent += `${i + 1}. "${quote}"\n`;
+        });
+        txtContent += '\n';
+      }
+      
+      if (detailed.speech_analysis.vocabulary_analysis) {
+        txtContent += `Vocabulary Analysis: ${detailed.speech_analysis.vocabulary_analysis}\n\n`;
+      }
+      
+      if (detailed.speech_analysis.speech_patterns) {
+        txtContent += `Speech Patterns: ${detailed.speech_analysis.speech_patterns}\n\n`;
+      }
+      
+      if (detailed.speech_analysis.emotional_tone) {
+        txtContent += `Emotional Tone: ${detailed.speech_analysis.emotional_tone}\n\n`;
+      }
+    }
+    
+    if (detailed.visual_evidence) {
+      txtContent += 'VISUAL EVIDENCE:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      
+      if (detailed.visual_evidence.facial_expressions) {
+        txtContent += `Facial Expressions: ${detailed.visual_evidence.facial_expressions}\n\n`;
+      }
+      
+      if (detailed.visual_evidence.body_language) {
+        txtContent += `Body Language: ${detailed.visual_evidence.body_language}\n\n`;
+      }
+      
+      if (detailed.visual_evidence.emotional_indicators) {
+        txtContent += `Emotional Indicators: ${detailed.visual_evidence.emotional_indicators}\n\n`;
+      }
+    }
+    
+    if (detailed.professional_insights) {
+      txtContent += `PROFESSIONAL INSIGHTS:\n${detailed.professional_insights}\n\n`;
+    }
+    
+    if (detailed.relationships) {
+      txtContent += 'RELATIONSHIPS:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      txtContent += `Current Status: ${detailed.relationships.current_status || 'Not specified'}\n`;
+      txtContent += `Parental Status: ${detailed.relationships.parental_status || 'Not specified'}\n`;
+      txtContent += `Ideal Partner: ${detailed.relationships.ideal_partner || 'Not specified'}\n\n`;
+    }
+    
+    if (detailed.growth_areas) {
+      txtContent += 'GROWTH AREAS:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      
+      if (detailed.growth_areas.strengths) {
+        txtContent += 'Strengths:\n';
+        detailed.growth_areas.strengths.forEach((strength: string) => {
+          txtContent += `• ${strength}\n`;
+        });
+        txtContent += '\n';
+      }
+      
+      if (detailed.growth_areas.challenges) {
+        txtContent += 'Challenges:\n';
+        detailed.growth_areas.challenges.forEach((challenge: string) => {
+          txtContent += `• ${challenge}\n`;
+        });
+        txtContent += '\n';
+      }
+      
+      if (detailed.growth_areas.development_path) {
+        txtContent += `Development Path: ${detailed.growth_areas.development_path}\n\n`;
+      }
+    }
+  }
+  
+  txtContent += '='.repeat(80) + '\n';
+  txtContent += 'END OF REPORT\n';
+  txtContent += '='.repeat(80) + '\n';
+  
+  return txtContent;
+}
+
 // Function to generate HTML for PDF
 export function generateAnalysisHtml(analysis: Analysis): string {
   // Extract the personality insights

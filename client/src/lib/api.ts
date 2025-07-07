@@ -1,7 +1,7 @@
 import { apiRequest } from "./queryClient";
 
 // Type definitions for enhanced API functionality
-export type ModelType = "openai" | "anthropic" | "perplexity";
+export type ModelType = "deepseek" | "openai" | "anthropic" | "perplexity";
 export type MediaType = "image" | "video" | "document" | "text";
 
 export async function uploadMedia(
@@ -17,7 +17,7 @@ export async function uploadMedia(
 ) {
   const { 
     maxPeople = 5, 
-    selectedModel = "openai", 
+    selectedModel = "deepseek", 
     title,
     documentType
   } = options;
@@ -82,7 +82,7 @@ export async function uploadMedia(
   return data;
 }
 
-export async function sendMessage(content: string, sessionId: string, selectedModel: ModelType = "openai") {
+export async function sendMessage(content: string, sessionId: string, selectedModel: ModelType = "deepseek") {
   const res = await apiRequest("POST", "/api/chat", { 
     content, 
     sessionId,
@@ -94,7 +94,7 @@ export async function sendMessage(content: string, sessionId: string, selectedMo
 export async function analyzeText(
   content: string, 
   sessionId: string, 
-  selectedModel: ModelType = "openai",
+  selectedModel: ModelType = "deepseek",
   title?: string
 ) {
   console.log(`Analyzing text with model: ${selectedModel}, sessionId: ${sessionId}`);
@@ -143,7 +143,7 @@ export async function analyzeDocument(
   fileName: string,
   fileType: "pdf" | "docx",
   sessionId: string,
-  selectedModel: ModelType = "openai",
+  selectedModel: ModelType = "deepseek",
   title?: string
 ) {
   console.log(`Analyzing document "${fileName}" with model: ${selectedModel}, sessionId: ${sessionId}`);
@@ -225,7 +225,7 @@ export async function getAllAnalysesBySession(sessionId: string) {
   return res.json();
 }
 
-export async function downloadAnalysis(analysisId: number, format: "pdf" | "docx" = "pdf") {
+export async function downloadAnalysis(analysisId: number, format: "pdf" | "docx" | "txt" = "pdf") {
   // Direct download approach using window.open
   window.open(`/api/download/${analysisId}?format=${format}`, '_blank');
   return true;

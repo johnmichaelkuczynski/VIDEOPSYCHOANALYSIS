@@ -139,6 +139,6 @@ export const sessionSchema = z.object({
 // Schema for downloading analysis
 export const downloadAnalysisSchema = z.object({
   analysisId: z.number(),
-  format: z.enum(["json", "pdf", "text"]).default("pdf"),
+  format: z.enum(["json", "pdf", "txt", "docx"]).default("pdf"),
   includeCharts: z.boolean().default(true),
 });

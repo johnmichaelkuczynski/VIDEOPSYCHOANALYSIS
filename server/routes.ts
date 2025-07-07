@@ -11,7 +11,7 @@ import {
   GetFaceDetectionCommand 
 } from "@aws-sdk/client-rekognition";
 import { sendAnalysisEmail } from "./services/email";
-import { generateAnalysisHtml, generatePdf, generateDocx } from './services/document';
+import { generateAnalysisHtml, generatePdf, generateDocx, generateAnalysisTxt } from './services/document';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -25,6 +25,7 @@ import FormData from 'form-data';
 let openai: OpenAI | null = null;
 let anthropic: Anthropic | null = null;
 let azureOpenAI: OpenAI | null = null;
+let deepseek: OpenAI | null = null;
 
 // API Keys available for various services
 const GLADIA_API_KEY = process.env.GLADIA_API_KEY;
@@ -85,6 +86,19 @@ if (process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_ENDPOINT) {
     console.log("Azure OpenAI client initialized successfully");
   } catch (error) {
     console.error("Failed to initialize Azure OpenAI client:", error);
+  }
+}
+
+// Initialize DeepSeek client (using OpenAI-compatible API)
+if (process.env.DEEPSEEK_API_KEY) {
+  try {
+    deepseek = new OpenAI({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: "https://api.deepseek.com/v1"
+    });
+    console.log("DeepSeek client initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize DeepSeek client:", error);
   }
 }
 
@@ -902,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Text analysis endpoint
   app.post("/api/analyze/text", async (req, res) => {
     try {
-      const { content, sessionId, selectedModel = "openai", title } = req.body;
+      const { content, sessionId, selectedModel = "deepseek", title } = req.body;
       
       if (!content || typeof content !== 'string') {
         return res.status(400).json({ error: "Text content is required" });
@@ -915,6 +929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Choose which AI model to use
       let aiModel = selectedModel;
       if (
+        (selectedModel === "deepseek" && !deepseek) ||
         (selectedModel === "openai" && !openai) ||
         (selectedModel === "anthropic" && !anthropic) ||
         (selectedModel === "perplexity" && !process.env.PERPLEXITY_API_KEY)
@@ -1832,11 +1847,12 @@ Provide a comprehensive analysis of this document, including:
         }
       }
 
-      // Get comprehensive personality insights from OpenAI
-      const personalityInsights = await getPersonalityInsights(
+      // Get comprehensive personality insights with enhanced cognitive profiling
+      const personalityInsights = await getEnhancedPersonalityInsights(
         faceAnalysis, 
         videoAnalysis, 
-        audioTranscription
+        audioTranscription,
+        selectedModel
       );
 
       // Determine how many people were detected
@@ -2411,6 +2427,12 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
         buffer = await generateDocx(analysis);
         contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         filename = `personality-analysis-${analysisId}.docx`;
+      } else if (format === 'txt') {
+        // Generate TXT
+        const txtContent = generateAnalysisTxt(analysis);
+        buffer = Buffer.from(txtContent, 'utf-8');
+        contentType = 'text/plain';
+        filename = `personality-analysis-${analysisId}.txt`;
       } else {
         // Default to PDF
         const htmlContent = generateAnalysisHtml(analysis);
@@ -2951,9 +2973,9 @@ async function analyzeFaceWithRekognition(imageBuffer: Buffer, maxPeople: number
 
 
 
-async function getPersonalityInsights(faceAnalysis: any, videoAnalysis: any = null, audioTranscription: any = null) {
+async function getEnhancedPersonalityInsights(faceAnalysis: any, videoAnalysis: any = null, audioTranscription: any = null, selectedModel: string = "deepseek") {
   // Check if any API clients are available, display warning if not
-  if (!openai && !anthropic && !process.env.PERPLEXITY_API_KEY) {
+  if (!deepseek && !openai && !anthropic && !process.env.PERPLEXITY_API_KEY) {
     console.warn("No AI model API clients are available. Using fallback analysis.");
     return {
       peopleCount: Array.isArray(faceAnalysis) ? faceAnalysis.length : 1,
@@ -3018,46 +3040,66 @@ async function getPersonalityInsights(faceAnalysis: any, videoAnalysis: any = nu
         // Use the standard analysis prompt but customized for the person
         const personLabel = personFaceData.personLabel || "Person";
         const analysisPrompt = `
-You are an expert personality analyst capable of providing deep psychological insights. 
-Analyze the provided data to generate a comprehensive personality profile for ${personLabel}.
+You are an expert psychologist, cognitive scientist, and personality analyst with deep expertise in psychological assessment and cognitive profiling. 
+Analyze the provided data to generate a comprehensive psychological and cognitive profile for ${personLabel}.
 
 ${videoAnalysis ? 'This analysis includes video data showing gestures, activities, and attention patterns.' : ''}
 ${audioTranscription ? 'This analysis includes audio transcription and speech pattern data.' : ''}
 
+ANALYSIS REQUIREMENTS:
+1. COGNITIVE PROFILING: Assess intellectual capabilities, specific cognitive strengths/weaknesses, probable intelligence level, processing styles, and mental agility
+2. PSYCHOLOGICAL PROFILING: Analyze personality traits, emotional patterns, social tendencies, and behavioral characteristics  
+3. EVIDENCE-BASED REASONING: For every assessment you make, cite specific observable evidence from the data provided
+4. QUOTATIONS: When analyzing speech/text, include direct quotations that support your conclusions
+
 Return a JSON object with the following structure:
 {
-  "summary": "Brief overview of ${personLabel}",
+  "summary": "Brief overview of ${personLabel} with key cognitive and psychological insights",
   "detailed_analysis": {
-    "personality_core": "Deep analysis of core personality traits",
-    "thought_patterns": "Analysis of cognitive processes and decision-making style",
-    "cognitive_style": "Description of learning and problem-solving approaches",
-    "professional_insights": "Career inclinations and work style",
+    "cognitive_profile": {
+      "intelligence_assessment": "Estimated intelligence level with specific evidence from speech patterns, vocabulary, problem-solving approaches",
+      "cognitive_strengths": ["Specific cognitive abilities that appear well-developed with evidence"],
+      "cognitive_weaknesses": ["Areas of cognitive limitation with supporting evidence"],
+      "processing_style": "How this person processes information (analytical vs intuitive, sequential vs random, etc.) with evidence",
+      "mental_agility": "Assessment of mental flexibility and adaptability with examples"
+    },
+    "personality_core": "Deep analysis of core personality traits with specific evidence from facial expressions, body language, speech patterns",
+    "thought_patterns": "Analysis of cognitive processes and decision-making style with supporting evidence",
+    "emotional_intelligence": "Assessment of emotional awareness and social intelligence with observable evidence",
+    "behavioral_indicators": "Specific behaviors observed that reveal personality traits",
     "speech_analysis": {
       "key_quotes": ["Include 3-5 direct quotes from the transcription that reveal personality traits"],
-      "speech_patterns": "Analysis of speech patterns, word choice, and communication style",
-      "emotional_tone": "Analysis of emotional tone in speech"
+      "vocabulary_analysis": "Analysis of word choice, complexity, and communication patterns",
+      "speech_patterns": "Analysis of speech patterns, pace, tone, and communication style",
+      "emotional_tone": "Analysis of emotional tone in speech with specific examples"
     },
+    "visual_evidence": {
+      "facial_expressions": "Analysis of facial expressions and what they reveal about personality",
+      "body_language": "Analysis of posture, gestures, and physical presence",
+      "emotional_indicators": "Observable emotional states and their psychological implications"
+    },
+    "professional_insights": "Career inclinations and work style based on cognitive profile and personality traits",
     "relationships": {
-      "current_status": "Likely relationship status",
+      "current_status": "Likely relationship status based on evidence",
       "parental_status": "Insights about parenting style or potential",
       "ideal_partner": "Description of compatible partner characteristics"
     },
     "growth_areas": {
-      "strengths": ["List of key strengths"],
-      "challenges": ["Areas for improvement"],
-      "development_path": "Suggested personal growth direction"
+      "strengths": ["List of key strengths with evidence"],
+      "challenges": ["Areas for improvement with specific indicators"],
+      "development_path": "Suggested personal growth direction based on cognitive and personality profile"
     }
   }
 }
 
 Be thorough and insightful while avoiding stereotypes. Each section should be at least 2-3 paragraphs long.
 
-Important instructions:
-1. When audio transcription is available, extract 3-5 direct quotes that reveal personality traits. Include them in double quotes in the speech_analysis.key_quotes array and analyze their significance.
-2. For video data, focus on gestures, expressions, and movements to inform your analysis.
-3. Pay careful attention to gender, facial expressions, emotional indicators, and body language.
-4. The speech_analysis section should be detailed when audio is available; if no speech data exists, note this in the section.
-5. Base all insights on the actual data provided, not stereotypes or assumptions.`;
+CRITICAL REQUIREMENTS:
+1. EVIDENCE-BASED: Every assessment must be supported by specific observable evidence from the data
+2. COGNITIVE DEPTH: Include detailed cognitive profiling beyond basic personality traits
+3. DIRECT QUOTES: When speech data is available, include actual quotes that support your analysis
+4. VISUAL ANALYSIS: Reference specific facial expressions, body language, and visual cues
+5. PROFESSIONAL RIGOR: Maintain scientific objectivity while providing actionable insights`;
 
         // Use OpenAI as primary source for consistency across multiple analyses
         try {

@@ -83,6 +83,17 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
   });
 }
 
+// Helper function to get model display name
+const getModelDisplayName = (model: string) => {
+  switch (model) {
+    case "deepseek": return "DeepSeek";
+    case "openai": return "OpenAI";
+    case "anthropic": return "Anthropic";
+    case "perplexity": return "Perplexity";
+    default: return model;
+  }
+};
+
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
   const { toast } = useToast();
   const [sessionId] = useState(() => nanoid());
@@ -100,7 +111,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
   const [documentName, setDocumentName] = useState<string>("");
   
   // UI states
@@ -125,7 +136,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     assemblyai: boolean;
     deepgram: boolean;
     azure_video_indexer: boolean;
+    deepseek: boolean;
   }>({
+    deepseek: true,
     openai: false,
     anthropic: false,
     perplexity: false,
@@ -152,6 +165,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         
         // Set available services
         setAvailableServices({
+          deepseek: true, // DeepSeek is always available as default
           openai: status.openai || false,
           anthropic: status.anthropic || false,
           perplexity: status.perplexity || false,
@@ -166,13 +180,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
         
         // Set default selected model based on availability
-        if (status.openai) {
-          setSelectedModel("openai");
-        } else if (status.anthropic) {
-          setSelectedModel("anthropic");
-        } else if (status.perplexity) {
-          setSelectedModel("perplexity");
-        }
+        // DeepSeek is the default - always available for now
+        setSelectedModel("deepseek");
       } catch (error) {
         console.error("Error checking API status:", error);
       }
@@ -634,17 +643,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             <Select
               value={selectedModel}
               onValueChange={(value) => setSelectedModel(value as ModelType)}
-              disabled={isAnalyzing || (!availableServices.openai && !availableServices.anthropic && !availableServices.perplexity)}
+              disabled={isAnalyzing}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="deepseek">DeepSeek (Recommended)</SelectItem>
                 {availableServices.openai && <SelectItem value="openai">OpenAI GPT-4o</SelectItem>}
                 {availableServices.anthropic && <SelectItem value="anthropic">Anthropic Claude</SelectItem>}
                 {availableServices.perplexity && <SelectItem value="perplexity">Perplexity</SelectItem>}
-                {!availableServices.openai && !availableServices.anthropic && !availableServices.perplexity && 
-                  <SelectItem value="none" disabled>No AI models available</SelectItem>}
               </SelectContent>
             </Select>
             
@@ -857,8 +865,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         
                         toast({
                           title: "Analysis Complete",
-                          description: "Your image has been re-analyzed with " + 
-                            (selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"),
+                          description: "Your image has been re-analyzed with " + getModelDisplayName(selectedModel),
                         });
                       }).catch(error => {
                         toast({
@@ -874,7 +881,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   className="w-full"
                   disabled={isAnalyzing || !mediaData}
                 >
-                  Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
+                  Re-Analyze with {getModelDisplayName(selectedModel)}
                 </Button>
               </div>
             )}
@@ -1038,8 +1045,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         
                         toast({
                           title: "Analysis Complete",
-                          description: "Your video has been re-analyzed with " + 
-                            (selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"),
+                          description: "Your video has been re-analyzed with " + getModelDisplayName(selectedModel),
                         });
                       }).catch(error => {
                         toast({
@@ -1055,7 +1061,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   className="w-full"
                   disabled={isAnalyzing || !mediaData}
                 >
-                  Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
+                  Re-Analyze with {getModelDisplayName(selectedModel)}
                 </Button>
               </div>
             )}
@@ -1089,7 +1095,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   className="w-full"
                   disabled={isAnalyzing}
                 >
-                  Re-Analyze with {selectedModel === "openai" ? "OpenAI" : selectedModel === "anthropic" ? "Anthropic" : "Perplexity"}
+                  Re-Analyze with {getModelDisplayName(selectedModel)}
                 </Button>
               </div>
             )}
@@ -1200,6 +1206,22 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         <File className="h-4 w-4" />
                         <span>Download Word</span>
                       </Button>
+                      
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading Text File",
+                            description: "Your analysis is being downloaded as TXT"
+                          });
+                          downloadAnalysis(analysisId, 'txt');
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>Download TXT</span>
+                      </Button>
                     </>
                   )}
                   
@@ -1284,7 +1306,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       <div className="bg-blue-50 text-blue-800 p-3 rounded-md mb-4 flex items-center gap-2 text-sm">
                         <Download className="h-5 w-5" />
                         <span>
-                          <strong>Save your analysis!</strong> Use the download buttons to save as a PDF or Word document.
+                          <strong>Save your analysis!</strong> Use the download buttons to save as PDF, Word, or TXT format.
                         </span>
                       </div>
                     )}
@@ -1338,6 +1360,22 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             >
                               <File className="h-3 w-3" />
                               <span>Save as Word</span>
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 text-xs"
+                              onClick={() => {
+                                toast({
+                                  title: "Downloading Text File",
+                                  description: "Your analysis is being downloaded as TXT"
+                                });
+                                downloadAnalysis(analysisId, 'txt');
+                              }}
+                            >
+                              <FileText className="h-3 w-3" />
+                              <span>Save as TXT</span>
                             </Button>
                           </div>
                         )}
