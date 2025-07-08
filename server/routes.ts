@@ -1156,12 +1156,14 @@ You can ask follow-up questions about this analysis.
       // Choose which AI model to use
       let aiModel = selectedModel;
       if (
+        (selectedModel === "deepseek" && !deepseek) ||
         (selectedModel === "openai" && !openai) ||
         (selectedModel === "anthropic" && !anthropic) ||
         (selectedModel === "perplexity" && !process.env.PERPLEXITY_API_KEY)
       ) {
         // Fallback to available model if selected one is not available
-        if (openai) aiModel = "openai";
+        if (deepseek) aiModel = "deepseek";
+        else if (openai) aiModel = "openai";
         else if (anthropic) aiModel = "anthropic";
         else if (process.env.PERPLEXITY_API_KEY) aiModel = "perplexity";
         else {
@@ -1172,15 +1174,34 @@ You can ask follow-up questions about this analysis.
       }
       
       // Extract text from document and analyze it
-      // Note: In a real implementation, use proper document parsing libraries
-      // like pdf.js, docx, etc. For simplicity, we're using a placeholder.
+      // For text files, read the content directly. For binary files like PDF/DOCX, we'd need proper parsing libraries
+      let documentContent = "";
+      try {
+        // Handle text files and common text-based formats
+        if (fileType === "txt" || fileName.toLowerCase().endsWith('.txt') || 
+            fileType === "text/plain" || fileBuffer.toString('utf-8').length > 0) {
+          documentContent = fileBuffer.toString('utf-8');
+          console.log('Extracted document content length:', documentContent.length, 'characters');
+          console.log('Document content preview:', documentContent.substring(0, 100) + '...');
+        } else {
+          // For PDF and DOCX files, we'd need specialized libraries
+          documentContent = `[${fileType.toUpperCase()} file content - specialized parsing needed]`;
+        }
+      } catch (e) {
+        console.error('Error extracting document content:', e);
+        documentContent = `[Unable to extract text from ${fileType} file]`;
+      }
+      
       const documentAnalysisPrompt = `
 I'm going to analyze the uploaded document: ${fileName} (${fileType}).
+
+Document Content:
+${documentContent}
 
 Provide a comprehensive analysis of this document, including:
 
 1. Document overview and key topics
-2. Main themes and insights
+2. Main themes and insights  
 3. Emotional tone and sentiment
 4. Writing style assessment
 5. Author personality assessment based on the document
@@ -1200,7 +1221,41 @@ Format your analysis as detailed JSON with the following structure:
 
       // Get document analysis from selected AI model
       let analysisResult;
-      if (aiModel === "openai" && openai) {
+      console.log('Selected AI model for document analysis:', aiModel);
+      console.log('DeepSeek available:', !!deepseek);
+      console.log('OpenAI available:', !!openai);
+      console.log('Anthropic available:', !!anthropic);
+      
+      if (aiModel === "deepseek" && deepseek) {
+        console.log('Using DeepSeek for document analysis');
+        const completion = await deepseek.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [
+            { role: "system", content: "You are an expert in document analysis and personality assessment. Always respond with well-structured JSON." },
+            { role: "user", content: documentAnalysisPrompt }
+          ],
+          response_format: { type: "json_object" }
+        });
+        
+        console.log('DeepSeek completion response:', completion.choices[0].message.content);
+        try {
+          analysisResult = JSON.parse(completion.choices[0].message.content);
+          console.log('Parsed analysis result:', analysisResult);
+        } catch (e) {
+          console.error('Error parsing DeepSeek response:', e);
+          analysisResult = {
+            summary: completion.choices[0].message.content.substring(0, 200) + "...",
+            detailed_analysis: {
+              document_overview: "Error parsing structured response from DeepSeek",
+              main_themes: "Please try again with a different AI model",
+              emotional_tone: "Analysis unavailable",
+              writing_style: "Analysis unavailable",
+              author_personality: "Analysis unavailable"
+            }
+          };
+        }
+      }
+      else if (aiModel === "openai" && openai) {
         const completion = await openai.chat.completions.create({
           model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
           messages: [
@@ -1243,16 +1298,23 @@ Format your analysis as detailed JSON with the following structure:
         }
       }
       
+      // Ensure analysisResult is defined
+      if (!analysisResult) {
+        return res.status(500).json({ 
+          error: "Document analysis failed. Please try again with a different AI model." 
+        });
+      }
+      
       // Create personality insights in expected format
       const personalityInsights = {
         peopleCount: 1,
         individualProfiles: [{
-          summary: analysisResult.summary,
+          summary: analysisResult.summary || "Document analysis completed",
           detailed_analysis: {
-            personality_core: analysisResult.detailed_analysis.author_personality,
-            thought_patterns: analysisResult.detailed_analysis.main_themes,
-            emotional_tendencies: analysisResult.detailed_analysis.emotional_tone,
-            communication_style: analysisResult.detailed_analysis.writing_style
+            personality_core: analysisResult.detailed_analysis?.author_personality || "Analysis unavailable",
+            thought_patterns: analysisResult.detailed_analysis?.main_themes || "Analysis unavailable",
+            emotional_tendencies: analysisResult.detailed_analysis?.emotional_tone || "Analysis unavailable",
+            communication_style: analysisResult.detailed_analysis?.writing_style || "Analysis unavailable"
           }
         }]
       };
@@ -1444,7 +1506,7 @@ Provide a detailed psychological, emotional, and behavioral analysis of the auth
         return res.status(400).json({ error: "Session ID is required" });
       }
       
-      console.log(`Processing document analysis with model: ${selectedModel}, file: ${fileName}`);
+      console.log(`Processing document analysis with model: ${selectedModel}, file: ${fileName}, fileType: ${fileType}`);
       
       // Extract base64 content from data URL
       const base64Data = fileData.split(',')[1];
@@ -1457,9 +1519,30 @@ Provide a detailed psychological, emotional, and behavioral analysis of the auth
       const tempDocPath = path.join(tempDir, `doc_${Date.now()}_${fileName}`);
       await writeFileAsync(tempDocPath, fileBuffer);
       
+      // Extract document content for analysis
+      let documentContent = "";
+      try {
+        // Handle text files and common text-based formats
+        if (fileType === "txt" || fileName.toLowerCase().endsWith('.txt') || 
+            fileType === "text/plain") {
+          documentContent = fileBuffer.toString('utf-8');
+          console.log('Extracted document content length:', documentContent.length, 'characters');
+          console.log('Document content preview:', documentContent.substring(0, 100) + '...');
+        } else {
+          // For PDF and DOCX files, we'd need specialized libraries
+          documentContent = `[${fileType.toUpperCase()} file content - specialized parsing needed]`;
+        }
+      } catch (e) {
+        console.error('Error extracting document content:', e);
+        documentContent = `[Unable to extract text from ${fileType} file]`;
+      }
+
       // Document analysis prompt
       const documentAnalysisPrompt = `
 I'm going to analyze the uploaded document: ${fileName} (${fileType}).
+
+Document Content:
+${documentContent}
 
 Provide a comprehensive analysis of this document, including:
 
@@ -1473,7 +1556,19 @@ Provide a comprehensive analysis of this document, including:
       // Get document analysis from selected AI model
       let analysisText: string;
       
-      if (selectedModel === "openai" && openai) {
+      if (selectedModel === "deepseek" && deepseek) {
+        console.log('Using DeepSeek for document analysis');
+        const completion = await deepseek.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [
+            { role: "system", content: "You are an expert in document analysis and personality assessment." },
+            { role: "user", content: documentAnalysisPrompt }
+          ]
+        });
+        
+        analysisText = completion.choices[0].message.content || "";
+      }
+      else if (selectedModel === "openai" && openai) {
         console.log('Using OpenAI for document analysis');
         const completion = await openai.chat.completions.create({
           model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
