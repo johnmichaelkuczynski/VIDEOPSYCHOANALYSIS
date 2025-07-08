@@ -36,7 +36,7 @@ const FACEPP_API_SECRET = process.env.FACEPP_API_SECRET;
 const AZURE_FACE_API_KEY = process.env.AZURE_FACE_API_KEY;
 const AZURE_FACE_ENDPOINT = process.env.AZURE_FACE_ENDPOINT;
 const GOOGLE_CLOUD_VISION_API_KEY = process.env.GOOGLE_CLOUD_VISION_API_KEY;
-const AZURE_VIDEO_INDEXER_KEY = process.env.AZURE_VIDEO_INDEXER_KEY;
+const AZURE_VIDEO_INDEXER_KEY = process.env.AZURE_VIDEO_INDEXER_API_KEY;
 const AZURE_VIDEO_INDEXER_LOCATION = process.env.AZURE_VIDEO_INDEXER_LOCATION;
 const AZURE_VIDEO_INDEXER_ACCOUNT_ID = process.env.AZURE_VIDEO_INDEXER_ACCOUNT_ID;
 
@@ -2239,7 +2239,7 @@ Be engaging, professional, and conversational in all responses. Feel free to hav
         deepgram: !!process.env.DEEPGRAM_API_KEY,
         
         // Video Analysis Services
-        azure_video_indexer: !!process.env.AZURE_VIDEO_INDEXER_KEY && 
+        azure_video_indexer: !!process.env.AZURE_VIDEO_INDEXER_API_KEY && 
                             !!process.env.AZURE_VIDEO_INDEXER_LOCATION && 
                             !!process.env.AZURE_VIDEO_INDEXER_ACCOUNT_ID,
         
