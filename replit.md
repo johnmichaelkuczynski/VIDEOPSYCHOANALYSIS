@@ -24,6 +24,18 @@ An advanced AI-powered personality insights platform that combines cutting-edge 
 
 ## Recent Changes
 
+### Comprehensive PDF/DOCX Support & Enhanced Analysis Prompts (July 8, 2025)
+✓ Implemented full PDF and DOCX document parsing with pdf-parse and mammoth libraries
+✓ Added support for DOC, PDF, DOCX, and TXT file analysis
+✓ Dramatically enhanced document analysis prompts for comprehensive personality insights
+✓ Added extensive quotation requirements (8-15 direct quotes from documents)
+✓ Enhanced image/video analysis prompts with speculative but data-aligned assessments
+✓ Added comprehensive personality metrics including Big Five traits with scores
+✓ Integrated lifestyle inferences and speculative assessments sections
+✓ Enhanced cognitive profiling with intelligence assessments and mental agility metrics
+✓ Improved text analysis prompts with 8-section comprehensive analysis structure
+✓ Fixed document content extraction - now properly reads actual document content
+
 ### Video Segment Selection System Implementation (July 7, 2025)
 ✓ Successfully implemented complete video chunking system with user-selectable 3-second segments
 ✓ Added automatic video duration detection and segment validation

@@ -20,6 +20,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import Anthropic from '@anthropic-ai/sdk';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
+import mammoth from 'mammoth';
 
 // Initialize API clients with proper error handling for missing keys
 let openai: OpenAI | null = null;
@@ -1396,23 +1397,73 @@ You can ask follow-up questions about this analysis.
       
       console.log(`Processing text analysis with model: ${selectedModel}`);
       
-      // Get personality insights based on text content
+      // Get personality insights based on text content - COMPREHENSIVE AND SPECULATIVE
       const textAnalysisPrompt = `
-Please analyze the following text to provide comprehensive personality insights about the author:
+You are an expert psychological profiler analyzing text content. I want you to provide an extremely comprehensive, detailed, and speculative (but data-aligned) personality analysis based on the text content. It's perfectly acceptable to make educated hypotheses as long as they're grounded in observable textual evidence.
 
-TEXT:
+TEXT TO ANALYZE:
 ${content}
 
-Provide a detailed psychological, emotional, and behavioral analysis of the author based on their writing style, tone, word choice, and content. Include:
+INSTRUCTIONS FOR ANALYSIS:
+- Be as comprehensive and detailed as possible
+- Include extensive direct quotations from the text (minimum 8-12 meaningful quotes)
+- Make speculative but evidence-based assessments about personality traits
+- Analyze cognitive patterns, intelligence markers, emotional tendencies
+- Assess communication style, values, motivations, and psychological patterns
+- Include specific textual evidence for every claim you make
+- It's acceptable to hypothesize about traits that aren't explicitly stated but can be inferred
 
-1. Personality core traits (Big Five traits, strengths, challenges)
-2. Thought patterns and cognitive style
-3. Emotional tendencies and expression
-4. Communication style and social dynamics
-5. Professional insights and work style
-6. Decision-making process
-7. Relationship approach
-8. Areas for growth or self-awareness
+REQUIRED ANALYSIS SECTIONS:
+
+1. TEXT OVERVIEW & CONTENT ANALYSIS
+   - Detailed summary of content and structure
+   - Key topics and recurring themes
+   - Context and apparent purpose
+
+2. EXTENSIVE QUOTATION ANALYSIS (Include 8-12 direct quotes)
+   - Select the most psychologically revealing passages
+   - Analyze what each quote reveals about the author's mind
+   - Connect quotes to specific personality traits
+
+3. COGNITIVE PROFILE ASSESSMENT
+   - Intelligence level indicators (vocabulary, reasoning, complexity)
+   - Cognitive strengths and potential weaknesses
+   - Problem-solving approach and mental processing style
+   - Abstract thinking vs concrete thinking patterns
+   - Attention to detail vs big-picture orientation
+
+4. COMPREHENSIVE PERSONALITY TRAIT ANALYSIS
+   - Big Five personality dimensions with scores (1-10)
+   - Emotional stability and stress response patterns
+   - Leadership style and social influence patterns
+   - Decision-making processes and thought patterns
+   - Self-confidence and resilience indicators
+
+5. COMMUNICATION STYLE & LINGUISTIC PATTERNS
+   - Formality level and register usage
+   - Sentence structure and complexity preferences
+   - Vocabulary choices and semantic patterns
+   - Persuasive techniques and rhetorical strategies
+
+6. EMOTIONAL & PSYCHOLOGICAL INDICATORS
+   - Dominant emotional tones and mood patterns
+   - Anxiety, confidence, or insecurity markers
+   - Motivational drivers and core values
+   - Potential psychological defense mechanisms
+
+7. BEHAVIORAL & LIFESTYLE INFERENCES
+   - Likely daily habits and routines
+   - Social interaction preferences
+   - Work/productivity patterns
+   - Potential hobbies or interests
+
+8. SPECULATIVE ASSESSMENTS (Data-aligned hypotheses)
+   - Educational background implications
+   - Professional or career orientation
+   - Relationship style and social dynamics
+   - Potential challenges or growth areas
+
+Remember: Be thorough, speculative where appropriate, and always anchor your assessments in specific textual evidence with direct quotations.
 `;
 
       // Get personality analysis from selected AI model
@@ -1526,31 +1577,120 @@ Provide a detailed psychological, emotional, and behavioral analysis of the auth
         if (fileType === "txt" || fileName.toLowerCase().endsWith('.txt') || 
             fileType === "text/plain") {
           documentContent = fileBuffer.toString('utf-8');
-          console.log('Extracted document content length:', documentContent.length, 'characters');
-          console.log('Document content preview:', documentContent.substring(0, 100) + '...');
-        } else {
-          // For PDF and DOCX files, we'd need specialized libraries
-          documentContent = `[${fileType.toUpperCase()} file content - specialized parsing needed]`;
+          console.log('Extracted TXT document content length:', documentContent.length, 'characters');
+          console.log('TXT document content preview:', documentContent.substring(0, 100) + '...');
+        } 
+        // Handle PDF files
+        else if (fileType === "pdf" || fileName.toLowerCase().endsWith('.pdf') || 
+                 fileType === "application/pdf") {
+          console.log('Parsing PDF document...');
+          try {
+            const pdfParse = (await import('pdf-parse')).default;
+            const pdfData = await pdfParse(fileBuffer);
+            documentContent = pdfData.text;
+            console.log('Extracted PDF document content length:', documentContent.length, 'characters');
+            console.log('PDF document content preview:', documentContent.substring(0, 100) + '...');
+          } catch (pdfError) {
+            console.error('PDF parsing error:', pdfError);
+            documentContent = `[Error parsing PDF: ${pdfError.message}. Please try uploading a different format or check if the PDF is corrupted.]`;
+          }
+        }
+        // Handle DOCX files
+        else if (fileType === "docx" || fileName.toLowerCase().endsWith('.docx') || 
+                 fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+          console.log('Parsing DOCX document...');
+          const docxResult = await mammoth.extractRawText({buffer: fileBuffer});
+          documentContent = docxResult.value;
+          console.log('Extracted DOCX document content length:', documentContent.length, 'characters');
+          console.log('DOCX document content preview:', documentContent.substring(0, 100) + '...');
+        }
+        // Handle DOC files (older Word format)
+        else if (fileType === "doc" || fileName.toLowerCase().endsWith('.doc') || 
+                 fileType === "application/msword") {
+          console.log('Parsing DOC document...');
+          const docResult = await mammoth.extractRawText({buffer: fileBuffer});
+          documentContent = docResult.value;
+          console.log('Extracted DOC document content length:', documentContent.length, 'characters');
+          console.log('DOC document content preview:', documentContent.substring(0, 100) + '...');
+        }
+        else {
+          documentContent = `[Unsupported file type: ${fileType}. Please upload TXT, PDF, DOC, or DOCX files.]`;
+          console.log('Unsupported file type:', fileType);
         }
       } catch (e) {
         console.error('Error extracting document content:', e);
-        documentContent = `[Unable to extract text from ${fileType} file]`;
+        documentContent = `[Unable to extract text from ${fileType} file: ${e.message}]`;
       }
 
-      // Document analysis prompt
+      // Document analysis prompt - COMPREHENSIVE AND SPECULATIVE
       const documentAnalysisPrompt = `
-I'm going to analyze the uploaded document: ${fileName} (${fileType}).
+You are an expert psychological profiler analyzing a document. I want you to provide an extremely comprehensive, detailed, and speculative (but data-aligned) personality analysis based on the document content. It's perfectly acceptable to make educated hypotheses as long as they're grounded in observable textual evidence.
 
-Document Content:
+DOCUMENT TO ANALYZE:
+Title: ${fileName} (${fileType})
+Content:
 ${documentContent}
 
-Provide a comprehensive analysis of this document, including:
+INSTRUCTIONS FOR ANALYSIS:
+- Be as comprehensive and detailed as possible
+- Include extensive direct quotations from the document (minimum 8-12 meaningful quotes)
+- Make speculative but evidence-based assessments about personality traits
+- Analyze cognitive patterns, intelligence markers, emotional tendencies
+- Assess communication style, values, motivations, and psychological patterns
+- Include specific textual evidence for every claim you make
+- It's acceptable to hypothesize about traits that aren't explicitly stated but can be inferred
 
-1. Document overview and key topics
-2. Main themes and insights
-3. Emotional tone and sentiment
-4. Writing style assessment
-5. Author personality assessment based on the document
+REQUIRED ANALYSIS SECTIONS:
+
+1. DOCUMENT OVERVIEW & CONTENT ANALYSIS
+   - Detailed summary of content and structure
+   - Key topics and recurring themes
+   - Writing context and apparent purpose
+
+2. EXTENSIVE QUOTATION ANALYSIS (Include 8-12 direct quotes)
+   - Select the most psychologically revealing passages
+   - Analyze what each quote reveals about the author's mind
+   - Connect quotes to specific personality traits
+
+3. COGNITIVE PROFILE ASSESSMENT
+   - Intelligence level indicators (vocabulary, reasoning, complexity)
+   - Cognitive strengths and potential weaknesses
+   - Problem-solving approach and mental processing style
+   - Abstract thinking vs concrete thinking patterns
+   - Attention to detail vs big-picture orientation
+
+4. PERSONALITY TRAIT ANALYSIS
+   - Extraversion vs introversion indicators
+   - Emotional stability and stress response patterns
+   - Conscientiousness and organizational tendencies
+   - Openness to experience and creativity markers
+   - Agreeableness and interpersonal orientation
+
+5. COMMUNICATION STYLE & LINGUISTIC PATTERNS
+   - Formality level and register usage
+   - Sentence structure and complexity preferences
+   - Vocabulary choices and semantic patterns
+   - Persuasive techniques and rhetorical strategies
+
+6. EMOTIONAL & PSYCHOLOGICAL INDICATORS
+   - Dominant emotional tones and mood patterns
+   - Anxiety, confidence, or insecurity markers
+   - Motivational drivers and core values
+   - Potential psychological defense mechanisms
+
+7. BEHAVIORAL & LIFESTYLE INFERENCES
+   - Likely daily habits and routines
+   - Social interaction preferences
+   - Work/productivity patterns
+   - Potential hobbies or interests
+
+8. SPECULATIVE ASSESSMENTS (Data-aligned hypotheses)
+   - Educational background implications
+   - Professional or career orientation
+   - Relationship style and social dynamics
+   - Potential challenges or growth areas
+
+Remember: Be thorough, speculative where appropriate, and always anchor your assessments in specific textual evidence with direct quotations.
 `;
 
       // Get document analysis from selected AI model
@@ -3121,17 +3261,22 @@ async function getEnhancedPersonalityInsights(faceAnalysis: any, videoAnalysis: 
         const personLabel = personFaceData.personLabel || "Person";
         const analysisPrompt = `
 You are an expert psychologist, cognitive scientist, and personality analyst with deep expertise in psychological assessment and cognitive profiling. 
-Analyze the provided data to generate a comprehensive psychological and cognitive profile for ${personLabel}.
+Analyze the provided data to generate an EXTREMELY COMPREHENSIVE, DETAILED, and SPECULATIVE (but data-aligned) psychological and cognitive profile for ${personLabel}.
 
 ${videoAnalysis ? 'This analysis includes video data showing gestures, activities, and attention patterns.' : ''}
 ${audioTranscription ? 'This analysis includes audio transcription and speech pattern data.' : ''}
 
-ANALYSIS REQUIREMENTS:
+ANALYSIS REQUIREMENTS - BE EXTREMELY THOROUGH:
 1. SPEECH/TEXT INTEGRATION: If audio transcription or text data is available, make this the PRIMARY SOURCE for personality analysis. Analyze word choice, communication patterns, topics discussed, emotional tone, and speaking style in detail
 2. COGNITIVE PROFILING: Assess intellectual capabilities through vocabulary complexity, reasoning patterns in speech, problem-solving approaches mentioned, and communication sophistication
 3. PSYCHOLOGICAL PROFILING: Analyze personality traits revealed through what the person says, how they express themselves, their interests, concerns, and emotional expressions in speech
 4. EVIDENCE-BASED REASONING: For every assessment, cite specific examples from speech content, direct quotes, and observable patterns
 5. COMPREHENSIVE CONTENT ANALYSIS: Discuss the actual topics, ideas, and perspectives shared in speech/text and what these reveal about the person's character, values, and mindset
+6. SPECULATIVE ANALYSIS: Make educated hypotheses about traits, behaviors, and characteristics that can be reasonably inferred from the data - it's perfectly acceptable to speculate as long as it's grounded in observable evidence
+7. EXTENSIVE QUOTATION ANALYSIS: Include 8-15 direct quotes from speech/transcription that reveal personality traits, cognitive patterns, and psychological insights
+8. VISUAL EVIDENCE ANCHORING: Anchor all assessments in observable facial expressions, body language, appearance, and behavioral indicators
+9. COMPREHENSIVE PERSONALITY METRICS: Assess the widest possible range of personality traits, cognitive abilities, emotional patterns, and behavioral tendencies
+10. LIFESTYLE & BEHAVIORAL INFERENCES: Make reasonable inferences about daily habits, social patterns, work preferences, and life choices based on all available data
 
 Return a JSON object with the following structure:
 {
@@ -3149,12 +3294,52 @@ Return a JSON object with the following structure:
     "emotional_intelligence": "Assessment of emotional awareness and social intelligence with observable evidence",
     "behavioral_indicators": "Specific behaviors observed that reveal personality traits",
     "speech_analysis": {
-      "key_quotes": ["Include 5-8 direct quotes from the transcription that reveal personality traits, interests, values, and thinking patterns"],
+      "key_quotes": ["Include 8-15 direct quotes from the transcription that reveal personality traits, interests, values, and thinking patterns"],
       "content_themes": "Detailed analysis of the main topics, ideas, and subjects the person discusses and what these reveal about their interests, expertise, and priorities",
       "vocabulary_analysis": "Analysis of word choice, complexity, sophistication level, and communication patterns with specific examples",
       "speech_patterns": "Analysis of speech patterns, pace, tone, communication style, and conversational approach",
       "emotional_tone": "Analysis of emotional tone, enthusiasm, concerns, and feelings expressed in speech with specific examples",
       "personality_revealed": "What the actual content of their speech reveals about their character, values, beliefs, and worldview with direct evidence"
+    },
+    "comprehensive_personality_assessment": {
+      "big_five_traits": {
+        "openness": "Assessment of openness to experience with specific evidence and score estimate (1-10)",
+        "conscientiousness": "Assessment of conscientiousness with behavioral indicators and score estimate (1-10)",
+        "extraversion": "Assessment of extraversion with social behavior evidence and score estimate (1-10)",
+        "agreeableness": "Assessment of agreeableness with interpersonal indicators and score estimate (1-10)",
+        "neuroticism": "Assessment of emotional stability with stress response evidence and score estimate (1-10)"
+      },
+      "psychological_traits": {
+        "self_confidence": "Assessment of self-confidence levels with supporting evidence",
+        "resilience": "Assessment of emotional resilience and coping mechanisms",
+        "motivation_drivers": "Primary motivational factors with supporting evidence",
+        "stress_response": "How the person appears to handle stress and pressure",
+        "leadership_style": "Leadership tendencies and social influence patterns",
+        "decision_making": "Decision-making style and thought processes"
+      },
+      "social_dynamics": {
+        "communication_style": "Interpersonal communication patterns with examples",
+        "conflict_resolution": "Approach to handling disagreements and conflicts",
+        "empathy_level": "Emotional intelligence and empathy assessment",
+        "social_preferences": "Preferred social settings and interaction styles",
+        "influence_tactics": "How the person attempts to influence others"
+      }
+    },
+    "lifestyle_inferences": {
+      "daily_habits": "Inferred daily routines and behavioral patterns",
+      "work_preferences": "Professional environment and task preferences",
+      "social_life": "Social interaction patterns and relationship preferences",
+      "hobbies_interests": "Likely hobbies and personal interests based on all data",
+      "values_priorities": "Core values and life priorities with supporting evidence",
+      "health_wellness": "Health consciousness and wellness approach indicators"
+    },
+    "speculative_assessments": {
+      "educational_background": "Inferred educational level and learning style",
+      "career_trajectory": "Professional development patterns and career inclinations",
+      "relationship_patterns": "Romantic and platonic relationship tendencies",
+      "life_challenges": "Potential personal challenges and growth areas",
+      "future_potential": "Areas of likely future development and success",
+      "hidden_talents": "Potential underdeveloped strengths and abilities"
     },
     "visual_evidence": {
       "facial_expressions": "Analysis of facial expressions and what they reveal about personality",
