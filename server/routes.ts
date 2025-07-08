@@ -1595,23 +1595,76 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
             documentContent = `[Error parsing PDF: ${pdfError.message}. Please try uploading a different format or check if the PDF is corrupted.]`;
           }
         }
-        // Handle DOCX files
+        // Handle DOCX files with multiple parsing methods
         else if (fileType === "docx" || fileName.toLowerCase().endsWith('.docx') || 
                  fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
           console.log('Parsing DOCX document...');
-          const docxResult = await mammoth.extractRawText({buffer: fileBuffer});
-          documentContent = docxResult.value;
-          console.log('Extracted DOCX document content length:', documentContent.length, 'characters');
-          console.log('DOCX document content preview:', documentContent.substring(0, 100) + '...');
+          try {
+            // Method 1: Try mammoth first
+            console.log('Attempting mammoth extraction...');
+            const docxResult = await mammoth.extractRawText({buffer: fileBuffer});
+            documentContent = docxResult.value;
+            console.log('Mammoth extracted DOCX content length:', documentContent.length, 'characters');
+            console.log('Raw mammoth result (first 200 chars):', JSON.stringify(documentContent.substring(0, 200)));
+            
+            // Check if extraction was successful and contains readable text
+            if (!documentContent || documentContent.length < 10 || documentContent.includes('�') || documentContent.includes('[Content_Types].xml')) {
+              console.log('Mammoth extraction failed or returned binary data, trying HTML conversion...');
+              // Try with HTML extraction as fallback
+              const htmlResult = await mammoth.convertToHtml({buffer: fileBuffer});
+              const textFromHtml = htmlResult.value.replace(/<[^>]*>/g, '').trim();
+              documentContent = textFromHtml;
+              console.log('HTML conversion result length:', documentContent.length, 'characters');
+              console.log('HTML conversion result preview:', textFromHtml.substring(0, 200));
+            }
+            
+            // Method 2: Try docx-parser if mammoth fails
+            if (!documentContent || documentContent.length < 10) {
+              console.log('Trying docx-parser as fallback...');
+              try {
+                const docxParser = (await import('docx-parser')).default;
+                const docxParserResult = await docxParser.parseDocx(fileBuffer);
+                documentContent = docxParserResult;
+                console.log('docx-parser result length:', documentContent.length, 'characters');
+              } catch (parserError) {
+                console.error('docx-parser failed:', parserError);
+              }
+            }
+            
+            // Final check
+            if (!documentContent || documentContent.length < 10) {
+              documentContent = `[Unable to extract meaningful text from DOCX file. The document may be password-protected, corrupted, or in an unsupported format. Please try saving as TXT or PDF format.]`;
+            }
+            
+            console.log('Final DOCX content preview:', documentContent.substring(0, 100) + '...');
+          } catch (docxError) {
+            console.error('DOCX parsing error:', docxError);
+            documentContent = `[Error parsing DOCX: ${docxError.message}. Please try saving as TXT or PDF format.]`;
+          }
         }
         // Handle DOC files (older Word format)
         else if (fileType === "doc" || fileName.toLowerCase().endsWith('.doc') || 
                  fileType === "application/msword") {
           console.log('Parsing DOC document...');
-          const docResult = await mammoth.extractRawText({buffer: fileBuffer});
-          documentContent = docResult.value;
-          console.log('Extracted DOC document content length:', documentContent.length, 'characters');
-          console.log('DOC document content preview:', documentContent.substring(0, 100) + '...');
+          try {
+            const docResult = await mammoth.extractRawText({buffer: fileBuffer});
+            documentContent = docResult.value;
+            console.log('Extracted DOC document content length:', documentContent.length, 'characters');
+            console.log('DOC document content preview:', documentContent.substring(0, 100) + '...');
+            
+            // Check if extraction was successful
+            if (!documentContent || documentContent.length < 10) {
+              console.log('DOC extraction failed, trying alternative method...');
+              // Try with HTML extraction as fallback
+              const htmlResult = await mammoth.convertToHtml({buffer: fileBuffer});
+              const textFromHtml = htmlResult.value.replace(/<[^>]*>/g, '').trim();
+              documentContent = textFromHtml || `[Unable to extract meaningful text from DOC file. Please try saving as TXT or PDF format.]`;
+              console.log('Alternative DOC extraction result length:', documentContent.length, 'characters');
+            }
+          } catch (docError) {
+            console.error('DOC parsing error:', docError);
+            documentContent = `[Error parsing DOC: ${docError.message}. Please try saving as TXT or PDF format.]`;
+          }
         }
         else {
           documentContent = `[Unsupported file type: ${fileType}. Please upload TXT, PDF, DOC, or DOCX files.]`;
