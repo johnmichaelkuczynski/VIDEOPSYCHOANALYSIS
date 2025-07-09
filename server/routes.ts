@@ -22,6 +22,8 @@ import fetch from 'node-fetch';
 import FormData from 'form-data';
 import mammoth from 'mammoth';
 import JSZip from 'jszip';
+import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
 
 // Initialize API clients with proper error handling for missing keys
 let openai: OpenAI | null = null;
@@ -1132,7 +1134,7 @@ You can ask follow-up questions about this analysis.
   });
   
   // Document analysis endpoint
-  app.post("/api/analyze/document", async (req, res) => {
+  app.post("/api/analyze/document_OLD_DISABLED", async (req, res) => {
     try {
       const { fileData, fileName, fileType, sessionId, selectedModel = "openai", title } = req.body;
       
@@ -1559,6 +1561,7 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
       }
       
       console.log(`Processing document analysis with model: ${selectedModel}, file: ${fileName}, fileType: ${fileType}`);
+      console.log(`File type match check: pdf=${fileType === "pdf"}, ends with pdf=${fileName.toLowerCase().endsWith('.pdf')}, app/pdf=${fileType === "application/pdf"}`);
       
       // Extract base64 content from data URL
       const base64Data = fileData.split(',')[1];
@@ -1591,7 +1594,6 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
             await fs.writeFile(tempPath, fileBuffer);
             
             // Use Python parser
-            const { spawn } = require('child_process');
             const pythonProcess = spawn('python3', ['document_parser.py', tempPath]);
             
             let pythonOutput = '';
@@ -1646,7 +1648,6 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
             await fs.writeFile(tempPath, fileBuffer);
             
             // Use Python parser
-            const { spawn } = require('child_process');
             const pythonProcess = spawn('python3', ['document_parser.py', tempPath]);
             
             let pythonOutput = '';
@@ -1721,6 +1722,11 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
         console.error('Error extracting document content:', e);
         documentContent = `[Unable to extract text from ${fileType} file: ${e.message}]`;
       }
+
+      // Debug: Log the final extracted content
+      console.log('Final extracted document content length:', documentContent.length, 'characters');
+      console.log('Final document content preview:', documentContent.substring(0, 100) + '...');
+      console.log('Document content type detected:', documentContent.startsWith('%PDF') ? 'PDF binary data - PARSER FAILED' : 'Text content - PARSER SUCCEEDED');
 
       // Document analysis prompt - COMPREHENSIVE AND SPECULATIVE
       const documentAnalysisPrompt = `

@@ -1,0 +1,22 @@
+================================================================================
+AI-POWERED PSYCHOLOGICAL ANALYSIS REPORT
+================================================================================
+
+Analysis ID: 1
+Created: 7/9/2025, 8:46:44 PM
+Media Type: document
+People Detected: 1
+
+SUMMARY:
+{
+  "summary": "The document appears to be a complex PDF file with a mix of technical content, possibly related to legal or academic topics, given the mention of 'Originalism.pdf'. It contains extensi...
+
+PERSONALITY CORE:
+Analysis unavailable
+
+THOUGHT PATTERNS:
+Please try again with a different AI model
+
+================================================================================
+END OF REPORT
+================================================================================
