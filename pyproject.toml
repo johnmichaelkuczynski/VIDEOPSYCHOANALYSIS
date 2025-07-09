@@ -5,4 +5,9 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "boto3>=1.37.34",
+    "pillow>=11.3.0",
+    "pymupdf>=1.26.3",
+    "pytesseract>=0.3.13",
+    "python-docx>=1.2.0",
+    "textract>=1.6.5",
 ]

@@ -1581,121 +1581,112 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
           console.log('Extracted TXT document content length:', documentContent.length, 'characters');
           console.log('TXT document content preview:', documentContent.substring(0, 100) + '...');
         } 
-        // Handle PDF files
+        // Handle PDF files using Python parser
         else if (fileType === "pdf" || fileName.toLowerCase().endsWith('.pdf') || 
                  fileType === "application/pdf") {
-          console.log('Parsing PDF document...');
+          console.log('Parsing PDF document with Python parser...');
           try {
-            const pdfParse = (await import('pdf-parse')).default;
-            const pdfData = await pdfParse(fileBuffer);
-            documentContent = pdfData.text;
-            console.log('Extracted PDF document content length:', documentContent.length, 'characters');
-            console.log('PDF document content preview:', documentContent.substring(0, 100) + '...');
+            // Save file temporarily for Python processing
+            const tempPath = `/tmp/temp_pdf_${Date.now()}.pdf`;
+            await fs.writeFile(tempPath, fileBuffer);
+            
+            // Use Python parser
+            const { spawn } = require('child_process');
+            const pythonProcess = spawn('python3', ['document_parser.py', tempPath]);
+            
+            let pythonOutput = '';
+            let pythonError = '';
+            
+            pythonProcess.stdout.on('data', (data) => {
+              pythonOutput += data.toString();
+            });
+            
+            pythonProcess.stderr.on('data', (data) => {
+              pythonError += data.toString();
+            });
+            
+            await new Promise((resolve, reject) => {
+              pythonProcess.on('close', (code) => {
+                if (code === 0) {
+                  resolve(code);
+                } else {
+                  reject(new Error(`Python parser exited with code ${code}: ${pythonError}`));
+                }
+              });
+            });
+            
+            // Clean up temp file
+            await fs.unlink(tempPath).catch(() => {});
+            
+            // Parse Python output
+            const result = JSON.parse(pythonOutput);
+            
+            if (result.error) {
+              console.error('Python PDF parser error:', result.error);
+              documentContent = `[Error parsing PDF: ${result.error}]`;
+            } else {
+              documentContent = result.text;
+              console.log(`PDF extracted successfully: ${result.length} characters, ${result.pages_processed} pages, ${result.ocr_pages} OCR pages, method: ${result.method}`);
+              console.log('PDF content preview:', documentContent.substring(0, 200) + '...');
+            }
           } catch (pdfError) {
             console.error('PDF parsing error:', pdfError);
             documentContent = `[Error parsing PDF: ${pdfError.message}. Please try uploading a different format or check if the PDF is corrupted.]`;
           }
         }
-        // Handle DOCX files with proper text extraction
+        // Handle DOCX/DOC files using Python parser
         else if (fileType === "docx" || fileName.toLowerCase().endsWith('.docx') || 
-                 fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-          console.log('Parsing DOCX document...');
+                 fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                 fileType === "doc" || fileName.toLowerCase().endsWith('.doc') ||
+                 fileType === "application/msword") {
+          console.log('Parsing DOCX/DOC document with Python parser...');
           try {
-            // Method 1: Try mammoth with proper configuration
-            console.log('Attempting mammoth extraction...');
-            const docxResult = await mammoth.extractRawText({
-              buffer: fileBuffer,
-              options: {
-                convertImage: mammoth.images.ignore,
-                styleMap: []
-              }
+            // Save file temporarily for Python processing
+            const tempPath = `/tmp/temp_doc_${Date.now()}.${fileName.split('.').pop()}`;
+            await fs.writeFile(tempPath, fileBuffer);
+            
+            // Use Python parser
+            const { spawn } = require('child_process');
+            const pythonProcess = spawn('python3', ['document_parser.py', tempPath]);
+            
+            let pythonOutput = '';
+            let pythonError = '';
+            
+            pythonProcess.stdout.on('data', (data) => {
+              pythonOutput += data.toString();
             });
-            documentContent = docxResult.value;
-            console.log('Mammoth extracted DOCX content length:', documentContent.length, 'characters');
             
-            // Check if extraction was successful and contains readable text (not XML/binary)
-            const containsXML = documentContent.includes('<') || documentContent.includes('xml') || documentContent.includes('Content_Types');
-            const containsBinary = documentContent.includes('�') || documentContent.includes('PK');
-            const isMainlyWhitespace = documentContent.trim().length < 20;
+            pythonProcess.stderr.on('data', (data) => {
+              pythonError += data.toString();
+            });
             
-            if (containsXML || containsBinary || isMainlyWhitespace) {
-              console.log('Mammoth extraction returned XML/binary data, trying HTML conversion...');
-              // Try with HTML extraction and clean it properly
-              const htmlResult = await mammoth.convertToHtml({
-                buffer: fileBuffer,
-                options: {
-                  convertImage: mammoth.images.ignore,
-                  styleMap: []
+            await new Promise((resolve, reject) => {
+              pythonProcess.on('close', (code) => {
+                if (code === 0) {
+                  resolve(code);
+                } else {
+                  reject(new Error(`Python parser exited with code ${code}: ${pythonError}`));
                 }
               });
-              
-              // Clean HTML tags and extract text
-              let textFromHtml = htmlResult.value
-                .replace(/<[^>]*>/g, ' ')  // Remove HTML tags
-                .replace(/\s+/g, ' ')      // Normalize whitespace
-                .trim();
-              
-              console.log('HTML conversion result length:', textFromHtml.length, 'characters');
-              console.log('HTML conversion preview:', textFromHtml.substring(0, 200));
-              
-              if (textFromHtml.length > 20) {
-                documentContent = textFromHtml;
-              }
-            }
+            });
             
-            // Method 2: Try custom DOCX parser using JSZip
-            if (!documentContent || documentContent.length < 20 || documentContent.includes('xml') || documentContent.includes('PK')) {
-              console.log('Trying custom DOCX parser with JSZip...');
-              try {
-                const zip = await JSZip.loadAsync(fileBuffer);
-                const docXml = await zip.file('word/document.xml')?.async('string');
-                
-                if (docXml) {
-                  // Extract text from XML by removing all tags and cleaning up
-                  let extractedText = docXml
-                    .replace(/<[^>]*>/g, ' ')  // Remove all XML tags
-                    .replace(/\s+/g, ' ')      // Normalize whitespace
-                    .trim();
-                  
-                  console.log('Custom DOCX parser result length:', extractedText.length, 'characters');
-                  console.log('Custom DOCX parser preview:', extractedText.substring(0, 200));
-                  
-                  if (extractedText.length > 20) {
-                    documentContent = extractedText;
-                  }
-                }
-              } catch (zipError) {
-                console.error('Custom DOCX parser failed:', zipError);
-              }
-            }
+            // Clean up temp file
+            await fs.unlink(tempPath).catch(() => {});
             
-            // Method 3: Try docx-parser library as final fallback
-            if (!documentContent || documentContent.length < 20 || documentContent.includes('xml') || documentContent.includes('PK')) {
-              console.log('Trying docx-parser library as final fallback...');
-              try {
-                const docxParser = (await import('docx-parser')).default;
-                const docxParserResult = await docxParser.parseDocx(fileBuffer);
-                console.log('docx-parser result length:', docxParserResult.length, 'characters');
-                console.log('docx-parser preview:', docxParserResult.substring(0, 200));
-                
-                if (docxParserResult && docxParserResult.length > 20) {
-                  documentContent = docxParserResult;
-                }
-              } catch (parserError) {
-                console.error('docx-parser failed:', parserError);
-              }
-            }
+            // Parse Python output
+            const result = JSON.parse(pythonOutput);
             
-            // Final validation and error handling
-            if (!documentContent || documentContent.length < 20 || documentContent.includes('xml') || documentContent.includes('PK')) {
-              documentContent = `[Unable to extract readable text from DOCX file. The document may be password-protected, corrupted, or in an unsupported format. Please try saving as TXT or PDF format, or copy the text content directly into a text file.]`;
+            if (result.error) {
+              console.error('Python DOCX/DOC parser error:', result.error);
+              documentContent = `[Error parsing document: ${result.error}]`;
+            } else {
+              documentContent = result.text;
+              console.log(`DOCX/DOC extracted successfully: ${result.length} characters, method: ${result.method}`);
+              console.log('DOCX/DOC content preview:', documentContent.substring(0, 200) + '...');
             }
-            
-            console.log('Final DOCX content length:', documentContent.length, 'characters');
-            console.log('Final DOCX content preview:', documentContent.substring(0, 200) + '...');
           } catch (docxError) {
-            console.error('DOCX parsing error:', docxError);
-            documentContent = `[Error parsing DOCX: ${docxError.message}. Please try saving as TXT or PDF format.]`;
+            console.error('DOCX/DOC parsing error:', docxError);
+            documentContent = `[Error parsing DOCX/DOC: ${docxError.message}. Please try saving as TXT or PDF format.]`;
           }
         }
         // Handle DOC files (older Word format)
