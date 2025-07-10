@@ -1547,135 +1547,270 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
     }
   });
   
-  // Document analysis endpoint
-  app.post("/api/analyze/document", async (req, res) => {
+  // Document analysis endpoint - COMPLETELY REMOVED
+  
+  // Chat endpoint to continue conversation with AI
+  app.post("/api/chat", async (req, res) => {
     try {
-      const { fileData, fileName, fileType, sessionId, selectedModel = "openai", title } = req.body;
+      const { content, sessionId, selectedModel = "openai" } = req.body;
       
-      if (!fileData || typeof fileData !== 'string') {
-        return res.status(400).json({ error: "Document data is required" });
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Message content is required" });
       }
       
       if (!sessionId) {
         return res.status(400).json({ error: "Session ID is required" });
       }
       
-      console.log(`Processing document analysis with model: ${selectedModel}, file: ${fileName}, fileType: ${fileType}`);
-      console.log(`File type match check: pdf=${fileType === "pdf"}, ends with pdf=${fileName.toLowerCase().endsWith('.pdf')}, app/pdf=${fileType === "application/pdf"}`);
+      console.log(`Processing chat with model: ${selectedModel}, sessionId: ${sessionId}`);
       
-      // Extract base64 content from data URL
-      const base64Data = fileData.split(',')[1];
-      if (!base64Data) {
-        return res.status(400).json({ error: "Invalid document data format" });
+      // Get existing messages for this session
+      const existingMessages = await storage.getMessagesBySessionId(sessionId);
+      const analysisId = existingMessages.length > 0 ? existingMessages[0].analysisId : null;
+      
+      // Create user message
+      const userMessage = await storage.createMessage({
+        sessionId,
+        analysisId,
+        role: "user",
+        content
+      });
+      
+      // Get analysis if available
+      let analysisContext = "";
+      if (analysisId) {
+        const analysis = await storage.getAnalysisById(analysisId);
+        if (analysis && analysis.personalityInsights) {
+          // Add the analysis context for better AI responses
+          analysisContext = "This conversation is about a personality analysis. Here's the context: " + 
+            JSON.stringify(analysis.personalityInsights);
+        }
       }
       
-      // Save the document to a temporary file
-      const fileBuffer = Buffer.from(base64Data, 'base64');
-      const tempDocPath = path.join(tempDir, `doc_${Date.now()}_${fileName}`);
-      await writeFileAsync(tempDocPath, fileBuffer);
+      // Format the conversation history for the AI
+      const conversationHistory = existingMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
       
-      // Extract document content for analysis
-      let documentContent = "";
-      try {
-        // Handle text files and common text-based formats
-        if (fileType === "txt" || fileName.toLowerCase().endsWith('.txt') || 
-            fileType === "text/plain") {
-          documentContent = fileBuffer.toString('utf-8');
-          console.log('Extracted TXT document content length:', documentContent.length, 'characters');
-          console.log('TXT document content preview:', documentContent.substring(0, 100) + '...');
-        } 
-        // Handle PDF files using Python parser
-        else if (fileType === "pdf" || fileName.toLowerCase().endsWith('.pdf') || 
-                 fileType === "application/pdf") {
-          console.log('Parsing PDF document with Python parser...');
-          try {
-            // Save file temporarily for Python processing
-            const tempPath = `/tmp/temp_pdf_${Date.now()}.pdf`;
-            await fs.writeFile(tempPath, fileBuffer);
-            
-            // Use Python parser
-            const pythonProcess = spawn('python3', ['document_parser.py', tempPath]);
-            
-            let pythonOutput = '';
-            let pythonError = '';
-            
-            pythonProcess.stdout.on('data', (data) => {
-              pythonOutput += data.toString();
-            });
-            
-            pythonProcess.stderr.on('data', (data) => {
-              pythonError += data.toString();
-            });
-            
-            await new Promise((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                console.error('Python parser timeout for PDF - killing process');
-                pythonProcess.kill();
-                reject(new Error('Python parser timeout after 30 seconds'));
-              }, 30000); // 30 second timeout
-              
-              pythonProcess.on('close', (code) => {
-                clearTimeout(timeout);
-                if (code === 0) {
-                  resolve(code);
-                } else {
-                  reject(new Error(`Python parser exited with code ${code}: ${pythonError}`));
-                }
-              });
-            });
-            
-            // Clean up temp file
-            await fs.unlink(tempPath).catch(() => {});
-            
-            // Parse Python output
-            const result = JSON.parse(pythonOutput);
-            
-            if (result.error) {
-              console.error('Python PDF parser error:', result.error);
-              documentContent = `[Error parsing PDF: ${result.error}]`;
-            } else {
-              documentContent = result.text;
-              console.log(`PDF extracted successfully: ${result.length} characters, ${result.pages_processed} pages, ${result.ocr_pages} OCR pages, method: ${result.method}`);
-              console.log('PDF content preview:', documentContent.substring(0, 200) + '...');
-            }
-          } catch (pdfError) {
-            console.error('PDF parsing error:', pdfError);
-            documentContent = `[Error parsing PDF: ${pdfError.message}. Please try uploading a different format or check if the PDF is corrupted.]`;
+      // Add the new user message
+      conversationHistory.push({
+        role: "user",
+        content
+      });
+      
+      // Get AI response based on selected model
+      let aiResponseText: string;
+      
+      if (selectedModel === "openai" && openai) {
+        console.log('Using OpenAI for chat');
+        const systemPrompt = analysisContext ? 
+          `You are an AI assistant specialized in personality analysis. ${analysisContext}` :
+          "You are an AI assistant specialized in personality analysis. Be helpful, informative, and engaging.";
+        
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+          messages: [
+            { 
+              role: "system", 
+              content: systemPrompt
+            },
+            ...conversationHistory.map(msg => ({
+              role: msg.role as any,
+              content: msg.content
+            }))
+          ]
+        });
+        
+        aiResponseText = completion.choices[0].message.content || "";
+      } 
+      else if (selectedModel === "anthropic" && anthropic) {
+        console.log('Using Anthropic for chat');
+        const systemPrompt = analysisContext ? 
+          `You are an AI assistant specialized in personality analysis. ${analysisContext}` :
+          "You are an AI assistant specialized in personality analysis. Be helpful, informative, and engaging.";
+          
+        // Format conversation history for Claude
+        const messages = conversationHistory.map(msg => ({
+          role: msg.role as any, 
+          content: msg.content
+        }));
+        
+        const response = await anthropic.messages.create({
+          model: "claude-3-7-sonnet-20250219", // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+          max_tokens: 4000,
+          system: systemPrompt,
+          messages
+        });
+        
+        aiResponseText = response.content[0].text;
+      }
+      else if (selectedModel === "perplexity" && process.env.PERPLEXITY_API_KEY) {
+        console.log('Using Perplexity for chat');
+        // Format conversation for Perplexity
+        // We need to format the entire conversation as a single prompt
+        let formattedConversation = "You are an AI assistant specialized in personality analysis. ";
+        if (analysisContext) {
+          formattedConversation += analysisContext + "\n\n";
+        }
+        
+        formattedConversation += "Here's the conversation so far:\n\n";
+        
+        for (const message of conversationHistory) {
+          formattedConversation += `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content}\n\n`;
+        }
+        
+        formattedConversation += "Please provide your next response as the assistant:";
+        
+        const response = await perplexity.query({
+          model: "llama-3.1-sonar-small-128k-online",
+          query: formattedConversation
+        });
+        
+        aiResponseText = response.text;
+      }
+      else if (selectedModel === "deepseek" && process.env.DEEPSEEK_API_KEY) {
+        console.log('Using DeepSeek for chat');
+        const systemPrompt = analysisContext ? 
+          `You are an AI assistant specialized in personality analysis. ${analysisContext}` :
+          "You are an AI assistant specialized in personality analysis. Be helpful, informative, and engaging.";
+        
+        const completion = await deepseek.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [
+            { 
+              role: "system", 
+              content: systemPrompt
+            },
+            ...conversationHistory.map(msg => ({
+              role: msg.role as any,
+              content: msg.content
+            }))
+          ]
+        });
+        
+        aiResponseText = completion.choices[0].message.content || "";
+      }
+      else {
+        return res.status(503).json({ 
+          error: "Selected AI model is not available. Please try again with a different model." 
+        });
+      }
+      
+      // Create AI response message
+      const aiMessage = await storage.createMessage({
+        sessionId,
+        analysisId,
+        role: "assistant",
+        content: aiResponseText
+      });
+      
+      // Return both the user message and AI response
+      res.json({
+        messages: [userMessage, aiMessage],
+        success: true
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to process chat message" });
+      }
+    }
+  });
+  
+  app.post("/api/analyze", async (req, res) => {
+    try {
+      // Use the new schema that supports both image and video with optional maxPeople
+      const { mediaData, mediaType, sessionId, maxPeople = 5, selectedModel = "deepseek", videoSegmentStart = 0, videoSegmentDuration = 3 } = uploadMediaSchema.parse(req.body);
+
+      // Extract base64 data
+      const base64Data = mediaData.replace(/^data:(image|video)\/\w+;base64,/, "");
+      const mediaBuffer = Buffer.from(base64Data, 'base64');
+
+      let faceAnalysis: any = [];
+      let videoAnalysis: any = null;
+      let audioTranscription: any = null;
+      
+      // Process based on media type
+      if (mediaType === "image") {
+        // For images, use multi-person face analysis
+        console.log(`Analyzing image for up to ${maxPeople} people...`);
+        faceAnalysis = await analyzeFaceWithRekognition(mediaBuffer, maxPeople);
+        console.log(`Detected ${Array.isArray(faceAnalysis) ? faceAnalysis.length : 1} people in the image`);
+      } else {
+        // For videos, we use the new 3-second segment approach
+        try {
+          console.log(`Video size: ${mediaBuffer.length / 1024 / 1024} MB`);
+          
+          // Save video to temp file
+          const randomId = Math.random().toString(36).substring(2, 15);
+          const videoPath = path.join(tempDir, `${randomId}.mp4`);
+          
+          // Write the video file temporarily
+          await writeFileAsync(videoPath, mediaBuffer);
+          
+          // Get video duration using ffprobe
+          const videoDuration = await getVideoDuration(videoPath);
+          console.log(`Video duration: ${videoDuration} seconds`);
+          
+          // Extract the specific 3-second segment requested
+          const segmentPath = path.join(tempDir, `${randomId}_segment.mp4`);
+          const actualDuration = Math.min(videoSegmentDuration, videoDuration - videoSegmentStart);
+          
+          if (actualDuration <= 0) {
+            throw new Error(`Invalid segment: starts at ${videoSegmentStart}s but video is only ${videoDuration}s long`);
           }
-        }
-        // Handle DOCX/DOC files using Node.js mammoth library (fast and reliable)
-        else if (fileType === "docx" || fileName.toLowerCase().endsWith('.docx') || 
-                 fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-                 fileType === "doc" || fileName.toLowerCase().endsWith('.doc') ||
-                 fileType === "application/msword") {
-          console.log('Parsing DOCX/DOC document with mammoth library...');
+          
+          console.log(`Extracting ${actualDuration}s segment starting at ${videoSegmentStart}s...`);
+          await extractVideoSegment(videoPath, videoSegmentStart, actualDuration, segmentPath);
+          
+          // Process the segment instead of the full video
+          const segmentBuffer = await fs.promises.readFile(segmentPath);
+          
+          // Now process the video segment
+          console.log(`Processing video segment: ${segmentBuffer.length / 1024 / 1024} MB`);
+          
+          // Face analysis on the segment
           try {
-            const docResult = await mammoth.extractRawText({buffer: fileBuffer});
-            documentContent = docResult.value;
-            console.log('Extracted DOCX/DOC document content length:', documentContent.length, 'characters');
-            console.log('DOCX/DOC document content preview:', documentContent.substring(0, 200) + '...');
-            
-            // Check if extraction was successful
-            if (!documentContent || documentContent.length < 10) {
-              console.log('DOCX/DOC extraction failed, trying HTML extraction...');
-              // Try with HTML extraction as fallback
-              const htmlResult = await mammoth.convertToHtml({buffer: fileBuffer});
-              const textFromHtml = htmlResult.value.replace(/<[^>]*>/g, '').trim();
-              documentContent = textFromHtml || `[Unable to extract meaningful text from DOCX/DOC file. Please try saving as TXT or PDF format.]`;
-              console.log('Alternative DOCX/DOC extraction result length:', documentContent.length, 'characters');
-            }
-          } catch (docError) {
-            console.error('DOCX/DOC parsing error:', docError);
-            documentContent = `[Error parsing DOCX/DOC: ${docError.message}. Please try saving as TXT or PDF format.]`;
+            faceAnalysis = await analyzeFaces(segmentBuffer, maxPeople);
+            console.log(`Face analysis completed for ${Array.isArray(faceAnalysis) ? faceAnalysis.length : 1} people`);
+          } catch (faceError) {
+            console.error('Face analysis error:', faceError);
+            faceAnalysis = [];
           }
+          
+          // Audio transcription from the segment
+          try {
+            audioTranscription = await extractAudioTranscription(segmentPath);
+            console.log('Audio transcription completed');
+          } catch (audioError) {
+            console.error('Audio transcription error:', audioError);
+            audioTranscription = null;
+          }
+          
+          // Video analysis using Azure Video Indexer
+          try {
+            videoAnalysis = await analyzeVideoWithAzureIndexer(segmentBuffer);
+            console.log('Video analysis completed');
+          } catch (videoError) {
+            console.error('Video analysis error:', videoError);
+            videoAnalysis = null;
+          }
+          
+          // Clean up temporary files
+          try {
+            await fs.promises.unlink(videoPath);
+            await fs.promises.unlink(segmentPath);
+          } catch (cleanupError) {
+            console.warn('Error cleaning up temporary files:', cleanupError);
+          }
+          
+        } catch (videoError) {
+          console.error('Video processing error:', videoError);
+          throw new Error(`Video processing failed: ${videoError.message}`);
         }
-        else {
-          documentContent = `[Unsupported file type: ${fileType}. Please upload TXT, PDF, DOC, or DOCX files.]`;
-          console.log('Unsupported file type:', fileType);
-        }
-      } catch (e) {
-        console.error('Error extracting document content:', e);
-        documentContent = `[Unable to extract text from ${fileType} file: ${e.message}]`;
       }
 
       // Debug: Log the final extracted content

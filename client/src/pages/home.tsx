@@ -13,7 +13,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
 import { Upload, Send, FileImage, Film, Share2, AlertCircle, FileText, File, Download } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -112,7 +112,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
-  const [documentName, setDocumentName] = useState<string>("");
+  // Document analysis removed
   
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
@@ -126,7 +126,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const documentInputRef = useRef<HTMLInputElement>(null);
+  // Document input removed
 
   // Available services state
   const [availableServices, setAvailableServices] = useState<{
@@ -294,81 +294,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
   });
 
-  // Document analysis with file upload
-  const handleDocumentAnalysis = useMutation({
-    mutationFn: async (file: File) => {
-      try {
-        setIsAnalyzing(true);
-        setAnalysisProgress(10);
-        setMessages([]);
-        
-        setDocumentName(file.name);
-        setAnalysisProgress(30);
-        
-        // Read the file as data URL
-        const reader = new FileReader();
-        const fileData = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(file);
-        });
-        
-        setAnalysisProgress(50);
-        
-        // Determine file type
-        const fileExt = file.name.split('.').pop()?.toLowerCase();
-        const fileType = fileExt === 'pdf' ? 'pdf' : 'docx';
-        
-        const response = await analyzeDocument(
-          fileData,
-          file.name,
-          fileType,
-          sessionId,
-          selectedModel
-        );
-        
-        setAnalysisProgress(80);
-        setAnalysisId(response.analysisId);
-        
-        if (response.messages && response.messages.length > 0) {
-          setMessages(response.messages);
-        }
-        
-        setAnalysisProgress(100);
-        return response;
-      } catch (error: any) {
-        console.error('Document analysis error:', error);
-        toast({
-          title: "Analysis Failed",
-          description: error.message || "Failed to analyze document. Please try again.",
-          variant: "destructive",
-        });
-        setAnalysisProgress(0);
-        throw error;
-      } finally {
-        setIsAnalyzing(false);
-      }
-    },
-    onSuccess: (data) => {
-      // Get all messages for the session to be sure we have the latest
-      if (data?.analysisId) {
-        // If we received an analysis ID, try to fetch any messages related to it
-        fetch(`/api/messages?sessionId=${sessionId}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && Array.isArray(data) && data.length > 0) {
-              console.log("Fetched messages after document analysis:", data);
-              setMessages(data);
-            }
-          })
-          .catch(err => console.error("Error fetching messages after document analysis:", err));
-      }
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Your document has been successfully analyzed.",
-      });
-    }
-  });
+  // Document analysis removed
 
   // Media upload and analysis
   const handleUploadMedia = useMutation({
@@ -580,18 +506,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     
     if (fileType === 'image' || fileType === 'video') {
       handleUploadMedia.mutate(file);
-    } else if (
-      file.type === 'application/pdf' || 
-      file.type === 'application/msword' || 
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.type === 'text/plain'
-    ) {
-      handleDocumentAnalysis.mutate(file);
     } else {
       toast({
         variant: "destructive",
         title: "Unsupported File Type",
-        description: "Please upload an image, video, PDF, DOC, DOCX, or TXT file."
+        description: "Please upload an image or video file."
       });
     }
   };
@@ -648,29 +567,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
   };
   
-  const handleDocumentClick = () => {
-    if (documentInputRef.current) {
-      documentInputRef.current.click();
-    }
-  };
+  // Document functionality removed
   
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'media' | 'document') => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (type === 'media') {
-        const fileType = file.type.split('/')[0];
-        if (fileType === 'image' || fileType === 'video') {
-          handleUploadMedia.mutate(file);
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Unsupported File Type",
-            description: "Please upload an image or video file."
-          });
-        }
+      const fileType = file.type.split('/')[0];
+      if (fileType === 'image' || fileType === 'video') {
+        handleUploadMedia.mutate(file);
       } else {
-        handleDocumentAnalysis.mutate(file);
+        toast({
+          variant: "destructive",
+          title: "Unsupported File Type",
+          description: "Please upload an image or video file."
+        });
       }
     }
   };
@@ -783,7 +694,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           {/* Upload Options */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Step 2: Choose Input Type</h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center" 
@@ -797,24 +708,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   type="file"
                   accept="image/*,video/*"
                   style={{ display: 'none' }}
-                  onChange={(e) => handleFileInputChange(e, 'media')}
-                />
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="h-24 flex flex-col items-center justify-center" 
-                onClick={handleDocumentClick}
-                disabled={isAnalyzing}
-              >
-                <FileText className="h-8 w-8 mb-2" />
-                <span>Document</span>
-                <input
-                  ref={documentInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  style={{ display: 'none' }}
-                  onChange={(e) => handleFileInputChange(e, 'document')}
+                  onChange={(e) => handleFileInputChange(e)}
                 />
               </Button>
               
@@ -846,7 +740,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 Drag & drop files here to analyze
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports JPG, PNG, MP4, MOV, PDF, DOC, DOCX (max 50MB)
+                Supports JPG, PNG, MP4, MOV (max 50MB)
               </p>
             </div>
           </Card>
@@ -855,13 +749,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Input Preview</h2>
-              {!uploadedMedia && !documentName && (
+              {!uploadedMedia && (
                 <Button 
                   variant="outline" 
                   onClick={() => {
                     // Clear other inputs and focus on text
                     setUploadedMedia(null);
-                    setDocumentName("");
                     setTextInput(textInput || "");
                   }}
                   className="flex items-center gap-2"
@@ -1168,41 +1061,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
             
-            {documentName && (
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg flex items-center">
-                  <FileText className="w-6 h-6 mr-2" />
-                  <span>{documentName}</span>
-                </div>
-                <div className="text-center text-sm text-muted-foreground mb-4">
-                  Document content will be analyzed for personality insights
-                </div>
-                
-                {/* Re-analyze with current model button */}
-                <Button 
-                  onClick={() => {
-                    // Here we should trigger re-analysis of the current document
-                    // with the currently selected model, but we need actual document data
-                    // Since we don't store the file data after upload, we'll need to prompt
-                    // user to re-upload the file
-                    toast({
-                      title: "Re-upload Required",
-                      description: "Please re-upload the document to analyze with the new model.",
-                    });
-                    // Clear document name to allow re-upload
-                    setDocumentName("");
-                    // Focus on document upload
-                    handleDocumentClick();
-                  }}
-                  className="w-full"
-                  disabled={isAnalyzing}
-                >
-                  Re-Analyze with {getModelDisplayName(selectedModel)}
-                </Button>
-              </div>
-            )}
+            {/* Document functionality removed */}
             
-            {!uploadedMedia && !documentName && (
+            {!uploadedMedia && (
               <form onSubmit={handleTextSubmit} className="space-y-4">
                 <Textarea
                   value={textInput}
@@ -1249,7 +1110,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       setMessages([]);
                       setUploadedMedia(null);
                       setMediaData(null);
-                      setDocumentName("");
                       setTextInput("");
                       setAnalysisId(null);
                       setAnalysisProgress(0);
