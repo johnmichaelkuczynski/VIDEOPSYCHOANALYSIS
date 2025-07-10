@@ -1,0 +1,119 @@
+**Instructions for Replit Agent: Psychoanalytic Text Analyzer App (Upgraded Version)**
+
+**Purpose:**
+Upgrade the existing app (currently analyzing people via photo input) by adding a robust **Text-Based Psychoanalysis** module. The user can upload a document of **any length**, and the app performs deep psychological profiling based on selected text.
+
+---
+
+### 1. **Document Upload Requirements**
+
+* Support **PDF, DOCX, TXT** formats.
+* Must preserve **all original formatting**, including:
+
+  * Bold/italic/underline
+  * Lists (ordered/unordered)
+  * Paragraph spacing and indentation
+  * Block quotes and footnotes
+  * Tables, columns, and headers
+  * **Math notation** (KaTeX/MathJax rendered inline and block)
+* PDF parsing must **not flatten the document** into one block of text. Retain logical and visual structure.
+
+### 2. **Chunking and Selection UI**
+
+* Upon upload, the document must be **automatically chunked** into logical units:
+
+  * Default chunk size: \~800 words or natural break points (e.g., section headers, paragraph clusters)
+  * Each chunk should appear in a **scrollable preview list**
+* User can:
+
+  * Highlight any portion of the text manually (inline selection)
+  * OR select/deselect full chunks via checkboxes
+* Selected content is passed to the LLM for psychological analysis.
+
+---
+
+### 3. **Psychological Metric Analysis**
+
+The app must extract and score **25 psychological metrics** from the selected text. The output includes a scored profile and a brief explanation of each metric.
+
+**The 25 Metrics:**
+
+1. **Dominant Cognitive Style** (analytical, associative, narrative)
+2. **Emotional Tone** (positive/negative/neutral spectrum)
+3. **Emotional Range** (narrow vs. broad affective spectrum)
+4. **Aggression Index** (level of expressed hostility/assertiveness)
+5. **Defensiveness Quotient** (denial, projection, reaction formation)
+6. **Depth of Insight** (ability to reflect, self-theorize)
+7. **Sublimation Tendency** (conversion of drives into abstract expression)
+8. **Ego Strength** (resilience, coherence, control)
+9. **Paranoia Score** (presence of suspicious or persecutory content)
+10. **Grandiosity Indicator** (inflated self-reference, superiority)
+11. **Fragmentation Signal** (semantic and stylistic disintegration)
+12. **Impulse Control Level** (planning vs. spontaneity)
+13. **Self vs. Other Focus** (egocentric vs. empathetic frame)
+14. **Reality Contact** (coherence, grounding, logical structure)
+15. **Fantasy Engagement** (detachment from ordinary causality/reality)
+16. **Temporal Focus** (past-, present-, or future-oriented)
+17. **Idealization/Devaluation Pattern** (black-and-white evaluation trends)
+18. **Moral Posturing** (rhetorical virtue-signaling)
+19. **Intellectualization** (affect deflection via abstraction)
+20. **Repression Leakage** (unconscious content surfacing indirectly)
+21. **Projection Density** (externalization of internal conflict)
+22. **Dissociation Marker** (disjointed self-reference or detachment)
+23. **Libidinal Energy Expression** (sensual/erotic symbolic density)
+24. **Narrative Consistency** (temporal and conceptual integrity)
+25. **Symbolic Complexity** (metaphorical layering and ideogram use)
+
+Each metric will have:
+
+* A **numerical score** (0 to 100)
+* A **short explanation** (1–2 sentences)
+* A **toggle** to expand for deeper commentary and specific quotes/examples
+
+---
+
+### 4. **Output Display Requirements**
+
+* Display all 25 metrics in a **scrollable, expandable card layout**
+* Each card should include:
+
+  * Title of metric
+  * Score (0–100 scale with bar/graph)
+  * One-sentence summary
+  * Expand toggle: shows rationale, quotes from user text, and suggested edits
+* Add **"Regenerate Analysis"** and **"Refine Analysis"** buttons:
+
+  * *Regenerate* = re-run the LLM pass
+  * *Refine* = ask follow-up questions to improve accuracy
+
+---
+
+### 5. **Export and Send Functionality**
+
+* User can:
+
+  * Download entire report as **PDF** (styled, clean)
+  * Email report via **SendGrid**
+  * Export scores as **CSV** for further use
+
+---
+
+### 6. **LLM Integration and Rendering**
+
+* Use OpenAI, Claude, DeepSeek, or Perplexity as engine for analysis
+* Must support **chunked inference logic** (i.e., aggregate analysis across chunks)
+* Render KaTeX/MathJax in both display pane and final output
+
+---
+
+### 7. **Must-Have Behaviors**
+
+* Flawless formatting preservation
+* No hard token limits; use chunking + aggregation
+* High interactivity: scrollable UI, clickable metric boxes
+* Smart prompt routing: feed LLM only selected text
+* Modular backend: allow for future expansion (e.g. Concept Lattice overlay, sentiment trajectory graphs, etc.)
+
+---
+
+**VERBATIM INSTRUCTION:** Give this document to the Replit agent. Say: “Build this exactly. Do not simplify, generalize, or skip steps. This document is your build specification.”

@@ -144,7 +144,49 @@ export async function analyzeText(
   return data;
 }
 
-// Document analysis removed
+export async function analyzeDocument(
+  fileData: string,
+  fileName: string,
+  fileType: string,
+  sessionId: string,
+  selectedModel: ModelType = "deepseek",
+  title?: string
+) {
+  console.log(`Analyzing document with model: ${selectedModel}, sessionId: ${sessionId}`);
+  
+  const res = await apiRequest("POST", "/api/analyze/document", { 
+    fileData,
+    fileName,
+    fileType,
+    sessionId,
+    selectedModel,
+    title
+  });
+  
+  const data = await res.json();
+  console.log("Document analysis response:", data);
+  
+  return data;
+}
+
+export async function analyzeDocumentChunks(
+  analysisId: number,
+  selectedChunks: number[],
+  selectedModel: ModelType = "deepseek"
+) {
+  console.log(`Analyzing document chunks with model: ${selectedModel}, analysisId: ${analysisId}`);
+  
+  const res = await apiRequest("POST", "/api/analyze/document-chunks", { 
+    analysisId,
+    selectedChunks,
+    selectedModel
+  });
+  
+  const data = await res.json();
+  console.log("Document chunks analysis response:", data);
+  
+  return data;
+}
 
 export async function shareAnalysis(analysisId: number, senderEmail: string, recipientEmail: string) {
   const res = await apiRequest("POST", "/api/share", { 

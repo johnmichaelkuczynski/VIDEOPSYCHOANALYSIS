@@ -13,8 +13,8 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
-import { Upload, Send, FileImage, Film, Share2, AlertCircle, FileText, File, Download } from "lucide-react";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, analyzeDocumentChunks, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
+import { Upload, Send, FileImage, Film, Share2, AlertCircle, FileText, File, Download, Check, Eye, RefreshCw } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -112,7 +112,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
-  // Document analysis removed
+  
+  // Document analysis states
+  const [documentChunks, setDocumentChunks] = useState<any[]>([]);
+  const [selectedChunks, setSelectedChunks] = useState<number[]>([]);
+  const [documentFileName, setDocumentFileName] = useState<string>("");
+  const [documentFileType, setDocumentFileType] = useState<string>("");
+  const [metricsAnalysis, setMetricsAnalysis] = useState<any>(null);
+  const [expandedMetrics, setExpandedMetrics] = useState<Set<number>>(new Set());
+  const [showChunkSelection, setShowChunkSelection] = useState(false);
   
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
@@ -126,7 +134,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Document input removed
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   // Available services state
   const [availableServices, setAvailableServices] = useState<{
@@ -567,7 +575,172 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
   };
   
-  // Document functionality removed
+  // Document upload handler
+  const handleDocumentClick = () => {
+    if (documentInputRef.current) {
+      documentInputRef.current.click();
+    }
+  };
+  
+  const handleDocumentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type === 'application/pdf' || 
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+          file.type === 'text/plain') {
+        handleDocumentUpload.mutate(file);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Unsupported File Type",
+          description: "Please upload a PDF, DOCX, or TXT file."
+        });
+      }
+    }
+  };
+  
+  // Document upload mutation
+  const handleDocumentUpload = useMutation({
+    mutationFn: async (file: File) => {
+      setIsAnalyzing(true);
+      setAnalysisProgress(10);
+      
+      const reader = new FileReader();
+      return new Promise((resolve, reject) => {
+        reader.onload = async (e) => {
+          try {
+            const fileData = e.target?.result as string;
+            setAnalysisProgress(30);
+            
+            const response = await analyzeDocument(
+              fileData,
+              file.name,
+              file.type,
+              sessionId,
+              selectedModel
+            );
+            
+            setAnalysisProgress(50);
+            
+            if (response && response.analysisId) {
+              setAnalysisId(response.analysisId);
+              setDocumentChunks(response.chunks || []);
+              setDocumentFileName(file.name);
+              setDocumentFileType(file.type);
+              setShowChunkSelection(true);
+              setAnalysisProgress(100);
+            }
+            
+            resolve(response);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Document Uploaded",
+        description: "Select text chunks to analyze with 25 psychological metrics.",
+      });
+      setIsAnalyzing(false);
+    },
+    onError: (error: any) => {
+      console.error("Document upload error:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message || "Failed to upload document. Please try again.",
+      });
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+    },
+  });
+  
+  // Document chunks analysis mutation
+  const handleChunkAnalysis = useMutation({
+    mutationFn: async ({ analysisId, selectedChunks }: { analysisId: number, selectedChunks: number[] }) => {
+      setIsAnalyzing(true);
+      setAnalysisProgress(10);
+      
+      const response = await analyzeDocumentChunks(
+        analysisId,
+        selectedChunks,
+        selectedModel
+      );
+      
+      setAnalysisProgress(90);
+      
+      if (response && response.metricsAnalysis) {
+        setMetricsAnalysis(response.metricsAnalysis);
+        
+        // Add message to chat
+        if (response.message) {
+          setMessages(prev => [...prev, response.message]);
+        }
+        
+        setAnalysisProgress(100);
+      }
+      
+      return response;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Analysis Complete",
+        description: "25 psychological metrics have been analyzed.",
+      });
+      setIsAnalyzing(false);
+    },
+    onError: (error: any) => {
+      console.error("Chunk analysis error:", error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze chunks. Please try again.",
+      });
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+    },
+  });
+  
+  // Toggle chunk selection
+  const toggleChunkSelection = (chunkId: number) => {
+    setSelectedChunks(prev => 
+      prev.includes(chunkId) 
+        ? prev.filter(id => id !== chunkId)
+        : [...prev, chunkId]
+    );
+  };
+  
+  // Toggle metric expansion
+  const toggleMetricExpansion = (metricIndex: number) => {
+    setExpandedMetrics(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(metricIndex)) {
+        newSet.delete(metricIndex);
+      } else {
+        newSet.add(metricIndex);
+      }
+      return newSet;
+    });
+  };
+  
+  // Analyze selected chunks
+  const analyzeSelectedChunks = () => {
+    if (!analysisId || selectedChunks.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Chunks Selected",
+        description: "Please select at least one chunk to analyze.",
+      });
+      return;
+    }
+    
+    handleChunkAnalysis.mutate({ analysisId, selectedChunks });
+  };
   
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -694,7 +867,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           {/* Upload Options */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Step 2: Choose Input Type</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center" 
@@ -720,6 +893,23 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               >
                 <Film className="h-8 w-8 mb-2" />
                 <span>Video</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center" 
+                onClick={handleDocumentClick}
+                disabled={isAnalyzing}
+              >
+                <File className="h-8 w-8 mb-2" />
+                <span>Document</span>
+                <input
+                  ref={documentInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleDocumentInputChange(e)}
+                />
               </Button>
             </div>
             
@@ -1061,7 +1251,137 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
             
-            {/* Document functionality removed */}
+            {/* Document Chunk Selection */}
+            {showChunkSelection && documentChunks.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Select Document Chunks</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  File: {documentFileName} | {documentChunks.length} chunks | Select chunks to analyze
+                </p>
+                
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {documentChunks.map((chunk) => (
+                    <div
+                      key={chunk.id}
+                      className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                        selectedChunks.includes(chunk.id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => toggleChunkSelection(chunk.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                            selectedChunks.includes(chunk.id)
+                              ? 'bg-blue-500 border-blue-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedChunks.includes(chunk.id) && (
+                              <Check className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                          <span className="text-sm font-medium">Chunk {chunk.id}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{chunk.wordCount} words</span>
+                      </div>
+                      <p className="text-sm text-gray-700 mt-2">{chunk.preview}</p>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="mt-4 flex justify-between items-center">
+                  <p className="text-sm text-gray-600">
+                    {selectedChunks.length} chunks selected
+                  </p>
+                  <Button 
+                    onClick={analyzeSelectedChunks}
+                    disabled={selectedChunks.length === 0 || isAnalyzing}
+                    className="flex items-center space-x-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Analyze Selected</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 25 Metrics Display */}
+            {metricsAnalysis && metricsAnalysis.metrics && (
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">25 Psychological Metrics</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (analysisId && selectedChunks.length > 0) {
+                        handleChunkAnalysis.mutate({ analysisId, selectedChunks });
+                      }
+                    }}
+                    disabled={isAnalyzing || !analysisId || selectedChunks.length === 0}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Regenerate
+                  </Button>
+                </div>
+                
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {metricsAnalysis.metrics.map((metric: any, index: number) => (
+                    <div
+                      key={index}
+                      className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => toggleMetricExpansion(index)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-sm">{metric.name}</h4>
+                          <p className="text-xs text-gray-600 mt-1">{metric.explanation}</p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right">
+                            <div className="text-lg font-bold">{metric.score}</div>
+                            <div className="text-xs text-gray-500">/100</div>
+                          </div>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${metric.score}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {expandedMetrics.has(index) && (
+                        <div className="mt-3 pt-3 border-t">
+                          <h5 className="font-medium text-sm mb-2">Detailed Analysis</h5>
+                          <p className="text-sm text-gray-700 mb-3">{metric.detailedAnalysis}</p>
+                          
+                          {metric.quotes && metric.quotes.length > 0 && (
+                            <div>
+                              <h6 className="font-medium text-sm mb-2">Key Quotes</h6>
+                              <div className="space-y-1">
+                                {metric.quotes.map((quote: string, quoteIndex: number) => (
+                                  <div key={quoteIndex} className="bg-gray-100 p-2 rounded text-sm italic">
+                                    "{quote}"
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-gray-500 text-center">
+                    Click on any metric to view detailed analysis and quotes
+                  </p>
+                </div>
+              </div>
+            )}
             
             {!uploadedMedia && (
               <form onSubmit={handleTextSubmit} className="space-y-4">

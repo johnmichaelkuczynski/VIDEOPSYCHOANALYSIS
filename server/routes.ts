@@ -180,6 +180,173 @@ const unlinkAsync = promisify(fs.unlink);
 const bucketName = 'ai-personality-videos';
 
 /**
+ * Helper function to create document chunks (~800 words each)
+ */
+function createDocumentChunks(plainContent: string, formattedContent?: string): any[] {
+  const words = plainContent.split(/\s+/);
+  const chunks = [];
+  const chunkSize = 800;
+  
+  // Split by paragraphs first for better logical breaks
+  const paragraphs = plainContent.split(/\n\s*\n/);
+  
+  let currentChunk = '';
+  let currentWordCount = 0;
+  let chunkId = 1;
+  
+  for (const paragraph of paragraphs) {
+    const paragraphWords = paragraph.split(/\s+/).length;
+    
+    if (currentWordCount + paragraphWords > chunkSize && currentChunk) {
+      // Save current chunk
+      chunks.push({
+        id: chunkId++,
+        content: currentChunk.trim(),
+        wordCount: currentWordCount,
+        preview: currentChunk.trim().substring(0, 200) + '...',
+        selected: false
+      });
+      
+      // Start new chunk
+      currentChunk = paragraph;
+      currentWordCount = paragraphWords;
+    } else {
+      // Add to current chunk
+      currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+      currentWordCount += paragraphWords;
+    }
+  }
+  
+  // Add final chunk
+  if (currentChunk.trim()) {
+    chunks.push({
+      id: chunkId++,
+      content: currentChunk.trim(),
+      wordCount: currentWordCount,
+      preview: currentChunk.trim().substring(0, 200) + '...',
+      selected: false
+    });
+  }
+  
+  return chunks;
+}
+
+/**
+ * Helper function to generate 25 psychological metrics analysis
+ */
+async function generate25MetricsAnalysis(text: string, selectedModel: string): Promise<any> {
+  const metricsPrompt = `
+You are an expert psychoanalyst. Analyze the following text and provide scores (0-100) and explanations for these 25 psychological metrics:
+
+TEXT TO ANALYZE:
+${text}
+
+Provide a JSON response with this exact structure:
+{
+  "metrics": [
+    {
+      "name": "Dominant Cognitive Style",
+      "score": 75,
+      "explanation": "Brief 1-2 sentence explanation",
+      "detailedAnalysis": "Longer analysis with specific quotes and examples",
+      "quotes": ["relevant quote 1", "relevant quote 2"]
+    },
+    // ... repeat for all 25 metrics
+  ]
+}
+
+THE 25 METRICS TO ANALYZE:
+1. Dominant Cognitive Style (analytical, associative, narrative)
+2. Emotional Tone (positive/negative/neutral spectrum)
+3. Emotional Range (narrow vs. broad affective spectrum)
+4. Aggression Index (level of expressed hostility/assertiveness)
+5. Defensiveness Quotient (denial, projection, reaction formation)
+6. Depth of Insight (ability to reflect, self-theorize)
+7. Sublimation Tendency (conversion of drives into abstract expression)
+8. Ego Strength (resilience, coherence, control)
+9. Paranoia Score (presence of suspicious or persecutory content)
+10. Grandiosity Indicator (inflated self-reference, superiority)
+11. Fragmentation Signal (semantic and stylistic disintegration)
+12. Impulse Control Level (planning vs. spontaneity)
+13. Self vs. Other Focus (egocentric vs. empathetic frame)
+14. Reality Contact (coherence, grounding, logical structure)
+15. Fantasy Engagement (detachment from ordinary causality/reality)
+16. Temporal Focus (past-, present-, or future-oriented)
+17. Idealization/Devaluation Pattern (black-and-white evaluation trends)
+18. Moral Posturing (rhetorical virtue-signaling)
+19. Intellectualization (affect deflection via abstraction)
+20. Repression Leakage (unconscious content surfacing indirectly)
+21. Projection Density (externalization of internal conflict)
+22. Dissociation Marker (disjointed self-reference or detachment)
+23. Libidinal Energy Expression (sensual/erotic symbolic density)
+24. Narrative Consistency (temporal and conceptual integrity)
+25. Symbolic Complexity (metaphorical layering and ideogram use)
+
+Be thorough, provide specific quotes, and ensure all 25 metrics are included.
+`;
+
+  let analysisResult;
+  
+  if (selectedModel === "deepseek" && deepseek) {
+    const completion = await deepseek.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: "You are an expert psychoanalyst. Respond only with valid JSON." },
+        { role: "user", content: metricsPrompt }
+      ],
+      temperature: 0.7
+    });
+    
+    analysisResult = JSON.parse(completion.choices[0].message.content || "{}");
+  } else if (selectedModel === "openai" && openai) {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "You are an expert psychoanalyst. Respond only with valid JSON." },
+        { role: "user", content: metricsPrompt }
+      ],
+      temperature: 0.7
+    });
+    
+    analysisResult = JSON.parse(completion.choices[0].message.content || "{}");
+  } else if (selectedModel === "anthropic" && anthropic) {
+    const response = await anthropic.messages.create({
+      model: "claude-3-7-sonnet-20250219",
+      max_tokens: 4000,
+      system: "You are an expert psychoanalyst. Respond only with valid JSON.",
+      messages: [{ role: "user", content: metricsPrompt }]
+    });
+    
+    analysisResult = JSON.parse(response.content[0].text || "{}");
+  } else {
+    throw new Error("Selected AI model is not available");
+  }
+  
+  return analysisResult;
+}
+
+/**
+ * Helper function to format metrics for display
+ */
+function formatMetricsForDisplay(metricsAnalysis: any): string {
+  const metrics = metricsAnalysis.metrics || [];
+  
+  let formatted = "# Psychological Profile Analysis\n\n";
+  formatted += `Analysis completed on ${new Date().toLocaleDateString()}\n\n`;
+  formatted += "## Metrics Overview\n\n";
+  
+  metrics.forEach((metric: any, index: number) => {
+    formatted += `### ${index + 1}. ${metric.name}\n`;
+    formatted += `**Score:** ${metric.score}/100\n`;
+    formatted += `**Summary:** ${metric.explanation}\n\n`;
+  });
+  
+  formatted += "\n*Use the expandable cards below to view detailed analysis for each metric.*";
+  
+  return formatted;
+}
+
+/**
  * Helper function to get the duration of a video using ffprobe
  */
 async function getVideoDuration(videoPath: string): Promise<number> {
@@ -1547,7 +1714,226 @@ Remember: Be thorough, speculative where appropriate, and always anchor your ass
     }
   });
   
-  // Document analysis endpoint - COMPLETELY REMOVED
+  // Document analysis endpoint - NEW VERSION WITH CHUNKING AND 25 METRICS
+  app.post("/api/analyze/document", async (req, res) => {
+    try {
+      const { fileData, fileName, fileType, sessionId, selectedModel = "deepseek", title } = req.body;
+      
+      if (!fileData || typeof fileData !== 'string') {
+        return res.status(400).json({ error: "Document data is required" });
+      }
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+      
+      console.log(`Processing document analysis with model: ${selectedModel}, file: ${fileName}, fileType: ${fileType}`);
+      
+      // Extract base64 content from data URL
+      const base64Data = fileData.split(',')[1];
+      if (!base64Data) {
+        return res.status(400).json({ error: "Invalid document data format" });
+      }
+      
+      // Save the document to a temporary file
+      const fileBuffer = Buffer.from(base64Data, 'base64');
+      const tempDocPath = path.join(tempDir, `doc_${Date.now()}_${fileName}`);
+      await writeFileAsync(tempDocPath, fileBuffer);
+      
+      // Extract document content with formatting preservation
+      let documentContent = "";
+      let formattedContent = "";
+      
+      try {
+        if (fileType === "txt" || fileName.toLowerCase().endsWith('.txt') || 
+            fileType === "text/plain") {
+          documentContent = fileBuffer.toString('utf-8');
+          formattedContent = documentContent; // TXT files don't need special formatting
+          console.log('Extracted TXT document content length:', documentContent.length, 'characters');
+        } 
+        else if (fileType === "pdf" || fileName.toLowerCase().endsWith('.pdf') || 
+                 fileType === "application/pdf") {
+          console.log('Parsing PDF document with formatting preservation...');
+          
+          // Use Python parser for PDF with formatting
+          const tempPath = `/tmp/temp_pdf_${Date.now()}.pdf`;
+          await fs.writeFile(tempPath, fileBuffer);
+          
+          const pythonProcess = spawn('python3', ['document_parser.py', tempPath]);
+          
+          let pythonOutput = '';
+          let pythonError = '';
+          
+          pythonProcess.stdout.on('data', (data) => {
+            pythonOutput += data.toString();
+          });
+          
+          pythonProcess.stderr.on('data', (data) => {
+            pythonError += data.toString();
+          });
+          
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              console.error('Python parser timeout for PDF');
+              pythonProcess.kill();
+              reject(new Error('PDF parser timeout after 30 seconds'));
+            }, 30000);
+            
+            pythonProcess.on('close', (code) => {
+              clearTimeout(timeout);
+              if (code === 0) {
+                resolve(code);
+              } else {
+                reject(new Error(`PDF parser exited with code ${code}: ${pythonError}`));
+              }
+            });
+          });
+          
+          await fs.unlink(tempPath).catch(() => {});
+          
+          const result = JSON.parse(pythonOutput);
+          
+          if (result.error) {
+            throw new Error(`PDF parsing failed: ${result.error}`);
+          }
+          
+          documentContent = result.text;
+          formattedContent = result.formatted_text || result.text;
+          console.log(`PDF extracted: ${result.length} characters, ${result.pages_processed} pages`);
+        }
+        else if (fileType === "docx" || fileName.toLowerCase().endsWith('.docx') || 
+                 fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+          console.log('Parsing DOCX document with formatting preservation...');
+          
+          // Use mammoth for DOCX with HTML conversion to preserve formatting
+          const htmlResult = await mammoth.convertToHtml({buffer: fileBuffer});
+          formattedContent = htmlResult.value;
+          
+          // Also extract plain text for analysis
+          const textResult = await mammoth.extractRawText({buffer: fileBuffer});
+          documentContent = textResult.value;
+          
+          console.log('Extracted DOCX document content length:', documentContent.length, 'characters');
+        }
+        else {
+          throw new Error(`Unsupported file type: ${fileType}. Please upload TXT, PDF, or DOCX files.`);
+        }
+      } catch (e) {
+        console.error('Error extracting document content:', e);
+        throw new Error(`Failed to extract text from ${fileType} file: ${e.message}`);
+      }
+      
+      // Clean up temporary file
+      try {
+        await unlinkAsync(tempDocPath);
+      } catch (e) {
+        console.warn("Error removing temporary document file:", e);
+      }
+      
+      // Create chunks (~800 words each)
+      const chunks = createDocumentChunks(documentContent, formattedContent);
+      
+      // Create analysis record with chunks
+      const analysis = await storage.createAnalysis({
+        sessionId,
+        mediaUrl: `document:${Date.now()}`,
+        mediaType: "document",
+        personalityInsights: { 
+          chunks,
+          originalContent: documentContent,
+          formattedContent,
+          fileName,
+          fileType 
+        },
+        documentType: fileType === "pdf" ? "pdf" : (fileType === "docx" ? "docx" : "txt"),
+        title: title || fileName
+      });
+      
+      // Return document with chunks for user selection
+      res.json({
+        analysisId: analysis.id,
+        chunks,
+        fileName,
+        fileType,
+        totalWords: documentContent.split(/\s+/).length,
+        emailServiceAvailable: isEmailServiceConfigured
+      });
+      
+    } catch (error) {
+      console.error("Document analysis error:", error);
+      res.status(500).json({ 
+        error: error.message || "Failed to analyze document" 
+      });
+    }
+  });
+
+  // Document chunk analysis endpoint - analyze selected chunks with 25 metrics
+  app.post("/api/analyze/document-chunks", async (req, res) => {
+    try {
+      const { analysisId, selectedChunks, selectedModel = "deepseek" } = req.body;
+      
+      if (!analysisId || !selectedChunks || !Array.isArray(selectedChunks)) {
+        return res.status(400).json({ error: "Analysis ID and selected chunks are required" });
+      }
+      
+      // Get the analysis record
+      const analysis = await storage.getAnalysisById(analysisId);
+      if (!analysis) {
+        return res.status(404).json({ error: "Analysis not found" });
+      }
+      
+      // Combine selected chunks
+      const chunks = analysis.personalityInsights.chunks || [];
+      const selectedText = selectedChunks
+        .map(chunkId => chunks.find(c => c.id === chunkId)?.content)
+        .filter(Boolean)
+        .join('\n\n');
+      
+      if (!selectedText.trim()) {
+        return res.status(400).json({ error: "No valid text selected for analysis" });
+      }
+      
+      console.log(`Analyzing ${selectedChunks.length} chunks with ${selectedModel}`);
+      
+      // Generate 25 psychological metrics analysis
+      const metricsAnalysis = await generate25MetricsAnalysis(selectedText, selectedModel);
+      
+      // Update analysis with metrics
+      const updatedPersonalityInsights = {
+        ...analysis.personalityInsights,
+        metricsAnalysis,
+        selectedChunks,
+        analysisTimestamp: new Date().toISOString()
+      };
+      
+      // Update the analysis record
+      await storage.updateAnalysis(analysisId, { personalityInsights: updatedPersonalityInsights });
+      
+      // Create summary message
+      const summaryMessage = formatMetricsForDisplay(metricsAnalysis);
+      
+      // Create message record
+      const message = await storage.createMessage({
+        sessionId: analysis.sessionId,
+        analysisId,
+        role: "assistant",
+        content: summaryMessage
+      });
+      
+      res.json({
+        analysisId,
+        metricsAnalysis,
+        message,
+        emailServiceAvailable: isEmailServiceConfigured
+      });
+      
+    } catch (error) {
+      console.error("Document chunk analysis error:", error);
+      res.status(500).json({ 
+        error: error.message || "Failed to analyze document chunks" 
+      });
+    }
+  });
   
   // Chat endpoint to continue conversation with AI
   app.post("/api/chat", async (req, res) => {

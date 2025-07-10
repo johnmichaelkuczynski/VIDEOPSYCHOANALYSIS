@@ -9,6 +9,7 @@ export interface IStorage {
   getAllAnalysesBySessionId(sessionId: string): Promise<Analysis[]>;
   updateAnalysisDownloadStatus(analysisId: number, downloaded: boolean): Promise<void>;
   updateAnalysisTitle(analysisId: number, title: string): Promise<void>;
+  updateAnalysis(analysisId: number, updates: Partial<Analysis>): Promise<void>;
   deleteAnalysis(analysisId: number): Promise<void>;
   
   // Message operations
@@ -196,6 +197,16 @@ export class MemStorage implements IStorage {
       this.analyses.set(analysisId, {
         ...analysis,
         title
+      });
+    }
+  }
+
+  async updateAnalysis(analysisId: number, updates: Partial<Analysis>): Promise<void> {
+    const analysis = this.analyses.get(analysisId);
+    if (analysis) {
+      this.analyses.set(analysisId, {
+        ...analysis,
+        ...updates
       });
     }
   }
