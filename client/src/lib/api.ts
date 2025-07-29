@@ -4,33 +4,37 @@ import { apiRequest } from "./queryClient";
 export type ModelType = "deepseek" | "openai" | "anthropic" | "perplexity";
 export type MediaType = "image" | "video" | "document" | "text";
 
-export async function uploadMedia(
-  mediaData: string, 
-  mediaType: MediaType, 
-  sessionId: string,
-  options: {
-    maxPeople?: number;
-    selectedModel?: ModelType;
-    title?: string;
-    documentType?: "pdf" | "docx" | "other";
-    videoSegmentStart?: number;
-    videoSegmentDuration?: number;
-  } = {}
-) {
+export async function uploadMedia(options: {
+  sessionId: string;
+  fileData: string;
+  fileName: string;
+  fileType: string;
+  selectedModel?: ModelType;
+  title?: string;
+  maxPeople?: number;
+  documentType?: "pdf" | "docx" | "other";
+  videoSegmentStart?: number;
+  videoSegmentDuration?: number;
+}) {
   const { 
+    sessionId,
+    fileData,
+    fileName,
+    fileType,
     maxPeople = 5, 
     selectedModel = "deepseek", 
     title,
     documentType,
     videoSegmentStart = 0,
-    videoSegmentDuration = 3
+    videoSegmentDuration = 5
   } = options;
   
-  console.log(`Uploading ${mediaType} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
+  console.log(`Uploading ${fileType} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
   
-  const res = await apiRequest("POST", "/api/analyze", { 
-    mediaData, 
-    mediaType, 
+  const res = await apiRequest("POST", "/api/upload/media", { 
+    fileData, 
+    fileName,
+    fileType,
     sessionId,
     maxPeople,
     selectedModel,

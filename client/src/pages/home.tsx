@@ -124,8 +124,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
-  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(3);
+  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(5);
   const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [videoSegments, setVideoSegments] = useState<any[]>([]);
+  const [selectedVideoSegment, setSelectedVideoSegment] = useState<number | null>(null);
+  const [requiresSegmentSelection, setRequiresSegmentSelection] = useState<boolean>(false);
   
   // UI states
   const [showAdvancedServices, setShowAdvancedServices] = useState<boolean>(false);
@@ -343,9 +346,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           
           // For videos, get duration for segment selection and enforce size limits
           if (isVideo) {
-            // Check file size - limit to 50MB for better performance
-            if (file.size > 50 * 1024 * 1024) {
-              throw new Error("Video file too large. Please use a video under 50MB for better performance.");
+            // Check file size - if over 15MB, we'll get segment selection
+            if (file.size > 15 * 1024 * 1024) {
+              console.log(`Large video file detected: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
             }
             
             const videoElement = document.createElement('video');
@@ -376,37 +379,51 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         
         console.log(`Starting ${isVideo ? 'video segment' : 'image'} analysis:`, options);
         
-        const response = await uploadMedia(
-          mediaData, 
-          mediaFileType, 
-          sessionId, 
-          options
-        );
+        const response = await uploadMedia({
+          sessionId,
+          fileData: mediaData,
+          fileName: file.name,
+          fileType: file.type,
+          selectedModel,
+          title: `${mediaFileType} Analysis`
+        });
         
         setAnalysisProgress(90);
         
-        if (response && response.analysisId) {
-          setAnalysisId(response.analysisId);
-        }
-        
         console.log("Response from uploadMedia:", response);
         
-        // Make sure we update the messages state with the response
-        if (response && response.messages && Array.isArray(response.messages) && response.messages.length > 0) {
-          console.log("Setting messages from response:", response.messages);
-          setMessages(response.messages);
-        } else {
-          // If no messages were returned, let's add a default message
-          console.warn("No messages returned from analysis");
-          if (response?.analysisInsights) {
-            setMessages([{
-              role: "assistant",
-              content: response.analysisInsights,
-              id: Date.now(),
-              createdAt: new Date().toISOString(),
-              sessionId,
-              analysisId: response.analysisId
-            }]);
+        // Handle different response types
+        if (response.requiresSegmentSelection) {
+          // Video is too large, show segment selection
+          setRequiresSegmentSelection(true);
+          setVideoSegments(response.segments || []);
+          setVideoDuration(response.duration || 0);
+          setAnalysisId(response.analysisId);
+          
+          toast({
+            title: "Video Uploaded",
+            description: "Please select a 5-second segment to analyze.",
+          });
+        } else if (response && response.analysisId) {
+          setAnalysisId(response.analysisId);
+          
+          // Make sure we update the messages state with the response
+          if (response && response.messages && Array.isArray(response.messages) && response.messages.length > 0) {
+            console.log("Setting messages from response:", response.messages);
+            setMessages(response.messages);
+          } else {
+            // If no messages were returned, let's add a default message
+            console.warn("No messages returned from analysis");
+            if (response?.analysisInsights) {
+              setMessages([{
+                role: "assistant",
+                content: response.analysisInsights,
+                id: Date.now(),
+                createdAt: new Date().toISOString(),
+                sessionId,
+                analysisId: response.analysisId
+              }]);
+            }
           }
         }
         
@@ -471,6 +488,63 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       });
     },
   });
+
+  // Video segment analysis function
+  const handleAnalyzeVideoSegment = async () => {
+    if (!selectedVideoSegment || !analysisId || !mediaData) return;
+    
+    try {
+      setIsAnalyzing(true);
+      setAnalysisProgress(10);
+      
+      const response = await fetch('/api/analyze/video-segment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisId,
+          segmentId: selectedVideoSegment,
+          fileData: mediaData,
+          selectedModel
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze video segment');
+      }
+      
+      const data = await response.json();
+      setAnalysisProgress(90);
+      
+      // Add the analysis message to the chat
+      if (data.message) {
+        setMessages(prev => [...prev, data.message]);
+      }
+      
+      // Hide segment selection and show results
+      setRequiresSegmentSelection(false);
+      
+      setAnalysisProgress(100);
+      
+      toast({
+        title: "Segment Analysis Complete",
+        description: "Your video segment has been successfully analyzed!",
+      });
+      
+    } catch (error: any) {
+      console.error('Video segment analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze video segment. Please try again.",
+        variant: "destructive",
+      });
+      setAnalysisProgress(0);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Email sharing
   const shareForm = useForm<z.infer<typeof shareSchema>>({
@@ -976,15 +1050,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       setAnalysisProgress(0);
                       
                       // Use the stored media data directly
-                      uploadMedia(
-                        mediaData, 
-                        "image", 
-                        sessionId, 
-                        { 
-                          selectedModel, 
-                          maxPeople: 5 
-                        }
-                      ).then(response => {
+                      uploadMedia({
+                        sessionId,
+                        fileData: mediaData,
+                        fileName: "re-analysis.jpg",
+                        fileType: "image/jpeg",
+                        selectedModel,
+                        title: "Image Re-analysis"
+                      }).then(response => {
                         setAnalysisProgress(100);
                         
                         if (response && response.analysisId) {
@@ -1030,56 +1103,104 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   Video analysis will extract visual and audio insights
                 </div>
                 
-                {/* Video Segment Selection */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                  <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
-                  <p className="text-sm text-blue-700">
-                    For optimal performance, videos are processed in 3-second segments. Select which segment to analyze:
-                  </p>
-                  <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
-                    💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
-                    audio transcription, and emotional insights from your selected segment.
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-blue-900 mb-1">
-                        Start Time (seconds)
-                      </label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={Math.max(0, videoDuration - 1)}
-                        step={1}
-                        value={videoSegmentStart}
-                        onChange={(e) => setVideoSegmentStart(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-full"
-                      />
+                {/* Video Segment Selection for Large Videos */}
+                {requiresSegmentSelection && videoSegments.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                    <h3 className="font-medium text-blue-900">Select Video Segment</h3>
+                    <p className="text-sm text-blue-700">
+                      Your video is large, so please select a 5-second segment to analyze for optimal performance:
+                    </p>
+                    <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                      💡 Tip: Analysis focuses on facial expressions, body language, and speech patterns in the selected segment.
                     </div>
                     
-                    <div>
-                      <label className="block text-sm font-medium text-blue-900 mb-1">
-                        Duration (max 3s)
-                      </label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={3}
-                        step={1}
-                        value={videoSegmentDuration}
-                        onChange={(e) => setVideoSegmentDuration(Math.min(3, Math.max(1, parseInt(e.target.value) || 3)))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                      {videoSegments.map((segment) => (
+                        <button
+                          key={segment.id}
+                          onClick={() => setSelectedVideoSegment(segment.id)}
+                          className={`p-3 rounded-lg border text-left transition-all ${
+                            selectedVideoSegment === segment.id
+                              ? 'border-blue-500 bg-blue-100 text-blue-900'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <div className="font-medium">{segment.label}</div>
+                          <div className="text-xs text-gray-600">{segment.duration}s duration</div>
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {videoDuration > 0 && (
+                      <div className="text-xs text-blue-600">
+                        Total video duration: {videoDuration.toFixed(1)}s | {videoSegments.length} segments available
+                      </div>
+                    )}
+                    
+                    {selectedVideoSegment && (
+                      <Button
+                        onClick={() => handleAnalyzeVideoSegment()}
+                        disabled={isAnalyzing}
                         className="w-full"
-                      />
-                    </div>
+                      >
+                        {isAnalyzing ? "Analyzing..." : `Analyze Selected Segment`}
+                      </Button>
+                    )}
                   </div>
-                  
-                  {videoDuration > 0 && (
-                    <div className="text-xs text-blue-600">
-                      Video duration: {videoDuration.toFixed(1)}s | 
-                      Analyzing: {videoSegmentStart}s to {Math.min(videoSegmentStart + videoSegmentDuration, videoDuration).toFixed(1)}s
+                )}
+                
+                {/* Original Video Segment Selection for Small Videos */}
+                {!requiresSegmentSelection && mediaType === "video" && videoDuration > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                    <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
+                    <p className="text-sm text-blue-700">
+                      For optimal performance, videos are processed in 5-second segments. Select which segment to analyze:
+                    </p>
+                    <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                      💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
+                      audio transcription, and emotional insights from your selected segment.
                     </div>
-                  )}
-                </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-1">
+                          Start Time (seconds)
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={Math.max(0, videoDuration - 1)}
+                          step={1}
+                          value={videoSegmentStart}
+                          onChange={(e) => setVideoSegmentStart(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-1">
+                          Duration (max 5s)
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={5}
+                          step={1}
+                          value={videoSegmentDuration}
+                          onChange={(e) => setVideoSegmentDuration(Math.min(5, Math.max(1, parseInt(e.target.value) || 5)))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    
+                    {videoDuration > 0 && (
+                      <div className="text-xs text-blue-600">
+                        Video duration: {videoDuration.toFixed(1)}s | 
+                        Analyzing: {videoSegmentStart}s to {Math.min(videoSegmentStart + videoSegmentDuration, videoDuration).toFixed(1)}s
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* View full transcript button - only shows after analysis */}
                 {analysisId && (
@@ -1207,17 +1328,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       setAnalysisProgress(0);
                       
                       // Use the stored media data directly with segment parameters
-                      uploadMedia(
-                        mediaData, 
-                        "video", 
-                        sessionId, 
-                        { 
-                          selectedModel, 
-                          maxPeople: 5,
-                          videoSegmentStart,
-                          videoSegmentDuration
-                        }
-                      ).then(response => {
+                      uploadMedia({
+                        sessionId,
+                        fileData: mediaData,
+                        fileName: "re-analysis.mp4",
+                        fileType: "video/mp4",
+                        selectedModel,
+                        title: "Video Re-analysis"
+                      }).then(response => {
                         setAnalysisProgress(100);
                         
                         if (response && response.analysisId) {
