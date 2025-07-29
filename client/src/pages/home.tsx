@@ -497,7 +497,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       setIsAnalyzing(true);
       setAnalysisProgress(10);
       
-      const response = await fetch('/api/analyze/video-segment', {
+      const response = await fetch('/api/upload/video-segment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -506,7 +506,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           analysisId,
           segmentId: selectedVideoSegment,
           fileData: mediaData,
-          selectedModel
+          selectedModel,
+          sessionId
         }),
       });
       
