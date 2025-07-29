@@ -666,6 +666,15 @@ This analysis provides insights into your communication patterns and thinking st
       
       console.log(`File size: ${fileSizeInMB.toFixed(2)} MB`);
       
+      // Check for very large files early - redirect to multipart upload
+      if (fileSizeInMB > 50 && fileType.startsWith('video/')) {
+        return res.status(413).json({ 
+          error: "Video file too large. Please use the multipart upload endpoint.",
+          useMultipartUpload: true,
+          fileSizeMB: fileSizeInMB 
+        });
+      }
+      
       // For large video files (over 15MB), we'll create segments for selection
       let requiresSegmentSelection = false;
       if (fileSizeInMB > 15 && fileType.startsWith('video/')) {
@@ -791,10 +800,10 @@ This analysis provides insights into your personality based on visual cues and p
   // Video segment analysis endpoint
   app.post("/api/analyze/video-segment", async (req, res) => {
     try {
-      const { analysisId, segmentId, fileData, selectedModel = "deepseek" } = req.body;
+      const { analysisId, segmentId, selectedModel = "deepseek", sessionId } = req.body;
       
-      if (!analysisId || !segmentId || !fileData) {
-        return res.status(400).json({ error: "Analysis ID, segment ID, and file data are required" });
+      if (!analysisId || !segmentId) {
+        return res.status(400).json({ error: "Analysis ID and segment ID are required" });
       }
       
       const analysis = await storage.getAnalysisById(analysisId);
@@ -802,7 +811,8 @@ This analysis provides insights into your personality based on visual cues and p
         return res.status(404).json({ error: "Analysis not found" });
       }
       
-      const segments = (analysis.personalityInsights as any)?.segments || [];
+      const personalityInsights = analysis.personalityInsights as any;
+      const segments = personalityInsights?.segments || [];
       const selectedSegment = segments.find((s: any) => s.id === segmentId);
       
       if (!selectedSegment) {
@@ -811,11 +821,11 @@ This analysis provides insights into your personality based on visual cues and p
       
       console.log(`Analyzing video segment ${segmentId}: ${selectedSegment.label}`);
       
-      // Save video file temporarily for processing
-      const base64Data = fileData.split(',')[1];
-      const fileBuffer = Buffer.from(base64Data, 'base64');
-      const tempFilePath = path.join(tempDir, `segment_${Date.now()}.mp4`);
-      await writeFileAsync(tempFilePath, fileBuffer);
+      // Get the stored video file path
+      const tempFilePath = personalityInsights?.tempVideoPath;
+      if (!tempFilePath || !fs.existsSync(tempFilePath)) {
+        return res.status(400).json({ error: "Original video file not found. Please re-upload the video." });
+      }
       
       let videoAnalysis: any = {};
       
@@ -824,20 +834,66 @@ This analysis provides insights into your personality based on visual cues and p
         const segmentFilePath = path.join(tempDir, `extracted_${Date.now()}.mp4`);
         await extractVideoSegment(tempFilePath, selectedSegment.startTime, selectedSegment.duration, segmentFilePath);
         
-        // Perform comprehensive video analysis on the segment
-        const analysisResults = await performVideoAnalysis(segmentFilePath, selectedModel, analysis.sessionId);
+        // Perform facial analysis and audio transcription
+        const faceAnalysis = await getFacialAnalysis(segmentFilePath);
+        const audioTranscription = await getAudioTranscription(segmentFilePath);
+        
+        // Create AI analysis prompt
+        const aiModel = selectedModel === "deepseek" ? deepseek : (selectedModel === "anthropic" ? anthropic : openai);
+        
+        if (!aiModel) {
+          throw new Error(`${selectedModel} model not available`);
+        }
+        
+        const analysisPrompt = `Analyze this ${selectedSegment.duration}-second video segment for personality insights:
+
+**Visual Analysis Results:**
+${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this segment'}
+
+**Audio Transcription:**
+${audioTranscription?.transcription || 'No clear speech detected in this segment'}
+
+Please provide a comprehensive personality analysis focusing on:
+1. **Emotional State**: Current emotional expression and mood indicators
+2. **Communication Style**: How the person expresses themselves
+3. **Personality Traits**: Observable personality characteristics
+4. **Behavioral Patterns**: Notable behaviors and mannerisms
+5. **Cognitive Assessment**: Thinking patterns and intelligence indicators
+
+Format your response as a detailed analysis with specific observations and evidence.`;
+
+        let analysisText = "";
+        
+        if (selectedModel === "deepseek" && deepseek) {
+          const response = await deepseek.chat.completions.create({
+            model: "deepseek-chat",
+            messages: [{ role: "user", content: analysisPrompt }],
+            max_tokens: 2000
+          });
+          analysisText = response.choices[0]?.message?.content || "";
+        } else if (selectedModel === "anthropic" && anthropic) {
+          const response = await anthropic.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 2000,
+            messages: [{ role: "user", content: analysisPrompt }]
+          });
+          analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+        } else if (openai) {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: analysisPrompt }],
+            max_tokens: 2000
+          });
+          analysisText = response.choices[0]?.message?.content || "";
+        }
         
         videoAnalysis = {
-          summary: analysisResults.summary || `Video segment analysis completed for ${selectedSegment.label}`,
-          insights: analysisResults.insights || {
-            segment: selectedSegment,
-            visualAnalysis: analysisResults.visualAnalysis || "Facial expressions and body language analyzed",
-            audioAnalysis: analysisResults.audioAnalysis || "Speech patterns processed",
-            emotionalState: analysisResults.emotionalState || "Emotional state assessed",
-            personalityTraits: analysisResults.personalityTraits || "Personality indicators identified"
-          },
-          processingTime: `${selectedSegment.duration} seconds of video analyzed`,
-          fullAnalysis: analysisResults.fullAnalysis || ""
+          summary: `Video segment analysis completed for ${selectedSegment.label}`,
+          analysisText,
+          segmentInfo: selectedSegment,
+          faceAnalysis,
+          audioTranscription,
+          processingTime: `${selectedSegment.duration} seconds analyzed`
         };
         
         // Clean up temp files
@@ -875,7 +931,20 @@ This analysis provides insights into your personality based on visual cues and p
       await storage.updateAnalysis(analysisId, { personalityInsights: updatedPersonalityInsights });
       
       // Create analysis message
-      const analysisText = `## Video Segment Analysis Complete
+      const analysisText = videoAnalysis.analysisText ? 
+        `## Video Segment Analysis Complete
+
+**Analyzed Segment:** ${selectedSegment.label} (${selectedSegment.duration}s)
+
+${videoAnalysis.analysisText}
+
+**Technical Details:**
+- Facial Analysis: ${videoAnalysis.faceAnalysis ? 'Completed' : 'No faces detected'}
+- Audio Analysis: ${videoAnalysis.audioTranscription?.transcription ? 'Speech transcribed' : 'No clear speech detected'}
+- AI Model: ${selectedModel}
+- Processing Time: ${videoAnalysis.processingTime}`
+        :
+        `## Video Segment Analysis Complete
 
 **Analyzed Segment:** ${selectedSegment.label} (${selectedSegment.duration}s)
 

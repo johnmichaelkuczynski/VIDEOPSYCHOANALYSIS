@@ -381,8 +381,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         
         let response;
         
-        // Use multipart upload for large videos
-        if (isVideo && file.size > 15 * 1024 * 1024) {
+        // Use multipart upload for all videos (to avoid base64 encoding overhead)
+        if (isVideo) {
           console.log(`Large video file detected: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
           console.log("Starting video segment analysis:", { selectedModel, maxPeople: 5, videoSegmentStart: 0, videoSegmentDuration: 5 });
           console.log(`Uploading ${file.type} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
@@ -526,7 +526,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       setIsAnalyzing(true);
       setAnalysisProgress(10);
       
-      const response = await fetch('/api/upload/video-segment', {
+      const response = await fetch('/api/analyze/video-segment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -24,6 +24,24 @@ An advanced AI-powered personality insights platform that combines cutting-edge 
 
 ## Recent Changes
 
+### CRITICAL FIX: Large Video Upload Support with Multipart Handling (July 29, 2025)
+✓ **RESOLVED 413 PAYLOAD TOO LARGE ERROR**: Fixed critical issue preventing upload of large videos (80MB+)
+✓ Implemented proper multipart/form-data upload system to replace inefficient JSON base64 encoding
+✓ Added new `/api/upload/media-multipart` endpoint specifically for large file handling
+✓ Updated frontend to automatically detect videos and use FormData upload method
+✓ Enhanced video segment analysis with real AI processing instead of placeholder content
+✓ Fixed video segment selection endpoint communication between frontend and backend
+✓ Added comprehensive error handling and proper temp file management for large videos
+✓ Integrated facial analysis, audio transcription, and AI-powered personality assessment
+✓ Enhanced segment analysis with DeepSeek, Anthropic Claude, and OpenAI model support
+
+### Large Video Processing Features:
+- **File Size Support**: Now handles videos over 80MB through multipart uploads
+- **Automatic Routing**: Frontend automatically uses appropriate upload method based on file type
+- **Real AI Analysis**: Video segments processed with facial analysis, audio transcription, and personality insights
+- **Multi-Service Support**: Fallback chains ensure reliability across all AI and analysis services
+- **Proper Cleanup**: Temporary files managed efficiently to prevent storage bloat
+
 ### COMPLETE REBUILD: Advanced Document Analysis with 25 Psychological Metrics (July 10, 2025)
 ✓ **ADVANCED DOCUMENT ANALYZER**: Implemented comprehensive document analysis system per user specification
 ✓ Added document upload endpoints with robust PDF/DOCX/TXT parsing
