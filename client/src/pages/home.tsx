@@ -379,14 +379,43 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         
         console.log(`Starting ${isVideo ? 'video segment' : 'image'} analysis:`, options);
         
-        const response = await uploadMedia({
-          sessionId,
-          fileData: mediaData,
-          fileName: file.name,
-          fileType: file.type,
-          selectedModel,
-          title: `${mediaFileType} Analysis`
-        });
+        let response;
+        
+        // Use multipart upload for large videos
+        if (isVideo && file.size > 15 * 1024 * 1024) {
+          console.log(`Large video file detected: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+          console.log("Starting video segment analysis:", { selectedModel, maxPeople: 5, videoSegmentStart: 0, videoSegmentDuration: 5 });
+          console.log(`Uploading ${file.type} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
+          
+          // Use FormData for large file uploads
+          const formData = new FormData();
+          formData.append('media', file);
+          formData.append('sessionId', sessionId);
+          formData.append('selectedModel', selectedModel);
+          formData.append('title', `${mediaFileType} Analysis`);
+          
+          const uploadResponse = await fetch('/api/upload/media-multipart', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.error || 'Upload failed');
+          }
+          
+          response = await uploadResponse.json();
+        } else {
+          // Use regular JSON upload for smaller files
+          response = await uploadMedia({
+            sessionId,
+            fileData: mediaData,
+            fileName: file.name,
+            fileType: file.type,
+            selectedModel,
+            title: `${mediaFileType} Analysis`
+          });
+        }
         
         setAnalysisProgress(90);
         
@@ -505,7 +534,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         body: JSON.stringify({
           analysisId,
           segmentId: selectedVideoSegment,
-          fileData: mediaData,
           selectedModel,
           sessionId
         }),

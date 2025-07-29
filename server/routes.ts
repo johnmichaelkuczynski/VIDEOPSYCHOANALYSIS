@@ -17,6 +17,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { promisify } from 'util';
 import ffmpeg from 'fluent-ffmpeg';
+import multer from 'multer';
 import Anthropic from '@anthropic-ai/sdk';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
@@ -326,6 +327,9 @@ async function getAudioTranscription(videoPath: string): Promise<any> {
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
   
+  // Configure multer for file uploads
+  const upload = multer({ storage: multer.memoryStorage() });
+  
   // API Status endpoint
   app.get("/api/status", (req, res) => {
     res.json({
@@ -571,6 +575,75 @@ This analysis provides insights into your communication patterns and thinking st
     }
   });
 
+  // Multipart media upload endpoint for large files
+  app.post("/api/upload/media-multipart", upload.single('media'), async (req, res) => {
+    try {
+      const file = req.file;
+      const { sessionId, selectedModel = "deepseek", title } = req.body;
+      
+      if (!file || !sessionId) {
+        return res.status(400).json({ error: "File and session ID are required" });
+      }
+      
+      console.log(`Processing media upload: ${file.originalname} (${file.mimetype})`);
+      console.log(`File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      
+      const mediaType = file.mimetype.split('/')[0] as MediaType;
+      
+      if (mediaType === "video") {
+        try {
+          // Save video temporarily to get duration and create segments
+          const tempVideoPath = path.join(tempDir, `temp_${Date.now()}.${file.originalname.split('.').pop()}`);
+          await fs.promises.writeFile(tempVideoPath, file.buffer);
+          
+          // Get video duration
+          const duration = await getVideoDuration(tempVideoPath);
+          console.log(`Video duration: ${duration} seconds`);
+          
+          // Create segments
+          const segments = createVideoSegments(duration, 5);
+          
+          // Create analysis record and store the video file for later segment processing
+          const analysis = await storage.createAnalysis({
+            sessionId,
+            mediaType,
+            fileName: file.originalname,
+            fileType: file.mimetype,
+            selectedModel,
+            personalityInsights: {
+              requiresSegmentSelection: true,
+              segments,
+              duration,
+              tempVideoPath, // Keep the file for segment analysis
+              fileSize: file.size
+            }
+          });
+          
+          return res.json({
+            analysisId: analysis.id,
+            mediaType,
+            duration,
+            segments,
+            requiresSegmentSelection: true,
+            message: "Video uploaded successfully. Please select which 5-second segment to analyze.",
+            emailServiceAvailable: isEmailServiceConfigured
+          });
+          
+        } catch (error) {
+          console.error("Error processing video:", error);
+          return res.status(500).json({ error: "Failed to process video. Please try a smaller file." });
+        }
+      } else {
+        // Handle images or other media types
+        return res.status(400).json({ error: "Only video files are supported for multipart upload currently" });
+      }
+      
+    } catch (error) {
+      console.error("Multipart upload error:", error);
+      res.status(500).json({ error: "Failed to upload media" });
+    }
+  });
+  
   // Media upload endpoint - for images and videos with segment selection
   app.post("/api/upload/media", async (req, res) => {
     try {
