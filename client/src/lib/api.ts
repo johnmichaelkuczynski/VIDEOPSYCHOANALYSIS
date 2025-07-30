@@ -102,18 +102,20 @@ export async function sendMessage(content: string, sessionId: string, selectedMo
 }
 
 export async function analyzeText(
-  content: string, 
+  text: string, 
   sessionId: string, 
   selectedModel: ModelType = "deepseek",
-  title?: string
+  title?: string,
+  additionalInfo?: string
 ) {
   console.log(`Analyzing text with model: ${selectedModel}, sessionId: ${sessionId}`);
   
   const res = await apiRequest("POST", "/api/analyze/text", { 
-    content, 
+    text, 
     sessionId,
     selectedModel,
-    title
+    title,
+    additionalInfo
   });
   
   const data = await res.json();

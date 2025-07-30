@@ -1,0 +1,52 @@
+DO NOT ELIMINATE ANY EXISTING FUNCTIONALITY. THE FUNCTIONALITY ABOUT TO BE DESCRIBED IS ADDITIONAL TO EXISTING FUNCTIONALITY AND DOES NOT REPOLACE IT. 
+I HAVE UPLOADED A DOCUMENT (THIS ONE) CONTAINING 20 COGNITIVE PARAMETERS AND 20 PSYCHOLOGICAL PARAMETERS. 
+YOU WILL CREATE A NEW TAB (COMPREHENSIVE COGNITIVE) THAT USES THESE 20 COGNITIVE PARAMETERS TO GENERATE A COMPREHENSIVE ANALYSIS; THE ANALYSIS WEIGHS IN ON EACH OF THESE PARAMETERS, AND IT PROVIDES QUOTATIONS FROM THE TEXT AS WELL AS ARGUMENTS AND CAREFUL REASONING TO SUPPORT ITS CLAIMS. EACH OF THE ‘WINDOWS’ (IE EACH OF THE BUBBLE CONTAINING WHAT THE APP SAYS ABOUT A GIVEN PARAMETER) SHOULD BE EXPANDABLE. THIS FEATURE WILL SUPPORT TYPING, COPYING/PASTING, DRAG-AND-DROP UPLOAD, AND DOCUMENT UPLOAD; THIS FOR PDF, WORD, TXT. USERS WILL BE TO DOWNLOAD THESE COMPREHENSIVE REPORTS AS WORD, PDF, TXT.
+YOU WILL ALSO CREATE ANOTHER NEW TAB (COMPREHENSIVE PSYCHOLOGICAL) THAT USES THE 20 PSYCHOLOGICAL PARAMETERS TO GENERATE A COMPREHENSIVE ANALYSIS; THE ANALYSIS WEIGHS IN ON EACH OF THESE PARAMETERS, AND IT PROVIDES QUOTATIONS FROM THE TEXT AS WELL AS ARGUMENTS AND CAREFUL REASONING TO SUPPORT ITS CLAIMS. EACH OF THE ‘WINDOWS’ (IE EACH OF THE BUBBLE CONTAINING WHAT THE APP SAYS ABOUT A GIVEN PARAMETER) SHOULD BE EXPANDABLE. THIS FEATURE WILL SUPPORT TYPING, COPYING/PASTING, DRAG-AND-DROP UPLOAD, AND DOCUMENT UPLOAD; THIS FOR PDF, WORD, TXT. USERS WILL BE TO DOWNLOAD THESE COMPREHENSIVE REPORTS AS WORD, PDF, TXT. THIS FEATURE WILL SUPPORT TYPING, COPYING/PASTING, DRAG-AND-DROP UPLOAD, AND DOCUMENT UPLOAD; THIS FOR PDF, WORD, TXT. USERS WILL BE TO DOWNLOAD THESE COMPREHENSIVE REPORTS AS WORD, PDF, TXT.
+BEFORE RUNNING A REPORT, THE USER SHOULD HAVE THE OPTION OF SUPPLYING ANY ADDITIONAL INFORMATION THAT HE DEEPS RELEVANT. MOREOVER, AFTER THE REPORT IS COMPLETE, THE USER SHOULD BE ABLE TO RESPOND WITH HIS OWN OPINION, AND BE ALLOWED TO DIALOGUE WITH THE APP ABOUT ANY INFORMATION THAT IT SHOULD (IN THE USER’S OPINION) TAKE INTO ACCOUNT WHEN ANALYZING THE DOCUMENT IN QUESTION. MOREOVER, IN THE VERY SAME WINDOW/POPUP WHERE THE USE IS HAVING THIS DIALOGUE, HE SHOULD BE ABLE TO RUN A NEW ANALYSIS (ON THE SAME DOCUMENT) THAT TAKES THIS ADDITIONAL INFORMATION INTO ACCOUNT. THUS, RECURSIVE ANALYSIS (ENRICHED BY CHATS/ADDITIONAL DATA/ADDITIONAL DOCUMENTATION) IS POSSIBLE FOR THE COMPREHENSIVE COGNITIVE AND THE COMPREHENSIVE PSYCHOLOGICAL FUNCTIONS. 
+
+
+Cognitive Profiling Parameters:
+
+1. Compression Tolerance – Degree to which the person seeks dense, abstract representations over surface details.
+2. Inferential Depth – How far ahead a person naturally projects in causal/logical chains before committing to conclusions.
+3. Semantic Curvature – Tendency to cross conceptual boundaries and reframe terms in adjacent but non-isomorphic domains.
+4. Cognitive Load Bandwidth – Number of variables or active threads someone can sustain in parallel before system degradation.
+5. Epistemic Risk Tolerance – Willingness to entertain unstable or fringe hypotheses when the payoff is deeper insight.
+6. Narrative vs. Structural Bias – Preference for anecdotal/story-based cognition vs. pattern/system-based models.
+7. Heuristic Anchoring Bias – How often first-pass intuitions dominate downstream reasoning.
+8. Self-Compression Quotient – Degree to which a person can summarize their own thought system into coherent abstract modules.
+9. Recursion Depth on Self – Number of layers deep a person tracks their own cognitive operations or psychological motives.
+10. Reconceptualization Rate – Speed and frequency with which one reforms or discards major conceptual categories.
+11. Dominance Framing Bias – Default positioning of oneself in terms of social, intellectual, or epistemic superiority/inferiority.
+12. Validation Source Gradient – Internal vs. external motivation for cognitive output.
+13. Dialectical Agonism – Ability to build arguments that strengthen the opposing view, even while refuting it.
+14. Modality Preference – Abstract-verbal vs. visual-spatial vs. kinetic-emotional thinking bias.
+15. Schema Flexibility – Ease of updating or discarding core frameworks in light of contradictory evidence.
+16. Proceduralism Threshold – Degree to which one respects systems, protocols, or legalistic steps vs. valuing results.
+17. Predictive Modeling Index – Preference for models that maximize forecasting power over coherence.
+18. Social System Complexity Model – Granularity of one's working model of institutions, networks, reputations.
+19. Mythology Bias – Degree to which narrative/mythic structures override or inform analytic judgment.
+20. Asymmetry Detection Quotient – Sensitivity to unspoken structural asymmetries in systems or conversations.
+
+Psychological Profiling Parameters:
+
+1. Attachment Mode – Secure vs. anxious vs. avoidant vs. disorganized; predicts interpersonal stance.
+2. Drive Sublimation Quotient – Ability to channel raw drives into symbolic/intellectual work.
+3. Validation Hunger Index – Degree to which external affirmation is required for psychic stability.
+4. Shame-Anger Conversion Tendency – Likelihood of transmuting shame into hostility or aggression.
+5. Ego Fragility – Sensitivity to critique or loss of control; predicts defensiveness.
+6. Affect Labeling Proficiency – Accuracy in identifying one’s own emotional states.
+7. Implicit Emotion Model – Degree to which one runs on internalized emotional schemas.
+8. Projection Bias – Tendency to offload inner conflict onto external targets.
+9. Defensive Modality Preference – Primary psychological defense type (e.g., repression, denial, rationalization).
+10. Emotional Time Lag – Delay between emotional stimulus and self-aware response.
+11. Distress Tolerance – Capacity to function under high emotional strain.
+12. Impulse Channeling Index – Degree to which urges are shaped into structured output.
+13. Mood Volatility – Amplitude and frequency of emotional state swings.
+14. Despair Threshold – Point at which one shifts from struggle to collapse or apathy.
+15. Self-Soothing Access – Availability of effective mechanisms to calm emotional states.
+16. Persona-Alignment Quotient – Gap between external presentation and internal self-perception.
+17. Envy Index – Intensity of comparative pain from perceived inferiority.
+18. Emotional Reciprocity Capacity – Ability to engage empathically without detachment or flooding.
+19. Narrative Self-Justification Tendency – Compulsive construction of explanatory myths to protect ego ideal.
+20. Symbolic Reframing Ability – Capacity to convert painful material into metaphor, narrative, or philosophy.
