@@ -42,8 +42,28 @@ export function generateAnalysisTxt(analysis: Analysis): string {
       .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
       .trim();
     txtContent += cleanAnalysisText + '\n\n';
+  } else if (personalityInsights.comprehensiveAnalysis) {
+    // Check for image analysis data
+    txtContent += 'COMPREHENSIVE PSYCHOANALYTIC ASSESSMENT:\n';
+    txtContent += '='.repeat(60) + '\n\n';
+    // Clean up analysis text by removing markdown formatting
+    const cleanAnalysisText = personalityInsights.comprehensiveAnalysis
+      .replace(/#{1,6}\s*/g, '') // Remove headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic
+      .replace(/`(.*?)`/g, '$1') // Remove code blocks
+      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert bullets to simple format
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .trim();
+    txtContent += cleanAnalysisText + '\n\n';
     
-    if (personalityInsights.videoAnalysis.segmentInfo) {
+    if (personalityInsights.faceAnalysis) {
+      txtContent += 'FACIAL ANALYSIS DATA:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      txtContent += JSON.stringify(personalityInsights.faceAnalysis, null, 2) + '\n\n';
+    }
+    
+    if (personalityInsights.videoAnalysis?.segmentInfo) {
       txtContent += 'SEGMENT INFORMATION:\n';
       txtContent += '-'.repeat(40) + '\n';
       txtContent += `Analyzed Segment: ${personalityInsights.videoAnalysis.segmentInfo.label}\n`;
@@ -52,7 +72,7 @@ export function generateAnalysisTxt(analysis: Analysis): string {
       txtContent += `AI Model: ${personalityInsights.videoAnalysis.model}\n\n`;
     }
     
-    if (personalityInsights.videoAnalysis.audioTranscription?.transcription) {
+    if (personalityInsights.videoAnalysis?.audioTranscription?.transcription) {
       txtContent += 'AUDIO TRANSCRIPTION:\n';
       txtContent += '-'.repeat(40) + '\n';
       txtContent += `"${personalityInsights.videoAnalysis.audioTranscription.transcription}"\n\n`;
@@ -459,6 +479,30 @@ export function generateAnalysisHtml(analysis: Analysis): string {
           <p><em>"${personalityInsights.videoAnalysis.audioTranscription.transcription}"</em></p>
         </div>
         ` : ''}
+      </div>
+    `;
+  }
+  // Check for image analysis data
+  else if (personalityInsights.comprehensiveAnalysis) {
+    // Clean up analysis text by removing markdown formatting
+    const cleanAnalysisText = personalityInsights.comprehensiveAnalysis
+      .replace(/#{1,6}\s*/g, '') // Remove headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic
+      .replace(/`(.*?)`/g, '$1') // Remove code blocks
+      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert bullets to simple format
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .trim();
+
+    htmlContent += `
+      <div class="video-analysis">
+        <h2>Comprehensive Psychoanalytic Assessment</h2>
+        <p><strong>Media Type:</strong> Image Analysis</p>
+        <p><strong>AI Model:</strong> ${personalityInsights.model || 'N/A'}</p>
+        
+        <div class="section">
+          <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">${cleanAnalysisText}</pre>
+        </div>
       </div>
     `;
   }
