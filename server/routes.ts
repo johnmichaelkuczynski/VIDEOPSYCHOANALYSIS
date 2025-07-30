@@ -736,6 +736,10 @@ This analysis provides insights into your communication patterns and thinking st
           // Clean up temp file
           await unlinkAsync(tempFilePath);
           
+          // Get the image buffer first
+          const base64Data = fileData.split(',')[1];
+          const buffer = Buffer.from(base64Data, 'base64');
+          
           // Get facial analysis for the image first
           let faceAnalysis = null;
           try {
