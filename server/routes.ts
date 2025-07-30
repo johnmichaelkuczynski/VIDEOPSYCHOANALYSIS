@@ -847,6 +847,13 @@ This analysis provides insights into your personality based on visual cues and p
         
         const analysisPrompt = `Conduct a comprehensive psychoanalytic assessment of this ${selectedSegment.duration}-second video segment. Extract these CORE PSYCHOLOGICAL PARAMETERS:
 
+CRITICAL FORMATTING REQUIREMENTS:
+- NO markdown formatting whatsoever (no ###, **, *, etc.)
+- NO bold text or headers with # symbols
+- Use plain text only with clear section breaks
+- Separate sections with line breaks and simple labels
+- Write in full paragraphs without any formatting markup
+
 **VISUAL DATA:**
 ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this segment'}
 
@@ -916,14 +923,15 @@ ${audioTranscription?.transcription || 'No clear speech detected in this segment
 - Is this person constructing or avoiding reality?
 - What self-image is this person unconsciously defending?
 
-**FORMAT REQUIREMENTS:**
+FORMAT REQUIREMENTS:
 - Each section must be a FULL PARAGRAPH with detailed analysis
 - Use direct QUOTATIONS from transcription whenever possible
 - Provide specific behavioral evidence for every assessment
 - Write in depth psychological insights, not surface observations
 - Focus on unconscious patterns and defense mechanisms
+- NO FORMATTING MARKUP - plain text only
 
-Provide the deepest possible level of psychoanalytic insight based on observable data.`;
+Provide the deepest possible level of psychoanalytic insight based on observable data. Format as clean, readable paragraphs without any markdown, bold, or header symbols.`;
 
         let analysisText = "";
         

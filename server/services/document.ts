@@ -4,7 +4,7 @@ import * as os from 'os';
 import { promisify } from 'util';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 import { Analysis } from '../../shared/schema';
-import * as pdf from 'html-pdf';
+import puppeteer from 'puppeteer';
 
 const writeFileAsync = promisify(fs.writeFile);
 const unlinkAsync = promisify(fs.unlink);
@@ -32,7 +32,16 @@ export function generateAnalysisTxt(analysis: Analysis): string {
   if (personalityInsights.videoAnalysis && personalityInsights.videoAnalysis.analysisText) {
     txtContent += 'COMPREHENSIVE PSYCHOANALYTIC ASSESSMENT:\n';
     txtContent += '='.repeat(60) + '\n\n';
-    txtContent += personalityInsights.videoAnalysis.analysisText + '\n\n';
+    // Clean up analysis text by removing markdown formatting
+    const cleanAnalysisText = personalityInsights.videoAnalysis.analysisText
+      .replace(/#{1,6}\s*/g, '') // Remove headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic
+      .replace(/`(.*?)`/g, '$1') // Remove code blocks
+      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert bullets to simple format
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .trim();
+    txtContent += cleanAnalysisText + '\n\n';
     
     if (personalityInsights.videoAnalysis.segmentInfo) {
       txtContent += 'SEGMENT INFORMATION:\n';
@@ -320,7 +329,16 @@ export function generateAnalysisTxt(analysis: Analysis): string {
       if (message.role === 'assistant' && message.content) {
         txtContent += `Message ${index + 1}:\n`;
         txtContent += '-'.repeat(20) + '\n';
-        txtContent += message.content + '\n\n';
+        // Clean up message content by removing markdown formatting
+        const cleanContent = message.content
+          .replace(/#{1,6}\s*/g, '') // Remove headers
+          .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+          .replace(/\*(.*?)\*/g, '$1') // Remove italic
+          .replace(/`(.*?)`/g, '$1') // Remove code blocks
+          .replace(/^\s*[-*+]\s+/gm, '• ') // Convert bullets to simple format
+          .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+          .trim();
+        txtContent += cleanContent + '\n\n';
       }
     });
   }
@@ -380,6 +398,13 @@ export function generateAnalysisHtml(analysis: Analysis): string {
           padding: 15px;
           margin: 20px 0;
         }
+        .video-analysis {
+          background-color: #fff7ed;
+          border-left: 4px solid #f59e0b;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 4px;
+        }
         .profile {
           background-color: #f3f4f6;
           border-radius: 8px;
@@ -402,7 +427,41 @@ export function generateAnalysisHtml(analysis: Analysis): string {
       <h1>${analysis.title || 'Personality Analysis Report'}</h1>
       <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
       <p><strong>Analysis Type:</strong> ${analysis.mediaType.charAt(0).toUpperCase() + analysis.mediaType.slice(1)} Analysis</p>
+      <p><strong>People Detected:</strong> ${peopleCount}</p>
   `;
+
+  // Check for video analysis data and include it
+  if (personalityInsights.videoAnalysis && personalityInsights.videoAnalysis.analysisText) {
+    // Clean up analysis text by removing markdown formatting
+    const cleanAnalysisText = personalityInsights.videoAnalysis.analysisText
+      .replace(/#{1,6}\s*/g, '') // Remove headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic
+      .replace(/`(.*?)`/g, '$1') // Remove code blocks
+      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert bullets to simple format
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .trim();
+
+    htmlContent += `
+      <div class="video-analysis">
+        <h2>Comprehensive Psychoanalytic Assessment</h2>
+        <p><strong>Analyzed Segment:</strong> ${personalityInsights.videoAnalysis.segmentInfo?.label || 'N/A'}</p>
+        <p><strong>Duration:</strong> ${personalityInsights.videoAnalysis.segmentInfo?.duration || 'N/A'} seconds</p>
+        <p><strong>AI Model:</strong> ${personalityInsights.videoAnalysis.model || 'N/A'}</p>
+        
+        <div class="section">
+          <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">${cleanAnalysisText}</pre>
+        </div>
+        
+        ${personalityInsights.videoAnalysis.audioTranscription?.transcription ? `
+        <div class="section">
+          <h3>Audio Transcription</h3>
+          <p><em>"${personalityInsights.videoAnalysis.audioTranscription.transcription}"</em></p>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
   
   if (isMultiPersonAnalysis) {
     // Handle multi-person analysis
@@ -877,27 +936,33 @@ export async function generateDocx(analysis: Analysis): Promise<Buffer> {
 
 // Create PDF from HTML content
 export async function generatePdf(htmlContent: string): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
-    const options = {
-      format: 'Letter',
-      border: {
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: {
         top: '0.5in',
         right: '0.5in',
         bottom: '0.5in',
         left: '0.5in'
-      }
-    };
-    
-    pdf.create(htmlContent, options).toBuffer((err, buffer) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      if (!buffer) {
-        reject(new Error("Failed to generate PDF: Empty buffer"));
-        return;
-      }
-      resolve(buffer);
+      },
+      printBackground: true
     });
-  });
+    
+    return pdfBuffer;
+  } catch (error) {
+    throw new Error(`PDF generation failed: ${error}`);
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
 }
