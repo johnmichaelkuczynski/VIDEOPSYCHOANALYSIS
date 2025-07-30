@@ -736,25 +736,7 @@ This analysis provides insights into your communication patterns and thinking st
           // Clean up temp file
           await unlinkAsync(tempFilePath);
           
-          // Create comprehensive image analysis  
-          const analysis = await storage.createAnalysis({
-            sessionId,
-            mediaUrl: `image:${Date.now()}`,
-            mediaType: "image",
-            personalityInsights: { 
-              originalFileName: fileName,
-              fileType,
-              imageAnalysisComplete: true,
-              faceAnalysis,
-              comprehensiveAnalysis: analysisText,
-              model: selectedModel,
-              timestamp: new Date().toISOString(),
-              summary: "Comprehensive psychoanalytic assessment completed for image analysis"
-            },
-            title: title || fileName
-          });
-          
-          // Get facial analysis for the image
+          // Get facial analysis for the image first
           let faceAnalysis = null;
           try {
             // Try AWS Rekognition for face analysis
@@ -909,6 +891,24 @@ Provide the deepest possible level of psychoanalytic insight based on observable
           if (!analysisText) {
             analysisText = "Image Analysis Complete\n\nComprehensive psychological assessment completed based on visual analysis of facial expressions, positioning, and emotional indicators.";
           }
+          
+          // Create comprehensive image analysis after getting all data 
+          const analysis = await storage.createAnalysis({
+            sessionId,
+            mediaUrl: `image:${Date.now()}`,
+            mediaType: "image",
+            personalityInsights: { 
+              originalFileName: fileName,
+              fileType,
+              imageAnalysisComplete: true,
+              faceAnalysis,
+              comprehensiveAnalysis: analysisText,
+              model: selectedModel,
+              timestamp: new Date().toISOString(),
+              summary: "Comprehensive psychoanalytic assessment completed for image analysis"
+            },
+            title: title || fileName
+          });
           
           const message = await storage.createMessage({
             sessionId,
