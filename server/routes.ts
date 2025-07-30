@@ -834,8 +834,8 @@ This analysis provides insights into your personality based on visual cues and p
         const segmentFilePath = path.join(tempDir, `extracted_${Date.now()}.mp4`);
         await extractVideoSegment(tempFilePath, selectedSegment.startTime, selectedSegment.duration, segmentFilePath);
         
-        // Perform facial analysis and audio transcription
-        const faceAnalysis = await getFacialAnalysis(segmentFilePath);
+        // Perform facial analysis and audio transcription using existing functions
+        const faceAnalysis = await performVideoAnalysis(segmentFilePath, selectedModel, analysis.sessionId);
         const audioTranscription = await getAudioTranscription(segmentFilePath);
         
         // Create AI analysis prompt
@@ -845,22 +845,85 @@ This analysis provides insights into your personality based on visual cues and p
           throw new Error(`${selectedModel} model not available`);
         }
         
-        const analysisPrompt = `Analyze this ${selectedSegment.duration}-second video segment for personality insights:
+        const analysisPrompt = `Conduct a comprehensive psychoanalytic assessment of this ${selectedSegment.duration}-second video segment. Extract these CORE PSYCHOLOGICAL PARAMETERS:
 
-**Visual Analysis Results:**
+**VISUAL DATA:**
 ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this segment'}
 
-**Audio Transcription:**
+**AUDIO TRANSCRIPTION:**
 ${audioTranscription?.transcription || 'No clear speech detected in this segment'}
 
-Please provide a comprehensive personality analysis focusing on:
-1. **Emotional State**: Current emotional expression and mood indicators
-2. **Communication Style**: How the person expresses themselves
-3. **Personality Traits**: Observable personality characteristics
-4. **Behavioral Patterns**: Notable behaviors and mannerisms
-5. **Cognitive Assessment**: Thinking patterns and intelligence indicators
+**REQUIRED ANALYSIS FRAMEWORK:**
 
-Format your response as a detailed analysis with specific observations and evidence.`;
+**1. AFFECT REGULATION & EMOTIONAL SIGNATURE**
+- What is the dominant affect displayed (fear, anger, detachment, mirth, contempt)?
+- Is there affective congruence between facial expressions, vocal tone, and body language?
+- Are there microexpressions inconsistent with conscious behavior?
+- Evidence of repression, affect splitting, or emotional masking?
+
+**2. DEFENSIVE STRUCTURE**
+- Signs of denial, projection, dissociation, or intellectualization?
+- Are facial gestures exaggerated or oddly suppressed?
+- Subtle discomfort indicators (lip pressing, jaw tension, blinking rate)?
+- Dominant defense mechanisms and ego structure?
+
+**3. AGENCY & INTENTIONALITY**
+- Does the person initiate or react?
+- Is gaze active (tracking, confronting), passive (drifting), or avoidant (deflecting)?
+- Do they anticipate being watched or is behavior unguarded?
+- Evidence of narcissistic control, performativity, or authenticity?
+
+**4. ATTACHMENT SIGNALS**
+- Are expressions relational (inviting, challenging, appeasing)?
+- Evidence of submissive, avoidant, or needy behavior?
+- Do they orient posture/gaze to an implied other?
+- Attachment style indicators (secure, avoidant, ambivalent, disorganized)?
+
+**5. COGNITIVE PROCESSING STYLE**
+- Does facial expression indicate fast, slow, or effortful thinking?
+- Micro-expressions reflecting insight, confusion, deflection, or compulsivity?
+- Are movements smooth (integrated) or staccato (fragmented)?
+- Executive function, anxiety, or obsessionalism indicators?
+
+**6. INTERPERSONAL SCHEMA**
+- Is there implicit hierarchy (above, below, equal behavior)?
+- Do they perform for viewer or interact with imagined audience?
+- Expression style: manipulative, seductive, aloof, ingratiating?
+- Social scripts, inferiority/superiority complexes?
+
+**7. SELF-WORLD BOUNDARY (Narcissism Spectrum)**
+- Hyperaware of camera (exhibitionism)?
+- Expectation of attention or validation?
+- Closed system (self-sufficient) or open system (socially responsive)?
+- Narcissistic traits vs. healthy self-other boundaries?
+
+**8. PSYCHOMOTOR INTEGRATION**
+- Are facial expressions and body movements coordinated?
+- Signs of motoric inhibition (rigidity) or disinhibition (gestural spillage)?
+- Do expressions have internal rhythm or seem externally cued?
+- Neurological integration and dissociation risk?
+
+**9. SYMBOLIC COMPRESSION/LEAKAGE**
+- Does subject pack multiple signals into short bursts?
+- Are unconscious signals leaking out through mismatched gestures?
+- Asymmetry between what is said and what is shown?
+- Symbolic intelligence vs. symptom formation?
+
+**META-ANALYSIS QUESTIONS:**
+- What is this person not aware they're revealing?
+- What would make this behavior intelligible in childhood?
+- How would this person treat someone more vulnerable?
+- Is this person constructing or avoiding reality?
+- What self-image is this person unconsciously defending?
+
+**FORMAT REQUIREMENTS:**
+- Each section must be a FULL PARAGRAPH with detailed analysis
+- Use direct QUOTATIONS from transcription whenever possible
+- Provide specific behavioral evidence for every assessment
+- Write in depth psychological insights, not surface observations
+- Focus on unconscious patterns and defense mechanisms
+
+Provide the deepest possible level of psychoanalytic insight based on observable data.`;
 
         let analysisText = "";
         
@@ -868,13 +931,14 @@ Format your response as a detailed analysis with specific observations and evide
           const response = await deepseek.chat.completions.create({
             model: "deepseek-chat",
             messages: [{ role: "user", content: analysisPrompt }],
-            max_tokens: 2000
+            max_tokens: 4000,
+            temperature: 0.8
           });
           analysisText = response.choices[0]?.message?.content || "";
         } else if (selectedModel === "anthropic" && anthropic) {
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
-            max_tokens: 2000,
+            max_tokens: 4000,
             messages: [{ role: "user", content: analysisPrompt }]
           });
           analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
@@ -882,18 +946,22 @@ Format your response as a detailed analysis with specific observations and evide
           const response = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content: analysisPrompt }],
-            max_tokens: 2000
+            max_tokens: 4000,
+            temperature: 0.8
           });
           analysisText = response.choices[0]?.message?.content || "";
         }
         
         videoAnalysis = {
-          summary: `Video segment analysis completed for ${selectedSegment.label}`,
+          summary: `Comprehensive psychoanalytic assessment completed for ${selectedSegment.label}`,
           analysisText,
           segmentInfo: selectedSegment,
           faceAnalysis,
           audioTranscription,
-          processingTime: `${selectedSegment.duration} seconds analyzed`
+          processingTime: `${selectedSegment.duration} seconds analyzed`,
+          model: selectedModel,
+          timestamp: new Date().toISOString(),
+          analysisType: "comprehensive_psychoanalytic"
         };
         
         // Clean up temp files
@@ -925,7 +993,8 @@ Format your response as a detailed analysis with specific observations and evide
         ...(analysis.personalityInsights as any),
         videoAnalysis,
         selectedSegment,
-        analysisTimestamp: new Date().toISOString()
+        analysisTimestamp: new Date().toISOString(),
+        summary: videoAnalysis.analysisText ? `Comprehensive psychoanalytic assessment completed for video segment ${selectedSegment.label}` : `Video segment analysis completed for ${selectedSegment.label}`
       };
       
       await storage.updateAnalysis(analysisId, { personalityInsights: updatedPersonalityInsights });
@@ -1001,19 +1070,25 @@ This analysis focuses on the selected segment to provide targeted personality in
       // Get messages for this analysis
       const messages = await storage.getMessagesByAnalysisId(analysisId);
       
+      // Include messages in analysis for export
+      const enrichedAnalysis = {
+        ...analysis,
+        messages: messages || []
+      };
+      
       if (format === "txt") {
-        const txtContent = generateAnalysisTxt(analysis);
+        const txtContent = generateAnalysisTxt(enrichedAnalysis);
         res.setHeader('Content-Type', 'text/plain');
         res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.txt"`);
         res.send(txtContent);
       } else if (format === "docx") {
-        const docxBuffer = await generateDocx(analysis);
+        const docxBuffer = await generateDocx(enrichedAnalysis);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.docx"`);
         res.send(docxBuffer);
       } else {
         // Default to PDF
-        const htmlContent = generateAnalysisHtml(analysis);
+        const htmlContent = generateAnalysisHtml(enrichedAnalysis);
         const pdfBuffer = await generatePdf(htmlContent);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.pdf"`);

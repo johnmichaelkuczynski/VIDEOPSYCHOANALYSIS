@@ -28,7 +28,27 @@ export function generateAnalysisTxt(analysis: Analysis): string {
   txtContent += `Media Type: ${analysis.mediaType}\n`;
   txtContent += `People Detected: ${personalityInsights.peopleCount || 1}\n\n`;
   
-  if (isMultiPersonAnalysis) {
+  // Check for video analysis data
+  if (personalityInsights.videoAnalysis && personalityInsights.videoAnalysis.analysisText) {
+    txtContent += 'COMPREHENSIVE PSYCHOANALYTIC ASSESSMENT:\n';
+    txtContent += '='.repeat(60) + '\n\n';
+    txtContent += personalityInsights.videoAnalysis.analysisText + '\n\n';
+    
+    if (personalityInsights.videoAnalysis.segmentInfo) {
+      txtContent += 'SEGMENT INFORMATION:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      txtContent += `Analyzed Segment: ${personalityInsights.videoAnalysis.segmentInfo.label}\n`;
+      txtContent += `Duration: ${personalityInsights.videoAnalysis.segmentInfo.duration} seconds\n`;
+      txtContent += `Processing Time: ${personalityInsights.videoAnalysis.processingTime}\n`;
+      txtContent += `AI Model: ${personalityInsights.videoAnalysis.model}\n\n`;
+    }
+    
+    if (personalityInsights.videoAnalysis.audioTranscription?.transcription) {
+      txtContent += 'AUDIO TRANSCRIPTION:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      txtContent += `"${personalityInsights.videoAnalysis.audioTranscription.transcription}"\n\n`;
+    }
+  } else if (isMultiPersonAnalysis) {
     txtContent += personalityInsights.overviewSummary + '\n\n';
     
     personalityInsights.individualProfiles.forEach((profile: any, index: number) => {
@@ -160,9 +180,13 @@ export function generateAnalysisTxt(analysis: Analysis): string {
       }
     });
   } else {
-    // Single person analysis
+    // Single person analysis (including video analysis)
     const profile = personalityInsights.individualProfiles?.[0] || personalityInsights;
-    txtContent += `SUMMARY:\n${profile.summary || 'No summary available'}\n\n`;
+    
+    // Handle non-video analysis data  
+    if (!personalityInsights.videoAnalysis) {
+      txtContent += `SUMMARY:\n${profile.summary || 'No summary available'}\n\n`;
+    }
     
     const detailed = profile.detailed_analysis || {};
     
@@ -285,6 +309,20 @@ export function generateAnalysisTxt(analysis: Analysis): string {
         txtContent += `Development Path: ${detailed.growth_areas.development_path}\n\n`;
       }
     }
+  }
+  
+  // Add analysis messages if available
+  if ((analysis as any).messages && Array.isArray((analysis as any).messages) && (analysis as any).messages.length > 0) {
+    txtContent += 'ANALYSIS MESSAGES:\n';
+    txtContent += '='.repeat(60) + '\n\n';
+    
+    (analysis as any).messages.forEach((message: any, index: number) => {
+      if (message.role === 'assistant' && message.content) {
+        txtContent += `Message ${index + 1}:\n`;
+        txtContent += '-'.repeat(20) + '\n';
+        txtContent += message.content + '\n\n';
+      }
+    });
   }
   
   txtContent += '='.repeat(80) + '\n';

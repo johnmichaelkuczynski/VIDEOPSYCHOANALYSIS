@@ -1,0 +1,112 @@
+CORE PARAMETERS TO EXTRACT
+1. Affect Regulation & Emotional Signature
+What is the dominant affect displayed (e.g., fear, anger, detachment, mirth, contempt)?
+
+Is there affective congruence (do facial expressions, vocal tone, and body match)?
+
+Does the subject display microexpressions inconsistent with their conscious behavior?
+
+Purpose: Identifies repression, affect splitting, or emotional masking.
+
+2. Defensive Structure
+Is the subject exhibiting signs of denial, projection, dissociation, or intellectualization?
+
+Are facial gestures exaggerated or oddly suppressed?
+
+Is there subtle discomfort (e.g., lip pressing, jaw tension, blinking rate)?
+
+Purpose: Reveals dominant defense mechanisms and ego structure.
+
+3. Agency and Intentionality
+Does the person initiate or react?
+
+Is the gaze active (tracking, confronting), passive (drifting), or avoidant (deflecting)?
+
+Does the subject anticipate being watched or is their behavior unguarded?
+
+Purpose: Distinguishes between narcissistic control, performativity, or authenticity.
+
+4. Attachment Signals
+Are the subject’s expressions relational (inviting, challenging, appeasing)?
+
+Is there any evidence of submissive, avoidant, or needy behavior?
+
+Do they orient their posture or gaze to an implied other?
+
+Purpose: Reveals attachment style (secure, avoidant, ambivalent, disorganized).
+
+5. Cognitive Processing Style
+Does their face indicate fast, slow, or effortful thinking?
+
+Do their micro-expressions reflect insight, confusion, deflection, or compulsivity?
+
+Are their movements smooth (integrated) or staccato (fragmented)?
+
+Purpose: Hints at executive function, anxiety, or obsessionalism.
+
+6. Interpersonal Schema
+Is there an implicit hierarchy? (e.g., do they behave like they’re above, below, or equal?)
+
+Do they perform for the viewer or interact with an imagined audience?
+
+Is their expression manipulative, seductive, aloof, ingratiating?
+
+Purpose: Surfaces social scripts, inferiority/superiority complexes.
+
+7. Self-World Boundary (Narcissism Spectrum)
+Are they hyperaware of the camera (exhibitionism)?
+
+Do they seem to expect attention or validation?
+
+Do they behave like a closed system (self-sufficient) or open system (socially responsive)?
+
+Purpose: Gauges narcissistic traits vs. healthy self-other boundaries.
+
+8. Psychomotor Integration
+Are facial expressions and body movements coordinated?
+
+Is there any sign of motoric inhibition (rigidity) or disinhibition (gestural spillage)?
+
+Do their expressions have internal rhythm, or do they seem externally cued?
+
+Purpose: Reveals neurological integration and dissociation risk.
+
+9. Symbolic Compression / Leakage
+Does the subject pack multiple signals into short bursts (compression)?
+
+Are unconscious signals leaking out (e.g., through mismatched gestures)?
+
+Is there asymmetry between what is said (if anything) and what is shown?
+
+Purpose: Measures symbolic intelligence vs. symptom formation.
+
+🧠 META-QUESTIONS FOR THE AI TO ASK EACH CLIP
+“What is this person not aware they’re revealing?”
+Targets projection, unconscious conflict, or repressed affect.
+
+“What would make this behavior intelligible in childhood?”
+Surfaces developmental fixations or trauma residues.
+
+“How would this person treat someone more vulnerable?”
+Infers superego dynamics and empathy levels.
+
+“Is this person constructing or avoiding reality?”
+Separates depressive realism from narcissistic fantasy.
+
+“What self-image is this person unconsciously defending?”
+Reveals idealized ego vs. shame/fear core.
+
+🚨 HIGH-YIELD SIGNALS FOR SHORT VIDEO
+Eye movement latency and targeting
+
+Mouth tension / asymmetry
+
+Spontaneous facial affect not cued by context
+
+Head angle: tilt (empathy), down (submission), up (dominance)
+
+Facial mirroring (even without a partner)
+
+Grooming gestures (self-soothing vs. self-display)
+
+Baseline energy level and its regulation
