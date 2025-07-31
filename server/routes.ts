@@ -724,6 +724,7 @@ CRITICAL REQUIREMENTS:
       // Use AI to generate real analysis
       if (selectedModel === "deepseek" && deepseek) {
         try {
+          console.log("Starting DeepSeek analysis...");
           const response = await deepseek.chat.completions.create({
             model: "deepseek-chat",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
@@ -732,6 +733,7 @@ CRITICAL REQUIREMENTS:
           });
           
           const analysisText = response.choices[0]?.message?.content || "";
+          console.log("DeepSeek response received, length:", analysisText.length);
           
           // Try to parse JSON response and validate quotes
           try {
@@ -746,7 +748,7 @@ CRITICAL REQUIREMENTS:
                     metric.quotes = metric.quotes.filter((quote: string) => {
                       const found = selectedText.includes(quote.trim());
                       if (!found && quote.length > 10) {
-                        console.warn(`Quote not found in source text: ${quote.substring(0, 50)}...`);
+                        console.warn("DeepSeek quote validation failed for: " + quote.substring(0, 50) + "...");
                       }
                       return found;
                     });
@@ -755,15 +757,20 @@ CRITICAL REQUIREMENTS:
               }
               
               metricsAnalysis = parsedAnalysis;
+              console.log("DeepSeek analysis parsed successfully");
+            } else {
+              console.warn("No JSON found in DeepSeek response");
             }
           } catch (parseError) {
-            console.warn("Failed to parse AI analysis JSON:", parseError);
+            console.error("Failed to parse DeepSeek JSON:", parseError);
+            console.log("Raw response:", analysisText.substring(0, 500));
           }
         } catch (error) {
           console.error("DeepSeek analysis failed:", error);
         }
       } else if (selectedModel === "anthropic" && anthropic) {
         try {
+          console.log("Starting Anthropic analysis...");
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
             max_tokens: 8000,
@@ -771,6 +778,7 @@ CRITICAL REQUIREMENTS:
           });
           
           const analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+          console.log("Anthropic response received, length:", analysisText.length);
           
           // Try to parse JSON response and validate quotes
           try {
@@ -785,7 +793,7 @@ CRITICAL REQUIREMENTS:
                     metric.quotes = metric.quotes.filter((quote: string) => {
                       const found = selectedText.includes(quote.trim());
                       if (!found && quote.length > 10) {
-                        console.warn(`Quote not found in source text: ${quote.substring(0, 50)}...`);
+                        console.warn("Anthropic quote validation failed for: " + quote.substring(0, 50) + "...");
                       }
                       return found;
                     });
@@ -794,15 +802,20 @@ CRITICAL REQUIREMENTS:
               }
               
               metricsAnalysis = parsedAnalysis;
+              console.log("Anthropic analysis parsed successfully");
+            } else {
+              console.warn("No JSON found in Anthropic response");
             }
           } catch (parseError) {
-            console.warn("Failed to parse AI analysis JSON:", parseError);
+            console.error("Failed to parse Anthropic JSON:", parseError);
+            console.log("Raw response:", analysisText.substring(0, 500));
           }
         } catch (error) {
           console.error("Anthropic analysis failed:", error);
         }
       } else if (openai) {
         try {
+          console.log("Starting OpenAI analysis...");
           const response = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
@@ -811,6 +824,7 @@ CRITICAL REQUIREMENTS:
           });
           
           const analysisText = response.choices[0]?.message?.content || "";
+          console.log("OpenAI response received, length:", analysisText.length);
           
           // Try to parse JSON response and validate quotes
           try {
@@ -825,7 +839,7 @@ CRITICAL REQUIREMENTS:
                     metric.quotes = metric.quotes.filter((quote: string) => {
                       const found = selectedText.includes(quote.trim());
                       if (!found && quote.length > 10) {
-                        console.warn(`Quote not found in source text: ${quote.substring(0, 50)}...`);
+                        console.warn("OpenAI quote validation failed for: " + quote.substring(0, 50) + "...");
                       }
                       return found;
                     });
@@ -834,9 +848,13 @@ CRITICAL REQUIREMENTS:
               }
               
               metricsAnalysis = parsedAnalysis;
+              console.log("OpenAI analysis parsed successfully");
+            } else {
+              console.warn("No JSON found in OpenAI response");
             }
           } catch (parseError) {
-            console.warn("Failed to parse AI analysis JSON:", parseError);
+            console.error("Failed to parse OpenAI JSON:", parseError);
+            console.log("Raw response:", analysisText.substring(0, 500));
           }
         } catch (error) {
           console.error("OpenAI analysis failed:", error);
