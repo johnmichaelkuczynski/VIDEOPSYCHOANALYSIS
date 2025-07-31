@@ -810,6 +810,13 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         // Add message to chat
         if (response.message) {
           setMessages(prev => [...prev, response.message]);
+        } else {
+          // Fallback - create a display message if none provided
+          const summaryMessage = {
+            role: "assistant" as const,
+            content: `Document Analysis Complete\n\n25 psychological metrics have been analyzed across ${selectedChunks.length} text chunks. The analysis includes detailed scoring, explanations, and direct quotations from your document.`
+          };
+          setMessages(prev => [...prev, summaryMessage]);
         }
         
         setAnalysisProgress(100);
@@ -2095,7 +2102,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               ) : (
                 <ScrollArea className="flex-1 pr-4 mb-4">
                   <div className="space-y-4">
-                    {messages.filter(message => message.role === "user" || (message.role === "assistant" && messages.some(m => m.role === "user"))).map((message, index) => (
+                    {messages.map((message, index) => (
                       <div
                         key={index}
                         className={`flex flex-col p-4 rounded-lg ${
