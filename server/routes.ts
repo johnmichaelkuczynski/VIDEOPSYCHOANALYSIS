@@ -653,39 +653,202 @@ CRITICAL INSTRUCTIONS:
         return res.status(400).json({ error: "No valid text selected for analysis" });
       }
       
-      console.log(`Analyzing ${selectedChunks.length} chunks`);
+      console.log(`Analyzing ${selectedChunks.length} chunks with ${selectedModel}`);
       
-      // Create 25 metrics analysis
-      const metricsAnalysis = {
-        summary: "Document analysis completed successfully. The text demonstrates clear structure and professional communication patterns.",
-        metrics: [
-          { name: "Content Quality", score: 85, explanation: "Content shows good organization and clarity", detailedAnalysis: "The text demonstrates coherent structure and logical flow of ideas, indicating systematic thinking.", quotes: [selectedText.substring(0, 100) + "..."] },
-          { name: "Communication Style", score: 80, explanation: "Clear and effective communication", detailedAnalysis: "The writing style shows attention to detail and consideration for the reader's understanding.", quotes: [selectedText.substring(100, 200) + "..."] },
-          { name: "Analytical Depth", score: 75, explanation: "Shows thoughtful analysis and reasoning", detailedAnalysis: "The content demonstrates careful consideration of topics and logical progression of ideas.", quotes: [selectedText.substring(200, 300) + "..."] },
-          { name: "Professional Competence", score: 90, explanation: "Demonstrates expertise and knowledge", detailedAnalysis: "The document shows professional-level understanding and competent handling of subject matter.", quotes: [selectedText.substring(300, 400) + "..."] },
-          { name: "Clarity of Expression", score: 85, explanation: "Ideas are expressed clearly and effectively", detailedAnalysis: "The writing demonstrates clear articulation of concepts and effective use of language.", quotes: [selectedText.substring(400, 500) + "..."] },
-          { name: "Logical Organization", score: 80, explanation: "Information is well-structured and flows logically", detailedAnalysis: "The document follows a clear organizational pattern that enhances comprehension.", quotes: [selectedText.substring(500, 600) + "..."] },
-          { name: "Attention to Detail", score: 78, explanation: "Shows careful consideration of specifics", detailedAnalysis: "The text demonstrates meticulous attention to important details and nuances.", quotes: [selectedText.substring(600, 700) + "..."] },
-          { name: "Conceptual Understanding", score: 82, explanation: "Demonstrates grasp of complex concepts", detailedAnalysis: "The writing shows sophisticated understanding of underlying principles and relationships.", quotes: [selectedText.substring(700, 800) + "..."] },
-          { name: "Critical Thinking", score: 77, explanation: "Shows analytical and evaluative thinking", detailedAnalysis: "The content demonstrates ability to analyze, evaluate, and synthesize information effectively.", quotes: [selectedText.substring(800, 900) + "..."] },
-          { name: "Creativity", score: 70, explanation: "Shows originality in approach or expression", detailedAnalysis: "The text demonstrates creative thinking and original approaches to problem-solving.", quotes: [selectedText.substring(900, 1000) + "..."] },
-          { name: "Emotional Intelligence", score: 75, explanation: "Shows awareness of emotional context", detailedAnalysis: "The writing demonstrates sensitivity to emotional nuances and interpersonal dynamics.", quotes: [selectedText.substring(1000, 1100) + "..."] },
-          { name: "Persuasiveness", score: 73, explanation: "Effectively presents arguments and ideas", detailedAnalysis: "The text shows ability to construct compelling arguments and present ideas convincingly.", quotes: [selectedText.substring(1100, 1200) + "..."] },
-          { name: "Adaptability", score: 68, explanation: "Shows flexibility in approach", detailedAnalysis: "The writing demonstrates ability to adapt style and approach to different contexts.", quotes: [selectedText.substring(1200, 1300) + "..."] },
-          { name: "Leadership Potential", score: 79, explanation: "Shows qualities associated with leadership", detailedAnalysis: "The text demonstrates confidence, vision, and ability to guide others.", quotes: [selectedText.substring(1300, 1400) + "..."] },
-          { name: "Team Collaboration", score: 76, explanation: "Shows ability to work effectively with others", detailedAnalysis: "The writing demonstrates awareness of group dynamics and collaborative processes.", quotes: [selectedText.substring(1400, 1500) + "..."] },
-          { name: "Innovation", score: 72, explanation: "Shows capacity for novel solutions", detailedAnalysis: "The text demonstrates ability to generate new ideas and innovative approaches.", quotes: [selectedText.substring(1500, 1600) + "..."] },
-          { name: "Risk Assessment", score: 74, explanation: "Shows ability to evaluate potential outcomes", detailedAnalysis: "The writing demonstrates thoughtful consideration of risks and benefits.", quotes: [selectedText.substring(1600, 1700) + "..."] },
-          { name: "Strategic Thinking", score: 81, explanation: "Shows long-term planning abilities", detailedAnalysis: "The text demonstrates capacity for strategic planning and big-picture thinking.", quotes: [selectedText.substring(1700, 1800) + "..."] },
-          { name: "Decision Making", score: 77, explanation: "Shows sound judgment in choices", detailedAnalysis: "The writing demonstrates ability to make well-reasoned decisions based on available information.", quotes: [selectedText.substring(1800, 1900) + "..."] },
-          { name: "Problem Solving", score: 83, explanation: "Shows effective problem-solving approach", detailedAnalysis: "The text demonstrates systematic approach to identifying and resolving challenges.", quotes: [selectedText.substring(1900, 2000) + "..."] },
-          { name: "Learning Orientation", score: 78, explanation: "Shows commitment to continuous learning", detailedAnalysis: "The writing demonstrates openness to new information and willingness to grow.", quotes: [selectedText.substring(2000, 2100) + "..."] },
-          { name: "Resilience", score: 75, explanation: "Shows ability to persevere through challenges", detailedAnalysis: "The text demonstrates mental toughness and ability to bounce back from setbacks.", quotes: [selectedText.substring(2100, 2200) + "..."] },
-          { name: "Ethical Reasoning", score: 82, explanation: "Shows strong moral and ethical foundation", detailedAnalysis: "The writing demonstrates consideration of ethical implications and moral principles.", quotes: [selectedText.substring(2200, 2300) + "..."] },
-          { name: "Cultural Awareness", score: 71, explanation: "Shows sensitivity to cultural differences", detailedAnalysis: "The text demonstrates awareness of cultural nuances and diverse perspectives.", quotes: [selectedText.substring(2300, 2400) + "..."] },
-          { name: "Future Orientation", score: 79, explanation: "Shows forward-thinking perspective", detailedAnalysis: "The writing demonstrates ability to anticipate future trends and prepare accordingly.", quotes: [selectedText.substring(2400, 2500) + "..."] }
-        ]
-      };
+      // Create comprehensive AI-powered analysis prompt for 25 metrics
+      const documentAnalysisPrompt = `Analyze the following text using 25 comprehensive psychological metrics. For each metric, provide:
+1. A score from 1-100 with detailed justification
+2. A comprehensive paragraph of analysis explaining the reasoning
+3. 2-3 direct quotations from the text that support the assessment
+4. Specific evidence-based reasoning
+
+TEXT TO ANALYZE (you must quote EXACTLY from this text):
+"${selectedText}"
+
+REMEMBER: Every quote must be an EXACT, VERBATIM excerpt from the above text. Do not modify, paraphrase, or create quotes.
+
+REQUIRED 25 METRICS TO ANALYZE:
+
+1. Content Quality - Organization, clarity, and coherence of ideas
+2. Communication Style - Effectiveness of written expression  
+3. Analytical Depth - Level of thoughtful analysis and reasoning
+4. Professional Competence - Demonstration of expertise and knowledge
+5. Clarity of Expression - How clearly ideas are articulated
+6. Logical Organization - Structure and flow of information
+7. Attention to Detail - Care and precision in specifics
+8. Conceptual Understanding - Grasp of complex concepts
+9. Critical Thinking - Analytical and evaluative abilities
+10. Creativity - Originality in approach or expression
+11. Emotional Intelligence - Awareness of emotional context
+12. Persuasiveness - Ability to present compelling arguments
+13. Adaptability - Flexibility in approach and style
+14. Leadership Potential - Qualities associated with leadership
+15. Team Collaboration - Ability to work with others
+16. Innovation - Capacity for novel solutions
+17. Risk Assessment - Ability to evaluate potential outcomes
+18. Strategic Thinking - Long-term planning abilities
+19. Decision Making - Sound judgment in choices
+20. Problem Solving - Systematic approach to challenges
+21. Learning Orientation - Commitment to continuous growth
+22. Resilience - Ability to persevere through challenges
+23. Ethical Reasoning - Moral and ethical foundation
+24. Cultural Awareness - Sensitivity to diverse perspectives
+25. Future Orientation - Forward-thinking perspective
+
+FORMAT AS JSON:
+{
+  "summary": "Overall comprehensive analysis summary",
+  "metrics": [
+    {
+      "name": "Content Quality",
+      "score": 85,
+      "explanation": "Brief explanation",
+      "detailedAnalysis": "Comprehensive paragraph analysis with reasoning",
+      "quotes": ["direct quote 1", "direct quote 2", "direct quote 3"]
+    }
+    // ... continue for all 25 metrics
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+- Every score must be justified with specific evidence from the text
+- Every detailed analysis must be a full paragraph explaining the reasoning
+- Every metric must include 2-3 EXACT quotations from the provided text - DO NOT PARAPHRASE OR MODIFY
+- Base all assessments on observable evidence in the text
+- ONLY use direct, verbatim excerpts from the text - absolutely NO made-up or modified quotes
+- If insufficient text exists for a metric, score it lower and explain the limitation
+- All quotations must be word-for-word matches from the source text`;
+
+      let metricsAnalysis = null;
+      
+      // Use AI to generate real analysis
+      if (selectedModel === "deepseek" && deepseek) {
+        try {
+          const response = await deepseek.chat.completions.create({
+            model: "deepseek-chat",
+            messages: [{ role: "user", content: documentAnalysisPrompt }],
+            max_tokens: 12000,
+            temperature: 0.7
+          });
+          
+          const analysisText = response.choices[0]?.message?.content || "";
+          
+          // Try to parse JSON response and validate quotes
+          try {
+            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsedAnalysis = JSON.parse(jsonMatch[0]);
+              
+              // Validate that all quotes actually exist in the source text
+              if (parsedAnalysis.metrics) {
+                parsedAnalysis.metrics.forEach((metric: any) => {
+                  if (metric.quotes) {
+                    metric.quotes = metric.quotes.filter((quote: string) => {
+                      const found = selectedText.includes(quote.trim());
+                      if (!found && quote.length > 10) {
+                        console.warn(`Quote not found in source text: ${quote.substring(0, 50)}...`);
+                      }
+                      return found;
+                    });
+                  }
+                });
+              }
+              
+              metricsAnalysis = parsedAnalysis;
+            }
+          } catch (parseError) {
+            console.warn("Failed to parse AI analysis JSON:", parseError);
+          }
+        } catch (error) {
+          console.error("DeepSeek analysis failed:", error);
+        }
+      } else if (selectedModel === "anthropic" && anthropic) {
+        try {
+          const response = await anthropic.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 12000,
+            messages: [{ role: "user", content: documentAnalysisPrompt }]
+          });
+          
+          const analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+          
+          // Try to parse JSON response and validate quotes
+          try {
+            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsedAnalysis = JSON.parse(jsonMatch[0]);
+              
+              // Validate that all quotes actually exist in the source text
+              if (parsedAnalysis.metrics) {
+                parsedAnalysis.metrics.forEach((metric: any) => {
+                  if (metric.quotes) {
+                    metric.quotes = metric.quotes.filter((quote: string) => {
+                      const found = selectedText.includes(quote.trim());
+                      if (!found && quote.length > 10) {
+                        console.warn(`Quote not found in source text: ${quote.substring(0, 50)}...`);
+                      }
+                      return found;
+                    });
+                  }
+                });
+              }
+              
+              metricsAnalysis = parsedAnalysis;
+            }
+          } catch (parseError) {
+            console.warn("Failed to parse AI analysis JSON:", parseError);
+          }
+        } catch (error) {
+          console.error("Anthropic analysis failed:", error);
+        }
+      } else if (openai) {
+        try {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: documentAnalysisPrompt }],
+            max_tokens: 12000,
+            temperature: 0.7
+          });
+          
+          const analysisText = response.choices[0]?.message?.content || "";
+          
+          // Try to parse JSON response and validate quotes
+          try {
+            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsedAnalysis = JSON.parse(jsonMatch[0]);
+              
+              // Validate that all quotes actually exist in the source text
+              if (parsedAnalysis.metrics) {
+                parsedAnalysis.metrics.forEach((metric: any) => {
+                  if (metric.quotes) {
+                    metric.quotes = metric.quotes.filter((quote: string) => {
+                      const found = selectedText.includes(quote.trim());
+                      if (!found && quote.length > 10) {
+                        console.warn(`Quote not found in source text: ${quote.substring(0, 50)}...`);
+                      }
+                      return found;
+                    });
+                  }
+                });
+              }
+              
+              metricsAnalysis = parsedAnalysis;
+            }
+          } catch (parseError) {
+            console.warn("Failed to parse AI analysis JSON:", parseError);
+          }
+        } catch (error) {
+          console.error("OpenAI analysis failed:", error);
+        }
+      }
+      
+      // Fallback if AI analysis failed
+      if (!metricsAnalysis) {
+        return res.status(503).json({ 
+          error: "AI analysis service unavailable. Please try again with a different model or check your API keys." 
+        });
+      }
       
       // Update analysis with metrics
       const updatedPersonalityInsights = {
