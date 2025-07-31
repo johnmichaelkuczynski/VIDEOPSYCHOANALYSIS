@@ -24,7 +24,7 @@ export function generateAnalysisTxt(analysis: Analysis): string {
   txtContent += '='.repeat(80) + '\n\n';
   
   txtContent += `Analysis ID: ${analysis.id}\n`;
-  txtContent += `Created: ${new Date(analysis.createdAt).toLocaleString()}\n`;
+  txtContent += `Created: ${analysis.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Unknown'}\n`;
   txtContent += `Media Type: ${analysis.mediaType}\n`;
   txtContent += `People Detected: ${personalityInsights.peopleCount || 1}\n\n`;
   
@@ -340,6 +340,77 @@ export function generateAnalysisTxt(analysis: Analysis): string {
     }
   }
   
+  // Add comprehensive analysis if available (40-parameter system)
+  if (personalityInsights.comprehensiveAnalysis) {
+    txtContent += '40-PARAMETER COMPREHENSIVE ANALYSIS:\n';
+    txtContent += '='.repeat(60) + '\n\n';
+    
+    // Cognitive Parameters (20)
+    if (personalityInsights.comprehensiveAnalysis.cognitiveAnalysis) {
+      txtContent += 'COGNITIVE PARAMETERS (20):\n';
+      txtContent += '-'.repeat(40) + '\n';
+      
+      Object.entries(personalityInsights.comprehensiveAnalysis.cognitiveAnalysis).forEach(([paramId, paramData]: [string, any]) => {
+        if (paramData && personalityInsights.cognitiveParameters) {
+          const paramInfo = personalityInsights.cognitiveParameters.find((p: any) => p.id === paramId);
+          if (paramInfo) {
+            txtContent += `\n${paramInfo.name.toUpperCase()}:\n`;
+            txtContent += `Score: ${paramData.score || 'N/A'}/100\n`;
+            txtContent += `Analysis: ${paramData.analysis || 'No analysis available'}\n`;
+            
+            if (paramData.quotations && paramData.quotations.length > 0) {
+              txtContent += 'Key Quotations:\n';
+              paramData.quotations.forEach((quote: string, i: number) => {
+                txtContent += `  ${i + 1}. "${quote}"\n`;
+              });
+            }
+            
+            if (paramData.evidence) {
+              txtContent += `Evidence: ${paramData.evidence}\n`;
+            }
+            txtContent += '\n';
+          }
+        }
+      });
+    }
+    
+    // Psychological Parameters (20)
+    if (personalityInsights.comprehensiveAnalysis.psychologicalAnalysis) {
+      txtContent += '\nPSYCHOLOGICAL PARAMETERS (20):\n';
+      txtContent += '-'.repeat(40) + '\n';
+      
+      Object.entries(personalityInsights.comprehensiveAnalysis.psychologicalAnalysis).forEach(([paramId, paramData]: [string, any]) => {
+        if (paramData && personalityInsights.psychologicalParameters) {
+          const paramInfo = personalityInsights.psychologicalParameters.find((p: any) => p.id === paramId);
+          if (paramInfo) {
+            txtContent += `\n${paramInfo.name.toUpperCase()}:\n`;
+            txtContent += `Score: ${paramData.score || 'N/A'}/100\n`;
+            txtContent += `Analysis: ${paramData.analysis || 'No analysis available'}\n`;
+            
+            if (paramData.quotations && paramData.quotations.length > 0) {
+              txtContent += 'Key Quotations:\n';
+              paramData.quotations.forEach((quote: string, i: number) => {
+                txtContent += `  ${i + 1}. "${quote}"\n`;
+              });
+            }
+            
+            if (paramData.evidence) {
+              txtContent += `Evidence: ${paramData.evidence}\n`;
+            }
+            txtContent += '\n';
+          }
+        }
+      });
+    }
+    
+    // Overall Summary
+    if (personalityInsights.comprehensiveAnalysis.overallSummary) {
+      txtContent += '\nOVERALL SUMMARY:\n';
+      txtContent += '-'.repeat(40) + '\n';
+      txtContent += personalityInsights.comprehensiveAnalysis.overallSummary + '\n\n';
+    }
+  }
+  
   // Add analysis messages if available
   if ((analysis as any).messages && Array.isArray((analysis as any).messages) && (analysis as any).messages.length > 0) {
     txtContent += 'ANALYSIS MESSAGES:\n';
@@ -482,8 +553,88 @@ export function generateAnalysisHtml(analysis: Analysis): string {
       </div>
     `;
   }
-  // Check for image analysis data
-  else if (personalityInsights.comprehensiveAnalysis) {
+  // Check for comprehensive 40-parameter analysis
+  if (personalityInsights.comprehensiveAnalysis) {
+    htmlContent += `
+      <div class="video-analysis">
+        <h2>Comprehensive 40-Parameter Analysis</h2>
+        
+        <div class="section">
+          <h3>Cognitive Parameters (20)</h3>
+    `;
+    
+    // Add cognitive parameters
+    if (personalityInsights.comprehensiveAnalysis.cognitiveAnalysis && personalityInsights.cognitiveParameters) {
+      Object.entries(personalityInsights.comprehensiveAnalysis.cognitiveAnalysis).forEach(([paramId, paramData]: [string, any]) => {
+        const paramInfo = personalityInsights.cognitiveParameters.find((p: any) => p.id === paramId);
+        if (paramInfo && paramData) {
+          htmlContent += `
+            <div class="profile">
+              <h4>${paramInfo.name}</h4>
+              <p><strong>Score:</strong> ${paramData.score || 'N/A'}/100</p>
+              <p><strong>Analysis:</strong> ${paramData.analysis || 'No analysis available'}</p>
+              ${paramData.quotations && paramData.quotations.length > 0 ? `
+                <p><strong>Key Quotations:</strong></p>
+                <ul>
+                  ${paramData.quotations.map((quote: string) => `<li><em>"${quote}"</em></li>`).join('')}
+                </ul>
+              ` : ''}
+              ${paramData.evidence ? `<p><strong>Evidence:</strong> ${paramData.evidence}</p>` : ''}
+            </div>
+          `;
+        }
+      });
+    }
+    
+    htmlContent += `
+        </div>
+        
+        <div class="section">
+          <h3>Psychological Parameters (20)</h3>
+    `;
+    
+    // Add psychological parameters
+    if (personalityInsights.comprehensiveAnalysis.psychologicalAnalysis && personalityInsights.psychologicalParameters) {
+      Object.entries(personalityInsights.comprehensiveAnalysis.psychologicalAnalysis).forEach(([paramId, paramData]: [string, any]) => {
+        const paramInfo = personalityInsights.psychologicalParameters.find((p: any) => p.id === paramId);
+        if (paramInfo && paramData) {
+          htmlContent += `
+            <div class="profile">
+              <h4>${paramInfo.name}</h4>
+              <p><strong>Score:</strong> ${paramData.score || 'N/A'}/100</p>
+              <p><strong>Analysis:</strong> ${paramData.analysis || 'No analysis available'}</p>
+              ${paramData.quotations && paramData.quotations.length > 0 ? `
+                <p><strong>Key Quotations:</strong></p>
+                <ul>
+                  ${paramData.quotations.map((quote: string) => `<li><em>"${quote}"</em></li>`).join('')}
+                </ul>
+              ` : ''}
+              ${paramData.evidence ? `<p><strong>Evidence:</strong> ${paramData.evidence}</p>` : ''}
+            </div>
+          `;
+        }
+      });
+    }
+    
+    // Add overall summary
+    if (personalityInsights.comprehensiveAnalysis.overallSummary) {
+      htmlContent += `
+        </div>
+        
+        <div class="section">
+          <h3>Overall Summary</h3>
+          <div class="summary">
+            <p>${personalityInsights.comprehensiveAnalysis.overallSummary}</p>
+          </div>
+        </div>
+      </div>
+      `;
+    } else {
+      htmlContent += '</div></div>';
+    }
+  }
+  // Check for image analysis data (legacy format)
+  else if (personalityInsights.comprehensiveAnalysis && typeof personalityInsights.comprehensiveAnalysis === 'string') {
     // Clean up analysis text by removing markdown formatting
     const cleanAnalysisText = personalityInsights.comprehensiveAnalysis
       .replace(/#{1,6}\s*/g, '') // Remove headers
@@ -798,6 +949,98 @@ export async function generateDocx(analysis: Analysis): Promise<Buffer> {
       
       children.push(new Paragraph({ text: personDetails.professional_insights || 'Not available' }));
       
+      // Add comprehensive analysis if available
+      if (personalityInsights.comprehensiveAnalysis && personalityInsights.comprehensiveAnalysis.cognitiveAnalysis) {
+        children.push(
+          new Paragraph({
+            text: 'Comprehensive 40-Parameter Analysis',
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+        
+        // Cognitive Parameters
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: 'Cognitive Parameters (20)', bold: true })],
+          })
+        );
+        
+        if (personalityInsights.cognitiveParameters) {
+          Object.entries(personalityInsights.comprehensiveAnalysis.cognitiveAnalysis).forEach(([paramId, paramData]: [string, any]) => {
+            const paramInfo = personalityInsights.cognitiveParameters.find((p: any) => p.id === paramId);
+            if (paramInfo && paramData) {
+              children.push(
+                new Paragraph({
+                  children: [new TextRun({ text: paramInfo.name, bold: true })],
+                })
+              );
+              
+              children.push(new Paragraph({ text: `Score: ${paramData.score || 'N/A'}/100` }));
+              children.push(new Paragraph({ text: `Analysis: ${paramData.analysis || 'No analysis available'}` }));
+              
+              if (paramData.quotations && paramData.quotations.length > 0) {
+                children.push(new Paragraph({ text: 'Key Quotations:' }));
+                paramData.quotations.forEach((quote: string) => {
+                  children.push(new Paragraph({ text: `• "${quote}"` }));
+                });
+              }
+              
+              if (paramData.evidence) {
+                children.push(new Paragraph({ text: `Evidence: ${paramData.evidence}` }));
+              }
+              
+              children.push(new Paragraph({})); // Spacing
+            }
+          });
+        }
+        
+        // Psychological Parameters
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: 'Psychological Parameters (20)', bold: true })],
+          })
+        );
+        
+        if (personalityInsights.psychologicalParameters) {
+          Object.entries(personalityInsights.comprehensiveAnalysis.psychologicalAnalysis || {}).forEach(([paramId, paramData]: [string, any]) => {
+            const paramInfo = personalityInsights.psychologicalParameters.find((p: any) => p.id === paramId);
+            if (paramInfo && paramData) {
+              children.push(
+                new Paragraph({
+                  children: [new TextRun({ text: paramInfo.name, bold: true })],
+                })
+              );
+              
+              children.push(new Paragraph({ text: `Score: ${paramData.score || 'N/A'}/100` }));
+              children.push(new Paragraph({ text: `Analysis: ${paramData.analysis || 'No analysis available'}` }));
+              
+              if (paramData.quotations && paramData.quotations.length > 0) {
+                children.push(new Paragraph({ text: 'Key Quotations:' }));
+                paramData.quotations.forEach((quote: string) => {
+                  children.push(new Paragraph({ text: `• "${quote}"` }));
+                });
+              }
+              
+              if (paramData.evidence) {
+                children.push(new Paragraph({ text: `Evidence: ${paramData.evidence}` }));
+              }
+              
+              children.push(new Paragraph({})); // Spacing
+            }
+          });
+        }
+        
+        // Overall Summary
+        if (personalityInsights.comprehensiveAnalysis.overallSummary) {
+          children.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Overall Summary', bold: true })],
+            })
+          );
+          children.push(new Paragraph({ text: personalityInsights.comprehensiveAnalysis.overallSummary }));
+        }
+      }
+      
       // Strengths and Challenges if available
       if (personDetails.growth_areas) {
         children.push(
@@ -1001,7 +1244,7 @@ export async function generatePdf(htmlContent: string): Promise<Buffer> {
       printBackground: true
     });
     
-    return pdfBuffer;
+    return Buffer.from(pdfBuffer);
   } catch (error) {
     throw new Error(`PDF generation failed: ${error}`);
   } finally {
