@@ -727,7 +727,7 @@ CRITICAL REQUIREMENTS:
           const response = await deepseek.chat.completions.create({
             model: "deepseek-chat",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 12000,
+            max_tokens: 8000,
             temperature: 0.7
           });
           
@@ -766,7 +766,7 @@ CRITICAL REQUIREMENTS:
         try {
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
-            max_tokens: 12000,
+            max_tokens: 8000,
             messages: [{ role: "user", content: documentAnalysisPrompt }]
           });
           
@@ -806,7 +806,7 @@ CRITICAL REQUIREMENTS:
           const response = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 12000,
+            max_tokens: 8000,
             temperature: 0.7
           });
           
