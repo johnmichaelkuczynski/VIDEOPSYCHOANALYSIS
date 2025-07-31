@@ -18,6 +18,8 @@ import * as os from 'os';
 import { promisify } from 'util';
 import ffmpeg from 'fluent-ffmpeg';
 import multer from 'multer';
+
+type MediaType = "image" | "video" | "document" | "text";
 import Anthropic from '@anthropic-ai/sdk';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
@@ -599,6 +601,8 @@ CRITICAL INSTRUCTIONS:
         sessionId,
         mediaUrl: `document:${Date.now()}`,
         mediaType: "document",
+        fileName,
+        fileType,
         personalityInsights: { 
           chunks,
           originalContent: documentContent,
@@ -747,10 +751,11 @@ CRITICAL INSTRUCTIONS:
           // Create analysis record and store the video file for later segment processing
           const analysis = await storage.createAnalysis({
             sessionId,
+            mediaUrl: `video:${Date.now()}`,
             mediaType,
             fileName: file.originalname,
             fileType: file.mimetype,
-            selectedModel,
+            modelUsed: selectedModel as any,
             personalityInsights: {
               requiresSegmentSelection: true,
               segments,

@@ -9,6 +9,10 @@ export const analyses = pgTable("analyses", {
   title: text("title").notNull().default("Untitled Analysis"),
   // Store the URL of the media (image, video, document, text)
   mediaUrl: text("media_url").notNull(),
+  // Original filename for reference
+  fileName: text("file_name"),
+  // File type/mimetype
+  fileType: text("file_type"),
   // Indicate the type of content being analyzed
   mediaType: text("media_type", { enum: ["image", "video", "document", "text"] }).notNull(),
   // Store the face analysis data from AWS Rekognition and other services
