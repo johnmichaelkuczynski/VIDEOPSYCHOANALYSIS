@@ -1160,49 +1160,6 @@ Extract comprehensive psychological insights about affect regulation, defensive 
           `Conduct a comprehensive psychoanalytic assessment based on video segment timing analysis. This is a ${selectedSegment.duration}-second segment from ${selectedSegment.startTime} to ${selectedSegment.startTime + selectedSegment.duration} seconds. 
 
 Provide psychological insights about what can typically be observed in this duration of video content, focusing on affect regulation, defensive structure, attachment signals, and cognitive processing patterns. Write in plain text without markdown formatting.`;
-- Are movements smooth (integrated) or staccato (fragmented)?
-- Executive function, anxiety, or obsessionalism indicators?
-
-**6. INTERPERSONAL SCHEMA**
-- Is there implicit hierarchy (above, below, equal behavior)?
-- Do they perform for viewer or interact with imagined audience?
-- Expression style: manipulative, seductive, aloof, ingratiating?
-- Social scripts, inferiority/superiority complexes?
-
-**7. SELF-WORLD BOUNDARY (Narcissism Spectrum)**
-- Hyperaware of camera (exhibitionism)?
-- Expectation of attention or validation?
-- Closed system (self-sufficient) or open system (socially responsive)?
-- Narcissistic traits vs. healthy self-other boundaries?
-
-**8. PSYCHOMOTOR INTEGRATION**
-- Are facial expressions and body movements coordinated?
-- Signs of motoric inhibition (rigidity) or disinhibition (gestural spillage)?
-- Do expressions have internal rhythm or seem externally cued?
-- Neurological integration and dissociation risk?
-
-**9. SYMBOLIC COMPRESSION/LEAKAGE**
-- Does subject pack multiple signals into short bursts?
-- Are unconscious signals leaking out through mismatched gestures?
-- Asymmetry between what is said and what is shown?
-- Symbolic intelligence vs. symptom formation?
-
-**META-ANALYSIS QUESTIONS:**
-- What is this person not aware they're revealing?
-- What would make this behavior intelligible in childhood?
-- How would this person treat someone more vulnerable?
-- Is this person constructing or avoiding reality?
-- What self-image is this person unconsciously defending?
-
-FORMAT REQUIREMENTS:
-- Each section must be a FULL PARAGRAPH with detailed analysis
-- Use direct QUOTATIONS from transcription whenever possible
-- Provide specific behavioral evidence for every assessment
-- Write in depth psychological insights, not surface observations
-- Focus on unconscious patterns and defense mechanisms
-- NO FORMATTING MARKUP - plain text only
-
-Provide the deepest possible level of psychoanalytic insight based on observable data. Format as clean, readable paragraphs without any markdown, bold, or header symbols.`;
 
         let analysisText = "";
         
