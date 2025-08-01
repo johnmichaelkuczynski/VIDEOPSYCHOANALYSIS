@@ -29,6 +29,7 @@ import mammoth from 'mammoth';
 let openai: OpenAI | null = null;
 let anthropic: Anthropic | null = null;
 let deepseek: OpenAI | null = null;
+let perplexity: OpenAI | null = null;
 
 if (process.env.OPENAI_API_KEY) {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -42,6 +43,13 @@ if (process.env.DEEPSEEK_API_KEY) {
   deepseek = new OpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
     baseURL: 'https://api.deepseek.com'
+  });
+}
+
+if (process.env.PERPLEXITY_API_KEY) {
+  perplexity = new OpenAI({
+    apiKey: process.env.PERPLEXITY_API_KEY,
+    baseURL: 'https://api.perplexity.ai'
   });
 }
 
@@ -656,68 +664,31 @@ CRITICAL INSTRUCTIONS:
       console.log(`Analyzing ${selectedChunks.length} chunks with ${selectedModel}`);
       
       // Create comprehensive AI-powered analysis prompt for 25 metrics
-      const documentAnalysisPrompt = `Analyze the following text using 25 comprehensive psychological metrics. For each metric, provide:
-1. A score from 1-100 with detailed justification
-2. A comprehensive paragraph of analysis explaining the reasoning
-3. 2-3 direct quotations from the text that support the assessment
-4. Specific evidence-based reasoning
+      const documentAnalysisPrompt = `You are a psychological analyst. Analyze the following text using 25 psychological metrics. 
 
-TEXT TO ANALYZE (you must quote EXACTLY from this text):
-"${selectedText}"
+TEXT: "${selectedText}"
 
-REMEMBER: Every quote must be an EXACT, VERBATIM excerpt from the above text. Do not modify, paraphrase, or create quotes.
+INSTRUCTIONS:
+- Provide a JSON response only 
+- Each metric needs: name, score (1-100), explanation, detailedAnalysis, quotes array
+- Use EXACT quotes from the text above
+- If text is short, acknowledge limitations but still provide analysis
 
-REQUIRED 25 METRICS TO ANALYZE:
+METRICS: Content Quality, Communication Style, Analytical Depth, Professional Competence, Clarity of Expression, Logical Organization, Attention to Detail, Conceptual Understanding, Critical Thinking, Creativity, Emotional Intelligence, Persuasiveness, Adaptability, Leadership Potential, Team Collaboration, Innovation, Risk Assessment, Strategic Thinking, Decision Making, Problem Solving, Learning Orientation, Resilience, Ethical Reasoning, Cultural Awareness, Future Orientation
 
-1. Content Quality - Organization, clarity, and coherence of ideas
-2. Communication Style - Effectiveness of written expression  
-3. Analytical Depth - Level of thoughtful analysis and reasoning
-4. Professional Competence - Demonstration of expertise and knowledge
-5. Clarity of Expression - How clearly ideas are articulated
-6. Logical Organization - Structure and flow of information
-7. Attention to Detail - Care and precision in specifics
-8. Conceptual Understanding - Grasp of complex concepts
-9. Critical Thinking - Analytical and evaluative abilities
-10. Creativity - Originality in approach or expression
-11. Emotional Intelligence - Awareness of emotional context
-12. Persuasiveness - Ability to present compelling arguments
-13. Adaptability - Flexibility in approach and style
-14. Leadership Potential - Qualities associated with leadership
-15. Team Collaboration - Ability to work with others
-16. Innovation - Capacity for novel solutions
-17. Risk Assessment - Ability to evaluate potential outcomes
-18. Strategic Thinking - Long-term planning abilities
-19. Decision Making - Sound judgment in choices
-20. Problem Solving - Systematic approach to challenges
-21. Learning Orientation - Commitment to continuous growth
-22. Resilience - Ability to persevere through challenges
-23. Ethical Reasoning - Moral and ethical foundation
-24. Cultural Awareness - Sensitivity to diverse perspectives
-25. Future Orientation - Forward-thinking perspective
-
-FORMAT AS JSON:
+Respond with valid JSON only:
 {
-  "summary": "Overall comprehensive analysis summary",
+  "summary": "Brief analysis summary",
   "metrics": [
     {
-      "name": "Content Quality",
-      "score": 85,
+      "name": "Content Quality", 
+      "score": 75,
       "explanation": "Brief explanation",
-      "detailedAnalysis": "Comprehensive paragraph analysis with reasoning",
-      "quotes": ["direct quote 1", "direct quote 2", "direct quote 3"]
+      "detailedAnalysis": "Detailed paragraph explanation", 
+      "quotes": ["exact quote from text"]
     }
-    // ... continue for all 25 metrics
   ]
-}
-
-CRITICAL REQUIREMENTS:
-- Every score must be justified with specific evidence from the text
-- Every detailed analysis must be a full paragraph explaining the reasoning
-- Every metric must include 2-3 EXACT quotations from the provided text - DO NOT PARAPHRASE OR MODIFY
-- Base all assessments on observable evidence in the text
-- ONLY use direct, verbatim excerpts from the text - absolutely NO made-up or modified quotes
-- If insufficient text exists for a metric, score it lower and explain the limitation
-- All quotations must be word-for-word matches from the source text`;
+}`;
 
       let metricsAnalysis = null;
       
@@ -728,8 +699,8 @@ CRITICAL REQUIREMENTS:
           const response = await deepseek.chat.completions.create({
             model: "deepseek-chat",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 8000,
-            temperature: 0.7
+            max_tokens: 2000,
+            temperature: 0.1
           });
           
           const analysisText = response.choices[0]?.message?.content || "";
@@ -773,7 +744,7 @@ CRITICAL REQUIREMENTS:
           console.log("Starting Anthropic analysis...");
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
-            max_tokens: 8000,
+            max_tokens: 4000,
             messages: [{ role: "user", content: documentAnalysisPrompt }]
           });
           
@@ -813,14 +784,60 @@ CRITICAL REQUIREMENTS:
         } catch (error) {
           console.error("Anthropic analysis failed:", error);
         }
+      } else if (selectedModel === "perplexity" && perplexity) {
+        try {
+          console.log("Starting Perplexity analysis...");
+          const response = await perplexity.chat.completions.create({
+            model: "llama-3.1-sonar-large-128k-online",
+            messages: [{ role: "user", content: documentAnalysisPrompt }],
+            max_tokens: 4000,
+            temperature: 0.3
+          });
+          
+          const analysisText = response.choices[0]?.message?.content || "";
+          console.log("Perplexity response received, length:", analysisText.length);
+          
+          // Try to parse JSON response and validate quotes
+          try {
+            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsedAnalysis = JSON.parse(jsonMatch[0]);
+              
+              // Validate that all quotes actually exist in the source text
+              if (parsedAnalysis.metrics) {
+                parsedAnalysis.metrics.forEach((metric: any) => {
+                  if (metric.quotes) {
+                    metric.quotes = metric.quotes.filter((quote: string) => {
+                      const found = selectedText.includes(quote.trim());
+                      if (!found && quote.length > 10) {
+                        console.warn("Perplexity quote validation failed for: " + quote.substring(0, 50) + "...");
+                      }
+                      return found;
+                    });
+                  }
+                });
+              }
+              
+              metricsAnalysis = parsedAnalysis;
+              console.log("Perplexity analysis parsed successfully");
+            } else {
+              console.warn("No JSON found in Perplexity response");
+            }
+          } catch (parseError) {
+            console.error("Failed to parse Perplexity JSON:", parseError);
+            console.log("Raw response:", analysisText.substring(0, 500));
+          }
+        } catch (error) {
+          console.error("Perplexity analysis failed:", error);
+        }
       } else if (openai) {
         try {
           console.log("Starting OpenAI analysis...");
           const response = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 8000,
-            temperature: 0.7
+            max_tokens: 4000,
+            temperature: 0.3
           });
           
           const analysisText = response.choices[0]?.message?.content || "";
