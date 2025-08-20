@@ -1119,8 +1119,16 @@ Respond with valid JSON only:
             console.warn("Face analysis failed:", error);
           }
           
-          // Create comprehensive analysis prompt
-          const analysisPrompt = `Conduct a comprehensive psychoanalytic assessment of this image. Extract these CORE PSYCHOLOGICAL PARAMETERS:
+          // Create comprehensive analysis prompt with demographic and environmental observations
+          const analysisPrompt = `MANDATORY OPENING ASSESSMENT: Begin your analysis with these demographic and environmental observations, then anchor all subsequent psychological statements in these observations:
+
+1. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
+2. BODY POSTURE & POSITIONING: Stance, positioning, physical bearing, posture alignment  
+3. BODY LANGUAGE: Gestures, facial expressions, limb positioning, overall physical expression
+4. SETTING & ENVIRONMENT: Background details, location context, surrounding objects/elements
+5. ENVIRONMENTAL CONTEXT: Lighting, atmosphere, spatial arrangement, contextual clues
+
+After establishing these foundational observations, conduct a comprehensive psychoanalytic assessment that references and builds upon these demographic and environmental elements. Extract these CORE PSYCHOLOGICAL PARAMETERS:
 
 CRITICAL FORMATTING REQUIREMENTS:
 - NO markdown formatting whatsoever (no ###, **, *, etc.)
@@ -1351,7 +1359,15 @@ Provide the deepest possible level of psychoanalytic insight based on observable
         }
         
         const analysisPrompt = hasOriginalFile ? 
-          `Conduct a comprehensive psychoanalytic assessment of this ${selectedSegment.duration}-second video segment. 
+          `MANDATORY OPENING ASSESSMENT: Begin your analysis with these demographic and environmental observations, then anchor all subsequent psychological statements in these observations:
+
+1. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
+2. BODY POSTURE & POSITIONING: Stance, positioning, physical bearing, posture alignment  
+3. BODY LANGUAGE: Gestures, facial expressions, limb positioning, overall physical expression
+4. SETTING & ENVIRONMENT: Background details, location context, surrounding objects/elements
+5. ENVIRONMENTAL CONTEXT: Lighting, atmosphere, spatial arrangement, contextual clues
+
+After establishing these foundational observations, conduct a comprehensive psychoanalytic assessment of this ${selectedSegment.duration}-second video segment. 
 
 VISUAL DATA:
 ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this segment'}
@@ -1360,7 +1376,15 @@ AUDIO TRANSCRIPTION:
 ${audioTranscription?.transcription || 'No clear speech detected in this segment'}
 
 Extract comprehensive psychological insights about affect regulation, defensive structure, attachment signals, and cognitive processing style. Provide detailed analysis without markdown formatting.` :
-          `Conduct a comprehensive psychoanalytic assessment based on video segment timing analysis. This is a ${selectedSegment.duration}-second segment from ${selectedSegment.startTime} to ${selectedSegment.startTime + selectedSegment.duration} seconds. 
+          `MANDATORY OPENING ASSESSMENT: Begin your analysis with estimated demographic and environmental observations for this video segment, then anchor all subsequent psychological statements in these observations:
+
+1. DEMOGRAPHIC PROFILE: Estimated gender, age range, likely physical appearance
+2. BODY POSTURE & POSITIONING: Expected stance, positioning, physical bearing  
+3. BODY LANGUAGE: Anticipated gestures, expressions, physical communication
+4. SETTING & ENVIRONMENT: Likely background, location context, environmental elements
+5. ENVIRONMENTAL CONTEXT: Expected lighting, atmosphere, spatial arrangement
+
+After establishing these foundational observations, conduct a comprehensive psychoanalytic assessment based on video segment timing analysis. This is a ${selectedSegment.duration}-second segment from ${selectedSegment.startTime} to ${selectedSegment.startTime + selectedSegment.duration} seconds. 
 
 Provide psychological insights about what can typically be observed in this duration of video content, focusing on affect regulation, defensive structure, attachment signals, and cognitive processing patterns. Write in plain text without markdown formatting.`;
 

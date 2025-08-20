@@ -24,6 +24,20 @@ An advanced AI-powered personality insights platform that combines cutting-edge 
 
 ## Recent Changes
 
+### ENHANCED ANALYSIS METHODOLOGY: Mandatory Demographic & Environmental Anchoring (August 20, 2025)
+✓ **IMPLEMENTED STRUCTURED ANALYSIS OPENING**: All image and video analyses now begin with mandatory demographic and environmental observations
+✓ Updated analysis prompts to require opening assessment of: gender, age, appearance, body posture, body language, setting, background
+✓ Enhanced psychological analysis anchoring - all subsequent statements must reference and build upon demographic/environmental observations
+✓ Applied to both image analysis and video segment analysis endpoints for consistency
+✓ Ensures comprehensive observational foundation before psychological assessment begins
+✓ Improves analysis depth and evidence-based reasoning by grounding insights in observable elements
+
+### Analysis Structure Enhancement:
+- **Opening Requirements**: Gender, age range, physical appearance, body posture, body language, setting details, environmental context
+- **Anchored Assessment**: All psychological insights must reference and build upon demographic/environmental observations
+- **Evidence-Based Foundation**: Observable elements provide concrete grounding for personality assessments
+- **Consistent Methodology**: Applied across all visual media analysis (images, videos)
+
 ### CRITICAL SUCCESS: Image Analysis System Fully Restored (July 30, 2025)
 ✓ **COMPLETELY FIXED IMAGE ANALYSIS**: Resolved all critical errors that were preventing comprehensive psychological analysis
 ✓ Fixed "buffer is not defined" error that was causing facial analysis system to crash
