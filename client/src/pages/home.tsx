@@ -13,7 +13,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, analyzeDocumentChunks, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, analyzeDocumentChunks, analyzeVideoSegment, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -1383,49 +1383,57 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 
                 {/* Re-analyze with current model button */}
                 <Button 
-                  onClick={() => {
-                    if (mediaData) {
-                      // Clear messages for new analysis
-                      setMessages([]);
-                      setIsAnalyzing(true);
-                      setAnalysisProgress(0);
-                      
-                      // Use the stored media data directly with segment parameters
-                      uploadMedia({
-                        sessionId,
-                        fileData: mediaData,
-                        fileName: "re-analysis.mp4",
-                        fileType: "video/mp4",
-                        selectedModel,
-                        title: "Video Re-analysis"
-                      }).then(response => {
+                  onClick={async () => {
+                    if (analysisId && videoSegments.length > 0) {
+                      try {
+                        setIsAnalyzing(true);
+                        setAnalysisProgress(10);
+                        
+                        // Find segment that corresponds to current time range
+                        let targetSegmentId = 1;
+                        if (videoSegments.length > 1) {
+                          const targetSegment = videoSegments.find(seg => 
+                            seg.startTime <= videoSegmentStart && 
+                            seg.endTime > videoSegmentStart
+                          );
+                          targetSegmentId = targetSegment?.id || 1;
+                        }
+                        
+                        const response = await analyzeVideoSegment(analysisId, targetSegmentId, selectedModel, sessionId);
+                        setAnalysisProgress(90);
+                        
+                        // Add the analysis message to the chat
+                        if (response.videoAnalysis) {
+                          const newMessage = {
+                            role: "assistant",
+                            content: `# Video Segment Analysis (${getModelDisplayName(selectedModel)})\n\n${response.videoAnalysis.summary}\n\n${response.videoAnalysis.analysisText}`,
+                            timestamp: new Date().toISOString()
+                          };
+                          setMessages(prev => [...prev, newMessage]);
+                        }
+                        
                         setAnalysisProgress(100);
                         
-                        if (response && response.analysisId) {
-                          setAnalysisId(response.analysisId);
-                        }
-                        
-                        if (response && response.messages && Array.isArray(response.messages)) {
-                          setMessages(response.messages);
-                        }
-                        
                         toast({
-                          title: "Analysis Complete",
-                          description: "Your video segment has been re-analyzed with " + getModelDisplayName(selectedModel),
+                          title: "Re-Analysis Complete",
+                          description: "Video segment re-analyzed with " + getModelDisplayName(selectedModel),
                         });
-                      }).catch(error => {
+                        
+                      } catch (error: any) {
+                        console.error('Video re-analysis error:', error);
                         toast({
                           variant: "destructive",
-                          title: "Error",
-                          description: "Failed to re-analyze video segment. Please try again.",
+                          title: "Re-Analysis Failed",
+                          description: error.message || "Failed to re-analyze video segment. Please try again.",
                         });
-                      }).finally(() => {
+                        setAnalysisProgress(0);
+                      } finally {
                         setIsAnalyzing(false);
-                      });
+                      }
                     }
                   }}
                   className="w-full"
-                  disabled={isAnalyzing || !mediaData}
+                  disabled={isAnalyzing || !analysisId}
                 >
                   Re-Analyze Segment ({videoSegmentStart}s-{videoSegmentStart + videoSegmentDuration}s) with {getModelDisplayName(selectedModel)}
                 </Button>

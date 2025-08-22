@@ -194,6 +194,27 @@ export async function analyzeDocumentChunks(
   return data;
 }
 
+export async function analyzeVideoSegment(
+  analysisId: number,
+  segmentId: number,
+  selectedModel: ModelType = "deepseek",
+  sessionId: string
+) {
+  console.log(`Analyzing video segment ${segmentId} with model: ${selectedModel}, analysisId: ${analysisId}`);
+  
+  const res = await apiRequest("POST", "/api/analyze/video-segment", { 
+    analysisId,
+    segmentId,
+    selectedModel,
+    sessionId
+  });
+  
+  const data = await res.json();
+  console.log("Video segment analysis response:", data);
+  
+  return data;
+}
+
 export async function shareAnalysis(analysisId: number, senderEmail: string, recipientEmail: string) {
   const res = await apiRequest("POST", "/api/share", { 
     analysisId,
