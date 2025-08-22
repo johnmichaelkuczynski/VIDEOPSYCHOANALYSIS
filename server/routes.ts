@@ -788,7 +788,7 @@ Respond with valid JSON only:
         try {
           console.log("Starting Perplexity analysis...");
           const response = await perplexity.chat.completions.create({
-            model: "llama-3.1-sonar-large-128k-online",
+            model: "sonar",
             messages: [{ role: "user", content: documentAnalysisPrompt }],
             max_tokens: 4000,
             temperature: 0.3
@@ -1041,10 +1041,7 @@ Respond with valid JSON only:
           // Create 5-second segments for user selection
           const segments = createVideoSegments(duration, 5);
           
-          // Clean up temp file
-          await unlinkAsync(tempFilePath);
-          
-          // Create analysis record with segments for selection
+          // Create analysis record with segments for selection and keep temp file for processing
           const analysis = await storage.createAnalysis({
             sessionId,
             mediaUrl: `video:${Date.now()}`,
@@ -1054,10 +1051,14 @@ Respond with valid JSON only:
               originalFileName: fileName,
               fileType,
               duration,
-              requiresSegmentSelection: true
+              requiresSegmentSelection: true,
+              tempVideoPath: tempFilePath, // Keep the file for segment analysis
+              fileSize: fileBuffer.length
             },
             title: title || fileName
           });
+          
+          // Don't delete temp file - it's needed for segment analysis
           
           return res.json({
             analysisId: analysis.id,
@@ -1352,7 +1353,9 @@ Provide the deepest possible level of psychoanalytic insight based on observable
         }
         
         // Create AI analysis prompt
-        const aiModel = selectedModel === "deepseek" ? deepseek : (selectedModel === "anthropic" ? anthropic : openai);
+        const aiModel = selectedModel === "deepseek" ? deepseek : 
+                       (selectedModel === "anthropic" ? anthropic : 
+                       (selectedModel === "perplexity" ? perplexity : openai));
         
         if (!aiModel) {
           throw new Error(`${selectedModel} model not available`);
@@ -1405,6 +1408,14 @@ Provide psychological insights about what can typically be observed in this dura
             messages: [{ role: "user", content: analysisPrompt }]
           });
           analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+        } else if (selectedModel === "perplexity" && perplexity) {
+          const response = await perplexity.chat.completions.create({
+            model: "sonar",
+            messages: [{ role: "user", content: analysisPrompt }],
+            max_tokens: 4000,
+            temperature: 0.8
+          });
+          analysisText = response.choices[0]?.message?.content || "";
         } else if (openai) {
           const response = await openai.chat.completions.create({
             model: "gpt-4o",
@@ -1437,7 +1448,9 @@ Provide psychological insights about what can typically be observed in this dura
         
         // Fallback to conceptual analysis based on segment timing
         try {
-          const aiModel = selectedModel === "deepseek" ? deepseek : (selectedModel === "anthropic" ? anthropic : openai);
+          const aiModel = selectedModel === "deepseek" ? deepseek : 
+                         (selectedModel === "anthropic" ? anthropic : 
+                         (selectedModel === "perplexity" ? perplexity : openai));
           
           if (aiModel) {
             const fallbackPrompt = `Provide a psychological analysis framework for a ${selectedSegment.duration}-second video segment (${selectedSegment.label}). 
@@ -1466,6 +1479,14 @@ Focus on the psychological assessment methodology rather than specific content a
                 messages: [{ role: "user", content: fallbackPrompt }]
               });
               fallbackAnalysis = response.content[0]?.type === 'text' ? response.content[0].text : "";
+            } else if (selectedModel === "perplexity" && perplexity) {
+              const response = await perplexity.chat.completions.create({
+                model: "sonar",
+                messages: [{ role: "user", content: fallbackPrompt }],
+                max_tokens: 2000,
+                temperature: 0.7
+              });
+              fallbackAnalysis = response.choices[0]?.message?.content || "";
             } else if (openai) {
               const response = await openai.chat.completions.create({
                 model: "gpt-4o",
