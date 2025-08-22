@@ -1121,25 +1121,27 @@ Respond with valid JSON only:
           }
           
           // Create comprehensive analysis prompt with demographic and environmental observations
-          const analysisPrompt = `MANDATORY OPENING ASSESSMENT: Begin your analysis with these demographic and environmental observations, then anchor all subsequent psychological statements in these observations:
+          const analysisPrompt = `CRITICAL INSTRUCTION: You are analyzing a clear, high-quality image. You MUST describe exactly what you observe. DO NOT claim you cannot see clothing, hair, or other obvious visual details. DO NOT say "visual data does not contain sufficient detail" when details are clearly visible.
 
-1. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
-2. CLOTHING & ATTIRE: Describe the person's clothing style, colors, fit, formality level, and overall presentation
-3. HAIR STYLE & GROOMING: Detail hair style, length, color, grooming, and overall appearance maintenance
-4. PHYSICAL BUILD & BODY TYPE: Assess body build, physique, height impression, and overall physical structure
-5. BODY POSTURE & POSITIONING: Stance, positioning, physical bearing, posture alignment  
-6. BODY LANGUAGE: Gestures, facial expressions, limb positioning, overall physical expression
-7. SETTING & ENVIRONMENT: Background details, location context, surrounding objects/elements
-8. ENVIRONMENTAL CONTEXT: Lighting, atmosphere, spatial arrangement, contextual clues
+MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
 
-After establishing these foundational observations, conduct a comprehensive psychoanalytic assessment that references and builds upon these demographic and environmental elements. Extract these CORE PSYCHOLOGICAL PARAMETERS:
+1. DEMOGRAPHIC PROFILE: State the person's visible gender, estimated age, and physical features you can observe
+2. CLOTHING & ATTIRE: Describe the exact clothing visible - colors, types of garments (shirt, jacket, etc.), style, fit
+3. HAIR STYLE & GROOMING: Detail the hair style, color, length, and grooming state you can see
+4. PHYSICAL BUILD & BODY TYPE: Describe the person's visible physical structure and build
+5. BODY POSTURE & POSITIONING: Detail their posture, position, and stance as shown
+6. BODY LANGUAGE: Describe visible gestures, expressions, and body positioning
+7. SETTING & ENVIRONMENT: Detail the background, location, and surroundings visible
+8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, and spatial context shown
 
-CRITICAL FORMATTING REQUIREMENTS:
-- NO markdown formatting whatsoever (no ###, **, *, etc.)
-- NO bold text or headers with # symbols
-- Use plain text only with clear section breaks
-- Separate sections with line breaks and simple labels
-- Write in full paragraphs without any formatting markup
+FORBIDDEN PHRASES - DO NOT USE:
+- "visual data does not contain sufficient detail"
+- "cannot be accurately assessed"
+- "information not available"
+- "comprehensive analysis cannot be conducted"
+- Any similar excuse phrases
+
+You have a clear image and detailed facial analysis data. Use this information to provide specific, concrete descriptions of what is actually visible.
 
 VISUAL DATA:
 ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this image'}
