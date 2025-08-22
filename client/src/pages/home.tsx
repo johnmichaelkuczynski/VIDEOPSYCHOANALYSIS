@@ -574,9 +574,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       const data = await response.json();
       setAnalysisProgress(90);
       
-      // Add the analysis message to the chat
+      // Add the analysis message to the chat, replacing any existing video analysis
       if (data.message) {
-        setMessages(prev => [...prev, data.message]);
+        setMessages(prev => {
+          const filteredMessages = prev.filter(msg => 
+            !msg.content.includes("Video Segment Analysis") || 
+            msg.role !== "assistant"
+          );
+          return [...filteredMessages, data.message];
+        });
       }
       
       // Hide segment selection and show results
@@ -1402,14 +1408,22 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         const response = await analyzeVideoSegment(analysisId, targetSegmentId, selectedModel, sessionId);
                         setAnalysisProgress(90);
                         
-                        // Add the analysis message to the chat
+                        // Clear previous video analysis messages and add the new one
                         if (response.videoAnalysis) {
                           const newMessage = {
                             role: "assistant",
                             content: `# Video Segment Analysis (${getModelDisplayName(selectedModel)})\n\n${response.videoAnalysis.summary}\n\n${response.videoAnalysis.analysisText}`,
                             timestamp: new Date().toISOString()
                           };
-                          setMessages(prev => [...prev, newMessage]);
+                          
+                          // Filter out previous video analysis messages and add the new one
+                          setMessages(prev => {
+                            const filteredMessages = prev.filter(msg => 
+                              !msg.content.includes("Video Segment Analysis") || 
+                              msg.role !== "assistant"
+                            );
+                            return [...filteredMessages, newMessage];
+                          });
                         }
                         
                         setAnalysisProgress(100);
