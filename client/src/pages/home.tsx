@@ -904,7 +904,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
   return (
     <div className="container mx-auto p-4 max-w-6xl" {...getRootProps()}>
-      <h1 className="text-4xl font-bold text-center mb-8">AI Personality Analysis</h1>
+      <h1 className="text-4xl font-bold text-center mb-4">AI Personality Analysis</h1>
+      
+      {/* App List */}
+      <div className="flex justify-center mb-8">
+        <div className="flex space-x-6 text-sm text-muted-foreground">
+          <a 
+            href="https://mindread.xyz" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+          >
+            MIND READ
+          </a>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         {/* Left Column - Inputs and Upload */}
