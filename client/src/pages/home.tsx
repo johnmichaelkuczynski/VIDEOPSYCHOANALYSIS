@@ -89,10 +89,10 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
 // Helper function to get model display name
 const getModelDisplayName = (model: string) => {
   switch (model) {
-    case "deepseek": return "DeepSeek";
-    case "openai": return "OpenAI";
-    case "anthropic": return "Anthropic";
-    case "perplexity": return "Perplexity";
+    case "deepseek": return "ZHI 3";
+    case "openai": return "ZHI 2";
+    case "anthropic": return "ZHI 1";
+    case "perplexity": return "ZHI 4";
     default: return model;
   }
 };
