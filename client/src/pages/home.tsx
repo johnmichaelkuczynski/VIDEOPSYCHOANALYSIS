@@ -114,7 +114,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("anthropic");
   
   // Document analysis states
   const [documentChunks, setDocumentChunks] = useState<any[]>([]);
@@ -209,8 +209,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
         
         // Set default selected model based on availability
-        // DeepSeek is the default - always available for now
-        setSelectedModel("deepseek");
+        // Anthropic (ZHI 1) is the default
+        setSelectedModel("anthropic");
       } catch (error) {
         console.error("Error checking API status:", error);
       }
@@ -935,9 +935,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="deepseek">ZHI 3 (Recommended)</SelectItem>
+                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
                 {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
-                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1</SelectItem>}
+                <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
