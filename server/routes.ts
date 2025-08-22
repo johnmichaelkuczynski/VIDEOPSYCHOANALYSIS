@@ -1365,18 +1365,18 @@ Provide the deepest possible level of psychoanalytic insight based on observable
         }
         
         const analysisPrompt = hasOriginalFile ? 
-          `MANDATORY OPENING ASSESSMENT: Begin your analysis with these demographic and environmental observations, then anchor all subsequent psychological statements in these observations:
+          `CRITICAL INSTRUCTION: You MUST describe what you observe in this video segment. Do NOT claim you cannot see obvious visual details. Begin with these MANDATORY observations:
 
-1. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
-2. CLOTHING & ATTIRE: Describe the person's clothing style, colors, fit, formality level, and overall presentation
-3. HAIR STYLE & GROOMING: Detail hair style, length, color, grooming, and overall appearance maintenance
-4. PHYSICAL BUILD & BODY TYPE: Assess body build, physique, height impression, and overall physical structure
-5. BODY POSTURE & POSITIONING: Stance, positioning, physical bearing, posture alignment  
-6. BODY LANGUAGE: Gestures, facial expressions, limb positioning, overall physical expression
-7. SETTING & ENVIRONMENT: Background details, location context, surrounding objects/elements
-8. ENVIRONMENTAL CONTEXT: Lighting, atmosphere, spatial arrangement, contextual clues
+1. DEMOGRAPHIC PROFILE: State the person's gender, estimated age range, and physical appearance based on what's visible
+2. CLOTHING & ATTIRE: Describe exactly what clothing you see - colors, style, fit, type of garments, accessories
+3. HAIR STYLE & GROOMING: Detail the hair style, length, color, texture, and grooming state that's visible
+4. PHYSICAL BUILD & BODY TYPE: Assess the person's build, physique, and overall physical structure as shown
+5. BODY POSTURE & POSITIONING: Describe their stance, positioning, and physical bearing in the frame
+6. BODY LANGUAGE: Detail gestures, facial expressions, and limb positioning you observe
+7. SETTING & ENVIRONMENT: Describe the background, location, and surrounding elements visible
+8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, and spatial arrangement shown
 
-After establishing these foundational observations, conduct a comprehensive psychoanalytic assessment of this ${selectedSegment.duration}-second video segment. 
+You have access to detailed facial analysis data and video content. Use this information to provide specific, concrete observations. After these foundational observations, conduct comprehensive psychoanalytic assessment of this ${selectedSegment.duration}-second video segment.
 
 VISUAL DATA:
 ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this segment'}
@@ -1385,20 +1385,18 @@ AUDIO TRANSCRIPTION:
 ${audioTranscription?.transcription || 'No clear speech detected in this segment'}
 
 Extract comprehensive psychological insights about affect regulation, defensive structure, attachment signals, and cognitive processing style. Provide detailed analysis without markdown formatting.` :
-          `MANDATORY OPENING ASSESSMENT: Begin your analysis with estimated demographic and environmental observations for this video segment, then anchor all subsequent psychological statements in these observations:
+          `ESTIMATED ANALYSIS: Based on typical video content patterns, provide detailed observations for this video segment:
 
-1. DEMOGRAPHIC PROFILE: Estimated gender, age range, likely physical appearance
-2. CLOTHING & ATTIRE: Estimated clothing style, likely attire, expected presentation level
-3. HAIR STYLE & GROOMING: Anticipated hair style, grooming level, appearance maintenance
-4. PHYSICAL BUILD & BODY TYPE: Expected body build, likely physique, general physical structure
-5. BODY POSTURE & POSITIONING: Expected stance, positioning, physical bearing  
-6. BODY LANGUAGE: Anticipated gestures, expressions, physical communication
-7. SETTING & ENVIRONMENT: Likely background, location context, environmental elements
-8. ENVIRONMENTAL CONTEXT: Expected lighting, atmosphere, spatial arrangement
+1. DEMOGRAPHIC PROFILE: Provide estimated gender, age range, and likely physical appearance for typical subjects
+2. CLOTHING & ATTIRE: Estimate typical clothing style, colors, and presentation for this type of content
+3. HAIR STYLE & GROOMING: Anticipate typical hair styling and grooming patterns
+4. PHYSICAL BUILD & BODY TYPE: Estimate typical body build and physical structure
+5. BODY POSTURE & POSITIONING: Describe expected stance and positioning patterns
+6. BODY LANGUAGE: Detail anticipated gestures and expressions for this segment type
+7. SETTING & ENVIRONMENT: Estimate likely background and environmental context
+8. ENVIRONMENTAL CONTEXT: Predict typical lighting and spatial arrangements
 
-After establishing these foundational observations, conduct a comprehensive psychoanalytic assessment based on video segment timing analysis. This is a ${selectedSegment.duration}-second segment from ${selectedSegment.startTime} to ${selectedSegment.startTime + selectedSegment.duration} seconds. 
-
-Provide psychological insights about what can typically be observed in this duration of video content, focusing on affect regulation, defensive structure, attachment signals, and cognitive processing patterns. Write in plain text without markdown formatting.`;
+This is a ${selectedSegment.duration}-second segment from ${selectedSegment.startTime} to ${selectedSegment.startTime + selectedSegment.duration} seconds. Provide psychological insights about typical behavioral patterns observable in video content of this duration, focusing on affect regulation, defensive structure, attachment signals, and cognitive processing patterns. Write in plain text without markdown formatting.`;
 
         let analysisText = "";
         
