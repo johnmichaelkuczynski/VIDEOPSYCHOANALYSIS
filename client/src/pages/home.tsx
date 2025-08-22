@@ -921,10 +921,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="deepseek">DeepSeek (Recommended)</SelectItem>
-                {availableServices.openai && <SelectItem value="openai">OpenAI GPT-4o</SelectItem>}
-                {availableServices.anthropic && <SelectItem value="anthropic">Anthropic Claude</SelectItem>}
-                {availableServices.perplexity && <SelectItem value="perplexity">Perplexity</SelectItem>}
+                <SelectItem value="deepseek">ZHI 3 (Recommended)</SelectItem>
+                {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
+                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1</SelectItem>}
+                {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
             
