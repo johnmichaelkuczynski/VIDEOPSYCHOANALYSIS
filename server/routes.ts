@@ -1123,10 +1123,10 @@ Respond with valid JSON only:
           // Create comprehensive analysis prompt with demographic and environmental observations
           const analysisPrompt = `MANDATORY OPENING ASSESSMENT: Begin your analysis with these demographic and environmental observations, then anchor all subsequent psychological statements in these observations:
 
-1. CLOTHING & ATTIRE: Describe the person's clothing style, colors, fit, formality level, and overall presentation
-2. HAIR STYLE & GROOMING: Detail hair style, length, color, grooming, and overall appearance maintenance
-3. PHYSICAL BUILD & BODY TYPE: Assess body build, physique, height impression, and overall physical structure
-4. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
+1. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
+2. CLOTHING & ATTIRE: Describe the person's clothing style, colors, fit, formality level, and overall presentation
+3. HAIR STYLE & GROOMING: Detail hair style, length, color, grooming, and overall appearance maintenance
+4. PHYSICAL BUILD & BODY TYPE: Assess body build, physique, height impression, and overall physical structure
 5. BODY POSTURE & POSITIONING: Stance, positioning, physical bearing, posture alignment  
 6. BODY LANGUAGE: Gestures, facial expressions, limb positioning, overall physical expression
 7. SETTING & ENVIRONMENT: Background details, location context, surrounding objects/elements
@@ -1367,10 +1367,10 @@ Provide the deepest possible level of psychoanalytic insight based on observable
         const analysisPrompt = hasOriginalFile ? 
           `MANDATORY OPENING ASSESSMENT: Begin your analysis with these demographic and environmental observations, then anchor all subsequent psychological statements in these observations:
 
-1. CLOTHING & ATTIRE: Describe the person's clothing style, colors, fit, formality level, and overall presentation
-2. HAIR STYLE & GROOMING: Detail hair style, length, color, grooming, and overall appearance maintenance
-3. PHYSICAL BUILD & BODY TYPE: Assess body build, physique, height impression, and overall physical structure
-4. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
+1. DEMOGRAPHIC PROFILE: Gender, estimated age range, physical appearance details
+2. CLOTHING & ATTIRE: Describe the person's clothing style, colors, fit, formality level, and overall presentation
+3. HAIR STYLE & GROOMING: Detail hair style, length, color, grooming, and overall appearance maintenance
+4. PHYSICAL BUILD & BODY TYPE: Assess body build, physique, height impression, and overall physical structure
 5. BODY POSTURE & POSITIONING: Stance, positioning, physical bearing, posture alignment  
 6. BODY LANGUAGE: Gestures, facial expressions, limb positioning, overall physical expression
 7. SETTING & ENVIRONMENT: Background details, location context, surrounding objects/elements
@@ -1387,10 +1387,10 @@ ${audioTranscription?.transcription || 'No clear speech detected in this segment
 Extract comprehensive psychological insights about affect regulation, defensive structure, attachment signals, and cognitive processing style. Provide detailed analysis without markdown formatting.` :
           `MANDATORY OPENING ASSESSMENT: Begin your analysis with estimated demographic and environmental observations for this video segment, then anchor all subsequent psychological statements in these observations:
 
-1. CLOTHING & ATTIRE: Estimated clothing style, likely attire, expected presentation level
-2. HAIR STYLE & GROOMING: Anticipated hair style, grooming level, appearance maintenance
-3. PHYSICAL BUILD & BODY TYPE: Expected body build, likely physique, general physical structure
-4. DEMOGRAPHIC PROFILE: Estimated gender, age range, likely physical appearance
+1. DEMOGRAPHIC PROFILE: Estimated gender, age range, likely physical appearance
+2. CLOTHING & ATTIRE: Estimated clothing style, likely attire, expected presentation level
+3. HAIR STYLE & GROOMING: Anticipated hair style, grooming level, appearance maintenance
+4. PHYSICAL BUILD & BODY TYPE: Expected body build, likely physique, general physical structure
 5. BODY POSTURE & POSITIONING: Expected stance, positioning, physical bearing  
 6. BODY LANGUAGE: Anticipated gestures, expressions, physical communication
 7. SETTING & ENVIRONMENT: Likely background, location context, environmental elements
