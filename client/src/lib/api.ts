@@ -251,9 +251,9 @@ export async function getAllAnalysesBySession(sessionId: string) {
   return res.json();
 }
 
-export async function downloadAnalysis(analysisId: number, format: "txt" = "txt") {
-  // Direct download approach using window.open - only TXT format supported
-  window.open(`/api/download/${analysisId}`, '_blank');
+export async function downloadAnalysis(analysisId: number, format: "pdf" | "docx" | "txt" = "pdf") {
+  // Direct download approach using window.open
+  window.open(`/api/download/${analysisId}?format=${format}`, '_blank');
   return true;
 }
 

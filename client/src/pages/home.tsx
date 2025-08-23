@@ -1024,7 +1024,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           {/* Upload Options */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Step 2: Choose Input Type</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center" 
@@ -1050,29 +1050,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               >
                 <Film className="h-8 w-8 mb-2" />
                 <span>Video</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="h-24 flex flex-col items-center justify-center" 
-                onClick={() => {
-                  // Clear other inputs and focus on text
-                  setUploadedMedia(null);
-                  setMediaData(null);
-                  setMessages([]);
-                  setAnalysisId(null);
-                  // Auto-focus the text area after state update
-                  setTimeout(() => {
-                    const textArea = document.querySelector('textarea[placeholder="Type or paste text to analyze..."]') as HTMLTextAreaElement;
-                    if (textArea) {
-                      textArea.focus();
-                    }
-                  }, 100);
-                }}
-                disabled={isAnalyzing}
-              >
-                <FileText className="h-8 w-8 mb-2" />
-                <span>Text</span>
               </Button>
               
               <Button 
@@ -1110,7 +1087,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 Drag & drop files here to analyze
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports JPG, PNG, MP4, MOV, TXT, PDF, DOCX (max 50MB)
+                Supports JPG, PNG, MP4, MOV (max 50MB)
               </p>
             </div>
           </Card>
@@ -1625,50 +1602,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             
             {!uploadedMedia && (
               <div className="space-y-4">
-                <div className="text-center text-sm text-muted-foreground mb-4">
-                  Type, paste, or upload text for comprehensive psychological analysis
-                </div>
-                
                 <form onSubmit={handleTextSubmit} className="space-y-4">
-                  <div className="relative">
-                    <Textarea
-                      value={textInput}
-                      onChange={(e) => setTextInput(e.target.value)}
-                      onKeyDown={(e) => handleKeyPress(e, handleTextSubmit)}
-                      placeholder="Type or paste text to analyze... (letters, emails, social media posts, etc.)"
-                      className="min-h-[250px] resize-y"
-                      disabled={isAnalyzing}
-                    />
-                    
-                    {/* Text file upload button */}
-                    <div className="absolute top-2 right-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = '.txt';
-                          input.onchange = (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                const content = event.target?.result as string;
-                                setTextInput(content);
-                              };
-                              reader.readAsText(file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        disabled={isAnalyzing}
-                      >
-                        Upload TXT
-                      </Button>
-                    </div>
-                  </div>
+                  <Textarea
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    onKeyDown={(e) => handleKeyPress(e, handleTextSubmit)}
+                    placeholder="Type or paste text to analyze..."
+                    className="min-h-[250px] resize-y"
+                    disabled={isAnalyzing}
+                  />
                   
                   {/* Additional info dialog button */}
                   <div className="flex gap-2">
@@ -1774,23 +1716,57 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               
               {messages.length > 0 && (
                 <div className="flex gap-2">
-                  {/* Download button */}
+                  {/* Download buttons */}
                   {analysisId && (
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
-                      onClick={() => {
-                        toast({
-                          title: "Downloading Text File",
-                          description: "Your analysis is being downloaded as TXT"
-                        });
-                        downloadAnalysis(analysisId, 'txt');
-                      }}
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>Download TXT</span>
-                    </Button>
+                    <>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading PDF",
+                            description: "Your analysis is being downloaded as PDF"
+                          });
+                          downloadAnalysis(analysisId, 'pdf');
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download PDF</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading Word Document",
+                            description: "Your analysis is being downloaded as DOCX"
+                          });
+                          downloadAnalysis(analysisId, 'docx');
+                        }}
+                      >
+                        <File className="h-4 w-4" />
+                        <span>Download Word</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading Text File",
+                            description: "Your analysis is being downloaded as TXT"
+                          });
+                          downloadAnalysis(analysisId, 'txt');
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>Download TXT</span>
+                      </Button>
+                    </>
                   )}
                   
                   {/* Share button */}
@@ -2085,9 +2061,41 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           }} 
                         />
                         
-                        {/* Download button at bottom of analysis */}
+                        {/* Download buttons at bottom of each analysis */}
                         {analysisId && index === messages.filter(m => m.role === "assistant").length - 1 && (
-                          <div className="flex justify-end mt-4">
+                          <div className="flex gap-2 mt-4 justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 text-xs"
+                              onClick={() => {
+                                toast({
+                                  title: "Downloading PDF",
+                                  description: "Your analysis is being downloaded as PDF"
+                                });
+                                downloadAnalysis(analysisId, 'pdf');
+                              }}
+                            >
+                              <Download className="h-3 w-3" />
+                              <span>Save as PDF</span>
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 text-xs"
+                              onClick={() => {
+                                toast({
+                                  title: "Downloading Word Document",
+                                  description: "Your analysis is being downloaded as DOCX"
+                                });
+                                downloadAnalysis(analysisId, 'docx');
+                              }}
+                            >
+                              <File className="h-3 w-3" />
+                              <span>Save as Word</span>
+                            </Button>
+                            
                             <Button
                               variant="outline"
                               size="sm"
