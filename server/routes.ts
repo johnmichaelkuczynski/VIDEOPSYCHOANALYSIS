@@ -420,23 +420,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       
       // Create comprehensive analysis prompt
-      const comprehensivePrompt = `Conduct a comprehensive analysis of the following text using both cognitive and psychological profiling parameters. Analyze all 40 parameters systematically.
+      const comprehensivePrompt = `Conduct a comprehensive analysis of the following text using both cognitive and psychological profiling parameters, plus detailed clinical psychological markers.
 
 TEXT TO ANALYZE:
 "${text}"
 
 ${additionalInfo ? `ADDITIONAL CONTEXT PROVIDED BY USER:\n"${additionalInfo}"\n` : ''}
 
+CLINICAL PSYCHOLOGICAL MARKERS TO ASSESS:
+
+A. AFFECT IN LANGUAGE:
+- Blunted affect in text (emotionally flat, monotonous writing)
+- Inappropriate affect (jokes, eroticism, violence in irrelevant contexts)
+- Labile affect (sudden shifts from calm to angry, tender to hostile)
+- Affective incongruity (words vs. tone mismatch)
+- Over-intensity (exaggerated emotional words out of proportion)
+
+B. ATTENTION/FOCUS PATTERNS:
+- Fixated repetition of themes (circling same idea obsessively)
+- Hyper-detailed observation (extreme micro-description of trivial details)
+- Avoidance of key topics (sidestepping obvious questions)
+- Paranoid attention markers (constant suspicion, being watched/controlled)
+- Disorganized focus (jumps with no logical link)
+
+C. EXPRESSION STYLE/SYNTAX:
+- Thought blocking (abrupt sentence stops, trailing ellipses)
+- Neologisms (invented words or bizarre usages)
+- Clanging (rhyming/alliteration instead of meaning)
+- Word salad (incoherent combinations)
+- Over-structured/compulsive formality (stiff, rigid, over-grammatical)
+
+D. CONTENT OF SPEECH:
+- Delusional material (grandiose claims, bizarre beliefs as fact)
+- Ideas of reference (everything tied to self, conspiracies)
+- Magical thinking ("if I think it, it happens" logic)
+- Violent ideation (fixation on blood, knives, punishment)
+- Erotic/perverse content (intrusive sexual themes)
+
+E. RELATIONAL/ATTACHMENT LANGUAGE:
+- Dismissive-avoidant stance (cold detachment, no reciprocity)
+- Fearful-avoidant (warm then hostile/fearful)
+- Clinging/dependent tone (constant reassurance seeking)
+- Hostile/paranoid projection ("they are all against me")
+- Complete relational absence (soliloquy, no audience awareness)
+
+F. DEFENSES IN LANGUAGE:
+- Projection ("they want me dead," "they hate me")
+- Isolation of affect (coldly describing trauma with no feeling)
+- Intellectualization (hiding behind abstract jargon)
+- Denial (blunt contradictions like "I am not angry" in angry prose)
+- Dissociation signals (dreamlike, detached registers)
+
+G. COGNITIVE ORGANIZATION:
+- Loose associations (ideas connected by weak tangents)
+- Derailment (topic shifts mid-sentence)
+- Tangentiality (related but never on point)
+- Perseveration (repeating same phrase)
+- Concrete thinking (inability to handle metaphor/abstraction)
+
+H. PSYCHOMOTOR/BEHAVIORAL EQUIVALENTS:
+- Agitated text rhythm (exclamation, caps, erratic punctuation)
+- Slowed/retarded pace (long, dragging sentences)
+- Catatonic blankness ("I ate. I slept. I sat.")
+- Compulsions in text (excessive counting, ordering, listing)
+- Ritualistic phrasing (fixed stock phrases)
+
+I. GLOBAL INTEGRATION:
+- Narrative fragmentation (no beginning-middle-end)
+- Contradictory self-concepts (flipping identity)
+- Over-rigidity (perfectly uniform tone, sterile prose)
+- Under-integration (sudden voice/perspective shifts)
+- Semantic collapse (meaning drains into abstraction)
+
+J. MARKERS OF PSYCHOTIC PROCESS:
+- Voices in text ("They told me," "The voices say")
+- Third-person self-reference (writing about self as "he/she")
+- Bizarre, idiosyncratic metaphors
+- Hyper-abstract vagueness (dense fog of words)
+- Over-determined symbolism (paranoid allegory)
+
 ANALYSIS REQUIREMENTS:
 1. Analyze ALL 40 parameters systematically
-2. For each parameter, provide:
+2. Assess ALL clinical psychological markers above
+3. For each parameter, provide:
    - A score from 1-100 (where applicable)
    - Detailed reasoning with specific evidence from the text
    - Direct quotations that support your assessment
    - Clear explanations of your reasoning process
 
-3. Format as JSON with this structure:
+4. Format as JSON with this structure:
 {
+  "clinicalMarkers": {
+    "affectInLanguage": "Assessment of emotional expression patterns with specific examples...",
+    "attentionPatterns": "Analysis of focus and attention markers with evidence...",
+    "expressionStyle": "Evaluation of syntax and expression patterns with quotes...",
+    "contentAnalysis": "Assessment of speech content markers with examples...",
+    "relationalLanguage": "Analysis of attachment and relational patterns with evidence...",
+    "defensesInLanguage": "Evaluation of psychological defense patterns with quotes...",
+    "cognitiveOrganization": "Assessment of thought organization with examples...",
+    "psychomotorEquivalents": "Analysis of behavioral equivalents in text with evidence...",
+    "globalIntegration": "Evaluation of overall integration patterns with quotes...",
+    "psychoticMarkers": "Assessment of psychotic process indicators with examples..."
+  },
   "cognitiveAnalysis": {
     "1": {
       "name": "Compression Tolerance",
@@ -457,16 +542,16 @@ ANALYSIS REQUIREMENTS:
     },
     // ... continue for parameters 21-40
   },
-  "overallSummary": "Comprehensive summary integrating both cognitive and psychological insights...",
+  "overallSummary": "Comprehensive summary integrating cognitive, psychological, and clinical insights...",
   "keyInsights": ["insight 1", "insight 2", "insight 3"],
   "recommendedFocusAreas": ["area 1", "area 2", "area 3"]
 }
 
 CRITICAL INSTRUCTIONS:
 - Use ONLY the provided text as evidence
-- Include direct quotations for each parameter assessment
+- Include direct quotations for each assessment
 - Provide detailed reasoning for each score
-- Be comprehensive but precise
+- Address ALL clinical psychological markers systematically
 - Focus on observable patterns in the text
 - Avoid speculation beyond what the text supports`;
 
@@ -1134,6 +1219,78 @@ MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
 7. SETTING & ENVIRONMENT: Detail the background, location, and surroundings visible
 8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, and spatial context shown
 
+CLINICAL VISUAL PSYCHOLOGICAL MARKERS TO ASSESS:
+
+A. AFFECT & EMOTIONAL EXPRESSION:
+- Blunted affect (flat, minimal emotional display)
+- Inappropriate affect (smiling/laughing when incongruent)
+- Labile affect (rapid, unstable mood shifts)
+- Affective incongruity (expression doesn't match context)
+- Affective detachment (vacant, absent gaze)
+
+B. GAZE & EYES:
+- Vacant stare (psychotic detachment)
+- Predatory stare (fixated, unblinking)
+- Rapid darting eyes (paranoia, hypervigilance)
+- Avoidant gaze (withdrawal, shame, social fear)
+- Odd eye movements (neurological or psychotic marker)
+
+C. FACIAL EXPRESSION & MICRO-EXPRESSION:
+- Micro-expression leakage (fleeting flashes of hidden emotion)
+- Incongruent smile (tense or inappropriate)
+- Asymmetrical facial activation (neurological/psychotic)
+- Expression rigidity (frozen, mask-like face)
+- Sudden twitching/tics (psychomotor agitation)
+
+D. SPEECH/MOUTH INDICATORS:
+- Tight lips (suppression)
+- Slack mouth (cognitive deficit, negative symptoms)
+- Overt smirk/contempt display
+- Muttering/subvocalization (lip movement without speech)
+- Chewing or jaw tension (impulse containment, anxiety)
+
+E. POSTURE & PSYCHOMOTOR SIGNS:
+- Catatonic stillness
+- Excessive motor inhibition (frozen pose, rigidity)
+- Psychomotor agitation (restless shifting, jerky movement)
+- Odd body angles/postures (schizophrenia sign)
+- Tremors or fine shaking
+
+F. ATTACHMENT/RELATIONAL CUES:
+- Dismissive-avoidant presentation (aloof, emotionally cut off)
+- Fearful-avoidant (mixed approach-avoidance cues)
+- Dependent/submissive signaling
+- Hostile/defiant signaling
+- Total relational absence (flat, non-engaged presence)
+
+G. DEFENSIVE OPERATIONS:
+- Projection (anger or suspicion outwardly implied)
+- Paranoid vigilance (readiness for threat)
+- Isolation of affect (emotion sealed off from thought)
+- Intellectualization (blank, analytic detachment)
+- Denial/disavowal (incongruence between look and situation)
+
+H. COGNITIVE/NEUROLOGICAL STYLE:
+- Thought blocking (sudden mental emptiness visible in face)
+- Disorganized affect integration (chaotic shifts in facial/body cues)
+- Perseverative fixation (locked stare, repetitive micro-behavior)
+- Delusional intensity (eyes/gaze suggesting conviction detached from reality)
+- Hypofrontality signals (vacant passivity, disengagement)
+
+I. SEXUAL/BEHAVIORAL PATHOLOGY INDICATORS:
+- Exhibitionistic signals (gaze + posture implying compulsion to expose)
+- Incongruent eroticism (smile or look detached from social cues)
+- Hypersexual restlessness (subtle agitation, mouth tension)
+- Voyeuristic detachment (watching without emotional reciprocity)
+- Compulsive self-directed expression (facial/self-soothing consistent with masturbation compulsion)
+
+J. GLOBAL INTEGRATION & BREAKDOWN:
+- Affect-cognition mismatch (face doesn't match thought content)
+- Fragmentation (facial/body cues pointing in different directions)
+- Defensive rigidity (every cue locked in one controlled position)
+- Dissociation indicators (blankness, spacing-out, absent gaze)
+- Psychotic flattening (total deadness of expression despite stimulation)
+
 FORBIDDEN PHRASES - DO NOT USE:
 - "visual data does not contain sufficient detail"
 - "cannot be accurately assessed"
@@ -1394,6 +1551,78 @@ MANDATORY VISUAL OBSERVATIONS - Describe exactly what you see in this video:
 6. BODY LANGUAGE: Describe visible gestures, expressions, and body positioning
 7. SETTING & ENVIRONMENT: Detail the background, location, and surroundings shown
 8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, and spatial context visible
+
+CLINICAL VISUAL PSYCHOLOGICAL MARKERS TO ASSESS:
+
+A. AFFECT & EMOTIONAL EXPRESSION:
+- Blunted affect (flat, minimal emotional display)
+- Inappropriate affect (smiling/laughing when incongruent)
+- Labile affect (rapid, unstable mood shifts)
+- Affective incongruity (expression doesn't match context)
+- Affective detachment (vacant, absent gaze)
+
+B. GAZE & EYES:
+- Vacant stare (psychotic detachment)
+- Predatory stare (fixated, unblinking)
+- Rapid darting eyes (paranoia, hypervigilance)
+- Avoidant gaze (withdrawal, shame, social fear)
+- Odd eye movements (neurological or psychotic marker)
+
+C. FACIAL EXPRESSION & MICRO-EXPRESSION:
+- Micro-expression leakage (fleeting flashes of hidden emotion)
+- Incongruent smile (tense or inappropriate)
+- Asymmetrical facial activation (neurological/psychotic)
+- Expression rigidity (frozen, mask-like face)
+- Sudden twitching/tics (psychomotor agitation)
+
+D. SPEECH/MOUTH INDICATORS:
+- Tight lips (suppression)
+- Slack mouth (cognitive deficit, negative symptoms)
+- Overt smirk/contempt display
+- Muttering/subvocalization (lip movement without speech)
+- Chewing or jaw tension (impulse containment, anxiety)
+
+E. POSTURE & PSYCHOMOTOR SIGNS:
+- Catatonic stillness
+- Excessive motor inhibition (frozen pose, rigidity)
+- Psychomotor agitation (restless shifting, jerky movement)
+- Odd body angles/postures (schizophrenia sign)
+- Tremors or fine shaking
+
+F. ATTACHMENT/RELATIONAL CUES:
+- Dismissive-avoidant presentation (aloof, emotionally cut off)
+- Fearful-avoidant (mixed approach-avoidance cues)
+- Dependent/submissive signaling
+- Hostile/defiant signaling
+- Total relational absence (flat, non-engaged presence)
+
+G. DEFENSIVE OPERATIONS:
+- Projection (anger or suspicion outwardly implied)
+- Paranoid vigilance (readiness for threat)
+- Isolation of affect (emotion sealed off from thought)
+- Intellectualization (blank, analytic detachment)
+- Denial/disavowal (incongruence between look and situation)
+
+H. COGNITIVE/NEUROLOGICAL STYLE:
+- Thought blocking (sudden mental emptiness visible in face)
+- Disorganized affect integration (chaotic shifts in facial/body cues)
+- Perseverative fixation (locked stare, repetitive micro-behavior)
+- Delusional intensity (eyes/gaze suggesting conviction detached from reality)
+- Hypofrontality signals (vacant passivity, disengagement)
+
+I. SEXUAL/BEHAVIORAL PATHOLOGY INDICATORS:
+- Exhibitionistic signals (gaze + posture implying compulsion to expose)
+- Incongruent eroticism (smile or look detached from social cues)
+- Hypersexual restlessness (subtle agitation, mouth tension)
+- Voyeuristic detachment (watching without emotional reciprocity)
+- Compulsive self-directed expression (facial/self-soothing consistent with masturbation compulsion)
+
+J. GLOBAL INTEGRATION & BREAKDOWN:
+- Affect-cognition mismatch (face doesn't match thought content)
+- Fragmentation (facial/body cues pointing in different directions)
+- Defensive rigidity (every cue locked in one controlled position)
+- Dissociation indicators (blankness, spacing-out, absent gaze)
+- Psychotic flattening (total deadness of expression despite stimulation)
 
 This is a ${selectedSegment.duration}-second video segment. You have full access to observe and analyze the visual content.
 
