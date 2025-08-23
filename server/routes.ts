@@ -11,7 +11,7 @@ import {
   GetFaceDetectionCommand 
 } from "@aws-sdk/client-rekognition";
 import { sendAnalysisEmail } from "./services/email";
-import { generateAnalysisHtml, generatePdf, generateDocx, generateAnalysisTxt } from './services/document';
+import { generateAnalysisTxt } from './services/document';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -1855,7 +1855,6 @@ This analysis focuses on the selected segment to provide targeted personality in
   app.get("/api/download/:id", async (req, res) => {
     try {
       const analysisId = parseInt(req.params.id);
-      const format = req.query.format as string || "pdf";
       
       const analysis = await storage.getAnalysisById(analysisId);
       if (!analysis) {
@@ -1871,24 +1870,11 @@ This analysis focuses on the selected segment to provide targeted personality in
         messages: messages || []
       };
       
-      if (format === "txt") {
-        const txtContent = generateAnalysisTxt(enrichedAnalysis);
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.txt"`);
-        res.send(txtContent);
-      } else if (format === "docx") {
-        const docxBuffer = await generateDocx(enrichedAnalysis);
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.docx"`);
-        res.send(docxBuffer);
-      } else {
-        // Default to PDF
-        const htmlContent = generateAnalysisHtml(enrichedAnalysis);
-        const pdfBuffer = await generatePdf(htmlContent);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.pdf"`);
-        res.send(pdfBuffer);
-      }
+      // Only support TXT format
+      const txtContent = generateAnalysisTxt(enrichedAnalysis);
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="analysis_${analysisId}.txt"`);
+      res.send(txtContent);
       
       await storage.updateAnalysisDownloadStatus(analysisId, true);
       
