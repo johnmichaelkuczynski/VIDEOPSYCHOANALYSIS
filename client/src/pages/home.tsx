@@ -1716,57 +1716,23 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               
               {messages.length > 0 && (
                 <div className="flex gap-2">
-                  {/* Download buttons */}
+                  {/* Download button */}
                   {analysisId && (
-                    <>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                        onClick={() => {
-                          toast({
-                            title: "Downloading PDF",
-                            description: "Your analysis is being downloaded as PDF"
-                          });
-                          downloadAnalysis(analysisId, 'pdf');
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Download PDF</span>
-                      </Button>
-                      
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                          toast({
-                            title: "Downloading Word Document",
-                            description: "Your analysis is being downloaded as DOCX"
-                          });
-                          downloadAnalysis(analysisId, 'docx');
-                        }}
-                      >
-                        <File className="h-4 w-4" />
-                        <span>Download Word</span>
-                      </Button>
-                      
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
-                        onClick={() => {
-                          toast({
-                            title: "Downloading Text File",
-                            description: "Your analysis is being downloaded as TXT"
-                          });
-                          downloadAnalysis(analysisId, 'txt');
-                        }}
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>Download TXT</span>
-                      </Button>
-                    </>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                      onClick={() => {
+                        toast({
+                          title: "Downloading Text File",
+                          description: "Your analysis is being downloaded as TXT"
+                        });
+                        downloadAnalysis(analysisId, 'txt');
+                      }}
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>Download TXT</span>
+                    </Button>
                   )}
                   
                   {/* Share button */}
