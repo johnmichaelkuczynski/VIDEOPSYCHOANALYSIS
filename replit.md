@@ -24,6 +24,20 @@ An advanced AI-powered personality insights platform that combines cutting-edge 
 
 ## Recent Changes
 
+### COMPREHENSIVE CLINICAL PSYCHOLOGICAL EVALUATION INTEGRATION (August 23, 2025)
+✓ **COMPLETE CLINICAL MARKERS INTEGRATION**: Successfully integrated comprehensive psychological evaluation criteria into all analysis types
+✓ **TEXT ANALYSIS ENHANCEMENT**: Added 10 clinical psychological markers (affect in language, attention patterns, expression style, content analysis, relational language, defenses, cognitive organization, psychomotor equivalents, global integration, psychotic markers)
+✓ **VISUAL ANALYSIS ENHANCEMENT**: Added 10 visual psychological marker categories for images and videos (affect & emotional expression, gaze & eyes, facial expressions, speech/mouth indicators, posture & psychomotor signs, attachment/relational cues, defensive operations, cognitive/neurological style, sexual/behavioral pathology indicators, global integration & breakdown)
+✓ **SYSTEMATIC ASSESSMENT**: All analyses now systematically evaluate specific clinical criteria with observable evidence and direct quotations
+✓ **PROFESSIONAL RIGOR**: Enhanced from basic personality insights to genuine clinical-level psychological evaluation
+✓ **EVIDENCE-BASED METHODOLOGY**: Every assessment requires concrete observable evidence and specific examples from the source material
+
+### CRITICAL FIX: AI Visual Description Issues Resolved (August 23, 2025)
+✓ **ELIMINATED EXCUSE PHRASES**: Completely banned AI responses like "visual data does not contain sufficient detail" when analyzing clear images/videos
+✓ **AGGRESSIVE PROMPT ENFORCEMENT**: Updated prompts to explicitly forbid excuse phrases and demand concrete visual descriptions
+✓ **MANDATORY VISUAL OBSERVATIONS**: AI now required to describe exact clothing, hair, demographics, and environmental details visible in all media
+✓ **CONSISTENT VISUAL ANALYSIS**: Both image and video analysis now provide detailed physical appearance descriptions without evasions
+
 ### ENHANCED ANALYSIS METHODOLOGY: Mandatory Demographic & Environmental Anchoring (August 20, 2025)
 ✓ **IMPLEMENTED STRUCTURED ANALYSIS OPENING**: All image and video analyses now begin with mandatory demographic and environmental observations
 ✓ Updated analysis prompts to require opening assessment of: gender, age, appearance, body posture, body language, setting, background
