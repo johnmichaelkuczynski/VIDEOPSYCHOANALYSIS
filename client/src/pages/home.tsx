@@ -391,7 +391,7 @@ export default function HomePage() {
   }, [messages]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" {...getRootProps()}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         <header className="text-center mb-12">
           <div className="inline-flex items-center gap-3 mb-4">
@@ -502,24 +502,26 @@ export default function HomePage() {
                     Upload Media
                   </h3>
                   
-                  {isDragActive ? (
-                    <div className="border-2 border-dashed border-blue-400 rounded-xl p-8 text-center bg-blue-50 transition-colors">
-                      <Upload className="mx-auto h-12 w-12 text-blue-500 mb-4" />
-                      <p className="text-blue-700 font-medium">Drop your file here!</p>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer">
-                      <input {...getInputProps()} />
-                      <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <p className="text-gray-600 font-medium mb-2">
-                        Drag & drop or click to upload
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Images: PNG, JPG, GIF, WebP<br />
-                        Videos: MP4, AVI, MOV, WebM
-                      </p>
-                    </div>
-                  )}
+                  <div {...getRootProps()}>
+                    {isDragActive ? (
+                      <div className="border-2 border-dashed border-blue-400 rounded-xl p-8 text-center bg-blue-50 transition-colors">
+                        <Upload className="mx-auto h-12 w-12 text-blue-500 mb-4" />
+                        <p className="text-blue-700 font-medium">Drop your file here!</p>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer">
+                        <input {...getInputProps()} />
+                        <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-gray-600 font-medium mb-2">
+                          Drag & drop or click to upload
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Images: PNG, JPG, GIF, WebP<br />
+                          Videos: MP4, AVI, MOV, WebM
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   
                   {uploadedMedia && (
                     <div className="bg-blue-50 p-4 rounded-lg">
