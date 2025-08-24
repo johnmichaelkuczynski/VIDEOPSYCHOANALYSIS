@@ -1185,16 +1185,71 @@ Respond with valid JSON only:
       };
       
       // Store analysis
-      const analysisResult = {
-        id: analysisId,
-        type: "document" as const,
-        content: plainContent.substring(0, 1000) + (plainContent.length > 1000 ? '...' : ''),
-        title: `Document Analysis: ${file.originalname}`,
-        createdAt: new Date().toISOString(),
+      const analysisResult = await storage.createAnalysis({
         sessionId,
-        documentData,
-        messages: [{
+        mediaUrl: `document:${analysisId}`,
+        mediaType: "document",
+        personalityInsights: { 
+          chunks,
+          originalContent: plainContent,
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          documentData
+        },
+        title: `Document Analysis: ${file.originalname}`,
+        fileName: file.originalname
+      });
+      
+      // Automatically perform the 3 basic protocol analyses
+      try {
+        const { executeProtocolAnalysis } = require('./services/protocol');
+        const protocolResults = await executeProtocolAnalysis(
+          plainContent,
+          ['cognitive', 'psychological', 'psychopathological'],
+          'deepseek' // Default model
+        );
+        
+        // Create comprehensive analysis messages
+        const analysisMessages = [{
           role: "assistant" as const,
+          content: `Document "${file.originalname}" analyzed successfully! 
+          
+**Document Summary:**
+- Type: ${file.mimetype}
+- Size: ${(file.size / 1024).toFixed(1)} KB
+- Words: ${documentData.totalWords}
+- Chunks: ${chunks.length}
+
+**AUTOMATIC PROTOCOL ANALYSIS COMPLETE:**
+
+${protocolResults.overallSummary}
+
+*Analysis complete! You can request comprehensive evaluations for deeper insights.*`
+        }];
+        
+        // Create analysis message
+        const message = await storage.createMessage({
+          sessionId,
+          analysisId: analysisResult.id,
+          role: "assistant",
+          content: analysisMessages[0].content
+        });
+        
+        res.json({
+          analysisId: analysisResult.id,
+          messages: [message],
+          documentData,
+          chunks,
+          protocolResults
+        });
+        
+      } catch (error) {
+        console.error("Auto protocol analysis failed:", error);
+        // Still return success for upload, just without analysis
+        const message = await storage.createMessage({
+          sessionId,
+          analysisId: analysisResult.id,
+          role: "assistant",
           content: `Document "${file.originalname}" uploaded successfully! 
           
 **Document Summary:**
@@ -1203,18 +1258,16 @@ Respond with valid JSON only:
 - Words: ${documentData.totalWords}
 - Chunks: ${chunks.length}
 
-The document has been processed and is ready for analysis. You can now select specific chunks or run a comprehensive analysis on the entire document.`,
-        }]
-      };
-      
-      await storage.createAnalysis(analysisResult);
-      
-      res.json({
-        analysisId,
-        messages: analysisResult.messages,
-        documentData,
-        chunks
-      });
+The document has been processed and is ready for analysis.`
+        });
+        
+        res.json({
+          analysisId: analysisResult.id,
+          messages: [message],
+          documentData,
+          chunks
+        });
+      }
       
     } catch (error) {
       console.error("Document upload error:", error);
