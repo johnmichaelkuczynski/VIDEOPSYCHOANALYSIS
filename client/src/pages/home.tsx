@@ -57,8 +57,10 @@ import type {
   ServiceStatus,
   ComprehensiveAnalysis,
   CognitiveParameter,
-  PsychologicalParameter
+  PsychologicalParameter,
+  ProtocolType
 } from "@/lib/api";
+import { analyzeTextWithProtocols } from "@/lib/api";
 
 // Define parameters data
 const cognitiveParameters: CognitiveParameter[] = [
@@ -136,6 +138,12 @@ export default function HomePage() {
   const [expandedCognitiveParams, setExpandedCognitiveParams] = useState<Set<string>>(new Set());
   const [expandedPsychParams, setExpandedPsychParams] = useState<Set<string>>(new Set());
   
+  // New 6-Protocol Evaluation System state
+  const [selectedProtocols, setSelectedProtocols] = useState<ProtocolType[]>([]);
+  const [protocolResults, setProtocolResults] = useState<any>(null);
+  const [showProtocolResults, setShowProtocolResults] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState<'standard' | 'protocol'>('standard');
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Clear all analysis-related state
@@ -153,6 +161,9 @@ export default function HomePage() {
     setExpandedCognitiveParams(new Set());
     setExpandedPsychParams(new Set());
     setIsAnalyzing(false);
+    setProtocolResults(null);
+    setShowProtocolResults(false);
+    setSelectedProtocols([]);
   }, []);
 
   // API Status Query
@@ -229,7 +240,7 @@ export default function HomePage() {
       setAnalysisProgress(100);
       setMessages(data.messages);
       setAnalysisId(data.analysisId);
-      setMediaData(data.mediaData);
+      setMediaData(data.mediaData || null);
       setIsAnalyzing(false);
       toast({
         title: "Analysis Complete!",
@@ -253,15 +264,23 @@ export default function HomePage() {
       setIsAnalyzing(true);
       setAnalysisProgress(10);
       
-      return apiRequest("/api/analyze/text", {
+      const response = await fetch("/api/analyze/text", {
         method: "POST",
-        body: { 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
           text: textInput, 
           model: selectedModel, 
           sessionId,
           additionalInfo: additionalInfo || undefined 
-        },
-      }) as Promise<AnalysisResponse>;
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Analysis failed");
+      }
+      
+      return response.json() as Promise<AnalysisResponse>;
     },
     onSuccess: (data) => {
       setAnalysisProgress(100);
@@ -286,10 +305,18 @@ export default function HomePage() {
 
   const chatMutation = useMutation({
     mutationFn: async ({ message }: { message: string }) => {
-      return apiRequest("/api/chat", {
+      const response = await fetch("/api/chat", {
         method: "POST",
-        body: { message, sessionId, model: selectedModel },
-      }) as Promise<ChatResponse>;
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, sessionId, model: selectedModel }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Chat failed");
+      }
+      
+      return response.json() as Promise<ChatResponse>;
     },
     onSuccess: (data) => {
       setMessages(data.messages);
@@ -307,10 +334,18 @@ export default function HomePage() {
   const shareMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shareFormSchema>) => {
       if (!analysisId) throw new Error("No analysis to share");
-      return apiRequest("/api/share", {
+      const response = await fetch("/api/share", {
         method: "POST",
-        body: { ...data, analysisId },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, analysisId }),
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Share failed");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -329,12 +364,62 @@ export default function HomePage() {
     },
   });
 
+  // New 6-Protocol Analysis mutation
+  const handleProtocolAnalysis = useMutation({
+    mutationFn: async () => {
+      if (!selectedProtocols.length) {
+        throw new Error("Please select at least one protocol");
+      }
+      
+      clearAllAnalysisState();
+      setIsAnalyzing(true);
+      setAnalysisProgress(10);
+      
+      const response = await analyzeTextWithProtocols(
+        textInput,
+        selectedProtocols,
+        sessionId,
+        selectedModel,
+        undefined,
+        additionalInfo
+      );
+      
+      return response;
+    },
+    onSuccess: (data) => {
+      setAnalysisProgress(100);
+      setMessages(data.messages);
+      setAnalysisId(data.analysisId);
+      setProtocolResults(data.protocolResults);
+      setShowProtocolResults(true);
+      setIsAnalyzing(false);
+      toast({
+        title: "Protocol Analysis Complete!",
+        description: "Your text has been analyzed using the 6-protocol system.",
+      });
+    },
+    onError: (error: Error) => {
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+      toast({
+        variant: "destructive",
+        title: "Protocol Analysis Failed",
+        description: error.message,
+      });
+    },
+  });
+
   // Helper functions
   const clearSession = async (sessionId: string) => {
     try {
-      await apiRequest(`/api/clear-session/${sessionId}`, {
+      const response = await fetch(`/api/clear-session/${sessionId}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
+      
+      if (!response.ok) {
+        console.error("Failed to clear session");
+      }
     } catch (error) {
       console.error("Error clearing session:", error);
     }
@@ -567,7 +652,7 @@ export default function HomePage() {
                           className="min-h-[120px]"
                         />
                         <DialogFooter>
-                          <Button onClick={() => {}} className="w-full">
+                          <Button onClick={(e: any) => e.target.closest('[role="dialog"]')?.querySelector('button[data-state="closed"]')?.click()} className="w-full">
                             Save Context
                           </Button>
                         </DialogFooter>

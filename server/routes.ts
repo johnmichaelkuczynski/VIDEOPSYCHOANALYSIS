@@ -644,6 +644,67 @@ CRITICAL INSTRUCTIONS:
     }
   });
 
+  // New 6-Protocol Evaluation System endpoint
+  app.post("/api/analyze/protocols", async (req, res) => {
+    try {
+      const { text, protocols, sessionId, selectedModel = "deepseek", title, additionalInfo = "" } = req.body;
+      
+      if (!text || !sessionId || !protocols || !Array.isArray(protocols)) {
+        return res.status(400).json({ error: "Text, session ID, and protocols array are required" });
+      }
+      
+      console.log(`Processing protocol analysis with model: ${selectedModel}, protocols: ${protocols.join(', ')}`);
+      
+      // Import and execute protocols
+      const { executeProtocolAnalysis } = require('./services/protocol');
+      const results = await executeProtocolAnalysis(text, protocols, selectedModel);
+      
+      // Create analysis record
+      const analysis = await storage.createAnalysis({
+        sessionId,
+        mediaUrl: `protocol:${Date.now()}`,
+        mediaType: "text",
+        personalityInsights: {
+          originalText: text,
+          additionalInfo,
+          protocolResults: results,
+          model: selectedModel,
+          timestamp: new Date().toISOString(),
+          analysisType: "6_protocol_evaluation"
+        },
+        title: title || "6-Protocol Evaluation Analysis"
+      });
+      
+      // Create display message
+      const displayMessage = `## 6-Protocol Evaluation Complete
+      
+**Protocols Analyzed**: ${protocols.join(', ')}
+      
+**Analysis Summary**:
+${results.overallSummary}
+
+Your text has been evaluated using the comprehensive 6-protocol system with rigorous multi-phase analysis including pushback mechanisms, Walmart metric validation, and Sniper Amendment criteria.`;
+      
+      const message = await storage.createMessage({
+        sessionId,
+        analysisId: analysis.id,
+        role: "assistant",
+        content: displayMessage
+      });
+      
+      res.json({
+        analysisId: analysis.id,
+        messages: [message],
+        protocolResults: results,
+        emailServiceAvailable: isEmailServiceConfigured
+      });
+      
+    } catch (error) {
+      console.error("Protocol analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze text with protocols" });
+    }
+  });
+
   // Document analysis endpoint
   app.post("/api/analyze/document", async (req, res) => {
     try {
