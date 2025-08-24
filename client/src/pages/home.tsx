@@ -145,7 +145,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   
   // UI states
   const [showAdvancedServices, setShowAdvancedServices] = useState<boolean>(false);
-  const [showAnalysisModal, setShowAnalysisModal] = useState<boolean>(false);
   
   // References
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -326,10 +325,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       }
       
       toast({
-        title: "Comprehensive Analysis Complete", 
+        title: "Comprehensive Analysis Complete",
         description: "Your text has been analyzed across 40 psychological and cognitive parameters.",
       });
-      setShowAnalysisModal(true);
       setTextInput("");
     }
   });
@@ -1094,78 +1092,28 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             </div>
           </Card>
           
-          {/* Text Input Box - Always Visible */}
+          {/* Input Preview */}
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Text Input</h2>
-            <div className="space-y-4">
-              <form onSubmit={handleTextSubmit} className="space-y-4">
-                <Textarea
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  onKeyDown={(e) => handleKeyPress(e, handleTextSubmit)}
-                  placeholder="Type or paste your text here to analyze across 40 psychological parameters..."
-                  className="min-h-[300px] resize-y text-base"
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Input Preview</h2>
+              {!uploadedMedia && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    // Clear other inputs and focus on text
+                    setUploadedMedia(null);
+                    setTextInput(textInput || "");
+                  }}
+                  className="flex items-center gap-2"
                   disabled={isAnalyzing}
-                />
-                
-                <div className="flex gap-2">
-                  <Dialog open={showAdditionalInfoDialog} onOpenChange={setShowAdditionalInfoDialog}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" type="button">
-                        Add Context
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Additional Context Information</DialogTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Provide any additional context, background, or specific information that might help the AI analyze your text more accurately.
-                        </p>
-                      </DialogHeader>
-                      <Textarea
-                        value={additionalInfo}
-                        onChange={(e) => setAdditionalInfo(e.target.value)}
-                        placeholder="Enter any relevant context, background information, or specific aspects you'd like the analysis to focus on..."
-                        className="min-h-[200px] resize-y"
-                      />
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAdditionalInfoDialog(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={() => setShowAdditionalInfoDialog(false)}>
-                          Save Context
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  
-                  <Button 
-                    type="submit" 
-                    className="flex-1" 
-                    disabled={!textInput.trim() || isAnalyzing}
-                  >
-                    🔍 Analyze Text (40 Parameters)
-                  </Button>
-                </div>
-              </form>
-              
-              {additionalInfo && (
-                <div className="bg-blue-50 p-3 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    <strong>Additional Context:</strong> {additionalInfo.substring(0, 100)}
-                    {additionalInfo.length > 100 && "..."}
-                  </p>
-                </div>
+                >
+                  <span>Text Input</span>
+                </Button>
               )}
             </div>
-          </Card>
-
-          {/* Media Preview - Only show when media is uploaded */}
-          {uploadedMedia && (
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Media Preview</h2>
-              {mediaType === "image" && (
-                <div className="space-y-4">
+            
+            {uploadedMedia && mediaType === "image" && (
+              <div className="space-y-4">
                 <img 
                   src={uploadedMedia} 
                   alt="Uploaded" 
@@ -1714,10 +1662,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </p>
                   </div>
                 )}
-                </div>
-              )}
-            </Card>
-          )}
+              </div>
+            )}
+          </Card>
         </div>
         
         {/* Right Column - Results and Chat */}
@@ -1848,35 +1795,197 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             </div>
             
             <div className="h-[400px] flex flex-col">
-              {/* Clean Analysis Results Display */}
-              {(showComprehensiveAnalysis && comprehensiveAnalysis) || messages.length > 0 ? (
-                <div className="flex flex-col items-center justify-center space-y-6 h-full">
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto">
-                      <Check className="h-8 w-8 text-white" />
+              {/* Comprehensive Analysis Display */}
+              {showComprehensiveAnalysis && comprehensiveAnalysis && (
+                <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
+                  <div className="bg-white rounded-md p-4">
+                    <h3 className="text-lg font-semibold mb-4 text-center">
+                      Comprehensive 40-Parameter Analysis
+                    </h3>
+                    
+                    <Tabs defaultValue="cognitive" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="cognitive">Cognitive Analysis (20)</TabsTrigger>
+                        <TabsTrigger value="psychological">Psychological Analysis (20)</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="cognitive" className="space-y-3 max-h-80 overflow-y-auto">
+                        {cognitiveParameters.map((param) => {
+                          const analysis = comprehensiveAnalysis?.cognitiveAnalysis?.[param.id];
+                          if (!analysis) return null;
+                          
+                          return (
+                            <Collapsible
+                              key={param.id}
+                              open={expandedCognitiveParams.has(param.id)}
+                              onOpenChange={(open) => {
+                                const newExpanded = new Set(expandedCognitiveParams);
+                                if (open) {
+                                  newExpanded.add(param.id);
+                                } else {
+                                  newExpanded.delete(param.id);
+                                }
+                                setExpandedCognitiveParams(newExpanded);
+                              }}
+                            >
+                              <CollapsibleTrigger asChild>
+                                <div className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold text-sm">{param.name}</h4>
+                                      <p className="text-xs text-gray-600 mt-1">{param.description}</p>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold">{analysis.score || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500">/100</div>
+                                      </div>
+                                      {expandedCognitiveParams.has(param.id) ? 
+                                        <ChevronDown className="h-4 w-4" /> : 
+                                        <ChevronRight className="h-4 w-4" />
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
+                                <div className="space-y-3">
+                                  <div>
+                                    <h5 className="font-medium text-sm mb-2">Analysis</h5>
+                                    <p className="text-sm text-gray-700">{analysis.analysis}</p>
+                                  </div>
+                                  
+                                  {analysis.quotations && analysis.quotations.length > 0 && (
+                                    <div>
+                                      <h5 className="font-medium text-sm mb-2">Key Quotations</h5>
+                                      <div className="space-y-1">
+                                        {analysis.quotations.map((quote: string, index: number) => (
+                                          <div key={index} className="bg-white p-2 rounded text-sm italic border-l-4 border-blue-300">
+                                            "{quote}"
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {analysis.evidence && (
+                                    <div>
+                                      <h5 className="font-medium text-sm mb-2">Evidence</h5>
+                                      <p className="text-sm text-gray-600">{analysis.evidence}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        })}
+                      </TabsContent>
+                      
+                      <TabsContent value="psychological" className="space-y-3 max-h-80 overflow-y-auto">
+                        {psychologicalParameters.map((param) => {
+                          const analysis = comprehensiveAnalysis?.psychologicalAnalysis?.[param.id];
+                          if (!analysis) return null;
+                          
+                          return (
+                            <Collapsible
+                              key={param.id}
+                              open={expandedPsychParams.has(param.id)}
+                              onOpenChange={(open) => {
+                                const newExpanded = new Set(expandedPsychParams);
+                                if (open) {
+                                  newExpanded.add(param.id);
+                                } else {
+                                  newExpanded.delete(param.id);
+                                }
+                                setExpandedPsychParams(newExpanded);
+                              }}
+                            >
+                              <CollapsibleTrigger asChild>
+                                <div className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold text-sm">{param.name}</h4>
+                                      <p className="text-xs text-gray-600 mt-1">{param.description}</p>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold">{analysis.score || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500">/100</div>
+                                      </div>
+                                      {expandedPsychParams.has(param.id) ? 
+                                        <ChevronDown className="h-4 w-4" /> : 
+                                        <ChevronRight className="h-4 w-4" />
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
+                                <div className="space-y-3">
+                                  <div>
+                                    <h5 className="font-medium text-sm mb-2">Analysis</h5>
+                                    <p className="text-sm text-gray-700">{analysis.analysis}</p>
+                                  </div>
+                                  
+                                  {analysis.quotations && analysis.quotations.length > 0 && (
+                                    <div>
+                                      <h5 className="font-medium text-sm mb-2">Key Quotations</h5>
+                                      <div className="space-y-1">
+                                        {analysis.quotations.map((quote: string, index: number) => (
+                                          <div key={index} className="bg-white p-2 rounded text-sm italic border-l-4 border-purple-300">
+                                            "{quote}"
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {analysis.evidence && (
+                                    <div>
+                                      <h5 className="font-medium text-sm mb-2">Evidence</h5>
+                                      <p className="text-sm text-gray-600">{analysis.evidence}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        })}
+                      </TabsContent>
+                    </Tabs>
+                    
+                    {comprehensiveAnalysis.overallSummary && (
+                      <div className="mt-4 p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-md">
+                        <h4 className="font-semibold text-sm mb-2">Overall Summary</h4>
+                        <p className="text-sm">{comprehensiveAnalysis.overallSummary}</p>
+                      </div>
+                    )}
+                    
+                    {/* Post-Analysis Dialogue Interface */}
+                    <div className="mt-4 p-4 border-t">
+                      <h4 className="font-semibold text-sm mb-3">Discuss Your Analysis</h4>
+                      <div className="space-y-3">
+                        <Textarea
+                          placeholder="Share your thoughts, provide additional context, or ask questions about the analysis..."
+                          className="min-h-[80px] resize-none text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm">
+                            Refine Analysis
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            Generate Report
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-semibold mb-2">Analysis Complete!</h3>
-                      <p className="text-muted-foreground">
-                        Your comprehensive 40-parameter psychological analysis is ready
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={() => setShowAnalysisModal(true)}
-                    className="px-8 py-3 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    size="lg"
-                  >
-                    🔍 View Detailed Analysis
-                  </Button>
-                  
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>• 20 Cognitive Parameters • 20 Psychological Parameters •</p>
-                    <p>Evidence-based scoring with key quotations</p>
                   </div>
                 </div>
-              ) : messages.length === 0 && !showComprehensiveAnalysis ? (
+              )}
+
+              {messages.length === 0 && !showComprehensiveAnalysis ? (
                 <div className="flex flex-col items-center justify-center space-y-4 h-full text-center text-muted-foreground">
                   <AlertCircle className="h-12 w-12" />
                   <div>
@@ -2041,236 +2150,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           </Card>
         </div>
       </div>
-      
-      {/* Beautiful Full-Screen Analysis Modal */}
-      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
-        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
-          <div className="flex flex-col h-[95vh]">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold mb-2">
-                  🧠 Comprehensive Psychological Analysis
-                </DialogTitle>
-                <p className="text-blue-100">
-                  Complete 40-parameter evaluation with evidence-based scoring and key quotations
-                </p>
-              </DialogHeader>
-            </div>
-            
-            {/* Modal Content */}
-            <div className="flex-1 overflow-hidden p-6">
-              {comprehensiveAnalysis ? (
-                <Tabs defaultValue="cognitive" className="h-full flex flex-col">
-                  <TabsList className="grid w-full grid-cols-3 mb-4">
-                    <TabsTrigger value="cognitive" className="text-lg py-3">
-                      🧮 Cognitive Analysis (20)
-                    </TabsTrigger>
-                    <TabsTrigger value="psychological" className="text-lg py-3">
-                      💭 Psychological Analysis (20)
-                    </TabsTrigger>
-                    <TabsTrigger value="summary" className="text-lg py-3">
-                      📋 Overall Summary
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  {/* Cognitive Analysis Tab */}
-                  <TabsContent value="cognitive" className="flex-1 overflow-hidden">
-                    <ScrollArea className="h-full pr-4">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {cognitiveParameters.map((param) => {
-                          const analysis = comprehensiveAnalysis?.cognitiveAnalysis?.[param.id];
-                          if (!analysis) return null;
-                          
-                          return (
-                            <div key={param.id} className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-lg text-blue-700">{param.name}</h4>
-                                  <p className="text-sm text-gray-600 mt-1">{param.description}</p>
-                                </div>
-                                <div className="text-right ml-4">
-                                  <div className="text-2xl font-bold text-blue-600">{analysis.score || 'N/A'}</div>
-                                  <div className="text-sm text-gray-500">/100</div>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-3">
-                                <div>
-                                  <h5 className="font-medium text-sm mb-2 text-gray-800">Analysis</h5>
-                                  <p className="text-sm text-gray-700 leading-relaxed">{analysis.analysis}</p>
-                                </div>
-                                
-                                {analysis.quotations && analysis.quotations.length > 0 && (
-                                  <div>
-                                    <h5 className="font-medium text-sm mb-2 text-gray-800">Key Quotations</h5>
-                                    <div className="space-y-2">
-                                      {analysis.quotations.map((quote: string, index: number) => (
-                                        <div key={index} className="bg-blue-50 p-3 rounded italic border-l-4 border-blue-300">
-                                          <span className="text-blue-800">"{quote}"</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {analysis.evidence && (
-                                  <div>
-                                    <h5 className="font-medium text-sm mb-2 text-gray-800">Evidence</h5>
-                                    <p className="text-sm text-gray-600 leading-relaxed">{analysis.evidence}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
-                  </TabsContent>
-                  
-                  {/* Psychological Analysis Tab */}
-                  <TabsContent value="psychological" className="flex-1 overflow-hidden">
-                    <ScrollArea className="h-full pr-4">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {psychologicalParameters.map((param) => {
-                          const analysis = comprehensiveAnalysis?.psychologicalAnalysis?.[param.id];
-                          if (!analysis) return null;
-                          
-                          return (
-                            <div key={param.id} className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-lg text-purple-700">{param.name}</h4>
-                                  <p className="text-sm text-gray-600 mt-1">{param.description}</p>
-                                </div>
-                                <div className="text-right ml-4">
-                                  <div className="text-2xl font-bold text-purple-600">{analysis.score || 'N/A'}</div>
-                                  <div className="text-sm text-gray-500">/100</div>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-3">
-                                <div>
-                                  <h5 className="font-medium text-sm mb-2 text-gray-800">Analysis</h5>
-                                  <p className="text-sm text-gray-700 leading-relaxed">{analysis.analysis}</p>
-                                </div>
-                                
-                                {analysis.quotations && analysis.quotations.length > 0 && (
-                                  <div>
-                                    <h5 className="font-medium text-sm mb-2 text-gray-800">Key Quotations</h5>
-                                    <div className="space-y-2">
-                                      {analysis.quotations.map((quote: string, index: number) => (
-                                        <div key={index} className="bg-purple-50 p-3 rounded italic border-l-4 border-purple-300">
-                                          <span className="text-purple-800">"{quote}"</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {analysis.evidence && (
-                                  <div>
-                                    <h5 className="font-medium text-sm mb-2 text-gray-800">Evidence</h5>
-                                    <p className="text-sm text-gray-600 leading-relaxed">{analysis.evidence}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
-                  </TabsContent>
-                  
-                  {/* Summary Tab */}
-                  <TabsContent value="summary" className="flex-1 overflow-hidden">
-                    <ScrollArea className="h-full pr-4">
-                      <div className="max-w-4xl mx-auto space-y-6">
-                        {comprehensiveAnalysis.overallSummary && (
-                          <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg border">
-                            <h4 className="text-xl font-semibold mb-4 text-gray-800">Overall Summary</h4>
-                            <p className="text-gray-700 leading-relaxed text-base">{comprehensiveAnalysis.overallSummary}</p>
-                          </div>
-                        )}
-                        
-                        {/* Score Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                            <h5 className="text-lg font-semibold text-blue-800 mb-4">Cognitive Scores</h5>
-                            <div className="space-y-2">
-                              {cognitiveParameters.slice(0, 5).map((param) => {
-                                const analysis = comprehensiveAnalysis?.cognitiveAnalysis?.[param.id];
-                                return analysis ? (
-                                  <div key={param.id} className="flex justify-between items-center">
-                                    <span className="text-sm font-medium">{param.name}</span>
-                                    <span className="text-lg font-bold text-blue-600">{analysis.score}/100</span>
-                                  </div>
-                                ) : null;
-                              })}
-                              <div className="text-xs text-blue-600 mt-2">+ {cognitiveParameters.length - 5} more parameters</div>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                            <h5 className="text-lg font-semibold text-purple-800 mb-4">Psychological Scores</h5>
-                            <div className="space-y-2">
-                              {psychologicalParameters.slice(0, 5).map((param) => {
-                                const analysis = comprehensiveAnalysis?.psychologicalAnalysis?.[param.id];
-                                return analysis ? (
-                                  <div key={param.id} className="flex justify-between items-center">
-                                    <span className="text-sm font-medium">{param.name}</span>
-                                    <span className="text-lg font-bold text-purple-600">{analysis.score}/100</span>
-                                  </div>
-                                ) : null;
-                              })}
-                              <div className="text-xs text-purple-600 mt-2">+ {psychologicalParameters.length - 5} more parameters</div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Download Section */}
-                        <div className="bg-gray-50 p-6 rounded-lg border">
-                          <h5 className="text-lg font-semibold text-gray-800 mb-4">Export Analysis</h5>
-                          <div className="flex flex-wrap gap-3">
-                            <Button variant="outline" className="flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              Download as TXT
-                            </Button>
-                            <Button variant="outline" className="flex items-center gap-2">
-                              <FileText className="h-4 w-4" />
-                              Generate Report
-                            </Button>
-                            <Button variant="outline" className="flex items-center gap-2">
-                              <Share2 className="h-4 w-4" />
-                              Share Analysis
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  </TabsContent>
-                </Tabs>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">No analysis data available</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="border-t bg-gray-50 p-4">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  Analysis completed with evidence-based scoring
-                </p>
-                <Button onClick={() => setShowAnalysisModal(false)} variant="outline">
-                  Close
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
