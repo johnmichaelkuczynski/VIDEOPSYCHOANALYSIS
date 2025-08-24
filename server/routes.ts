@@ -372,45 +372,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedModel, sessionId, protocol } = req.body;
       const mediaType = file.mimetype.startsWith('image/') ? 'image' : 'video';
       
-      const analysis = await storage.createAnalysis({
-        sessionId: sessionId || 'default',
-        mediaType: mediaType as MediaType,
-        model: selectedModel || 'deepseek',
-        prompt: `${protocol} analysis of ${mediaType}`,
-        additionalInfo: `Protocol: ${protocol}`,
-        title: `${protocol.replace('-', ' ')} ${mediaType} Analysis`,
-        createdAt: new Date(),
-      });
+      if (mediaType === 'image') {
+        // For images, perform real AI analysis
+        try {
+          const buffer = file.buffer;
+          
+          // Get facial analysis first
+          let faceAnalysis = null;
+          try {
+            const rekognition = new RekognitionClient({
+              region: process.env.AWS_REGION || "us-east-1",
+              credentials: {
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ""
+              }
+            });
+            
+            const command = new DetectFacesCommand({
+              Image: { Bytes: buffer },
+              Attributes: ['ALL']
+            });
+            
+            const response = await rekognition.send(command);
+            const faces = response.FaceDetails || [];
+            
+            if (faces.length > 0) {
+              faceAnalysis = faces.slice(0, 5).map((face, index) => ({
+                personId: index + 1,
+                confidence: face.Confidence || 0,
+                emotions: face.Emotions || [],
+                ageRange: face.AgeRange || { Low: 20, High: 40 },
+                gender: face.Gender?.Value || "Unknown",
+                boundingBox: face.BoundingBox || {},
+                landmarks: face.Landmarks || []
+              }));
+            }
+          } catch (error) {
+            console.warn("Face analysis failed:", error);
+          }
+          
+          // Create protocol-specific analysis prompt
+          const getProtocolPrompt = (protocol: string) => {
+            const basePrompt = `CRITICAL INSTRUCTION: You are analyzing a clear, high-quality image. You MUST describe exactly what you observe. DO NOT claim you cannot see details when they are clearly visible.
 
-      // Add analysis message based on protocol
-      const protocolMessage = `✅ **${protocol.replace('-', ' ').toUpperCase()} ANALYSIS COMPLETE**
+MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
+1. DEMOGRAPHIC PROFILE: State the person's visible gender, estimated age, and physical features
+2. CLOTHING & ATTIRE: Describe exact clothing visible - colors, types, style, fit
+3. HAIR STYLE & GROOMING: Detail hair style, color, length, grooming state
+4. PHYSICAL BUILD & BODY TYPE: Describe visible physical structure and build
+5. BODY POSTURE & POSITIONING: Detail posture, position, and stance
+6. BODY LANGUAGE: Describe visible gestures, expressions, positioning
+7. SETTING & ENVIRONMENT: Detail background, location, surroundings
+8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, spatial context
 
-Your ${mediaType} has been analyzed using the ${protocol.replace('-', ' ')} protocol.
+`;
+            
+            if (protocol === 'cognitive') {
+              return basePrompt + `COGNITIVE ASSESSMENT FOCUS:
+- Intelligence indicators in expression and posture
+- Alertness and mental acuity signs
+- Problem-solving approach visible in stance/expression
+- Cognitive processing patterns evident in facial features
+- Mental organization reflected in grooming/presentation
+- Focus and attention indicators
+- Decision-making confidence visible in posture`;
+            } else if (protocol === 'psychological') {
+              return basePrompt + `PSYCHOLOGICAL ASSESSMENT FOCUS:
+- Personality traits visible in expression and body language
+- Emotional regulation patterns
+- Social confidence and interpersonal style
+- Behavioral indicators in posture and presentation
+- Character traits evident in appearance choices
+- Emotional stability signs
+- Interpersonal orientation visible in stance`;
+            } else if (protocol === 'psychopathological') {
+              return basePrompt + `PSYCHOPATHOLOGICAL ASSESSMENT FOCUS:
+- Clinical psychological markers in facial expression
+- Pathological indicators in gaze and eye contact
+- Abnormal behavioral signs in posture/positioning
+- Mood disorder indicators
+- Anxiety or stress markers
+- Potential diagnostic considerations
+- Neurological or psychiatric signs`;
+            } else if (protocol === 'comprehensive-cognitive') {
+              return basePrompt + `COMPREHENSIVE COGNITIVE ASSESSMENT:
+- Detailed intelligence assessment from visual cues
+- Working memory indicators in expression
+- Processing speed signs in alertness/response
+- Executive function evidence in organization/presentation
+- Attention and focus patterns
+- Cognitive flexibility indicators
+- Problem-solving approach assessment
+- Mental agility evidence`;
+            } else if (protocol === 'comprehensive-psychological') {
+              return basePrompt + `COMPREHENSIVE PSYCHOLOGICAL ASSESSMENT:
+- In-depth personality trait analysis
+- Complete emotional regulation assessment
+- Detailed behavioral pattern indicators
+- Character and temperament evaluation
+- Interpersonal style assessment
+- Coping mechanism indicators
+- Psychological resilience signs
+- Social adaptation patterns`;
+            } else if (protocol === 'comprehensive-psychopathological') {
+              return basePrompt + `COMPREHENSIVE PSYCHOPATHOLOGICAL ASSESSMENT:
+- Detailed clinical marker evaluation
+- Complete diagnostic consideration analysis
+- Comprehensive pathological indicator assessment
+- Mental health status evaluation
+- Neurological sign detection
+- Psychiatric symptom identification
+- Risk factor assessment
+- Clinical-grade psychological evaluation`;
+            }
+            return basePrompt;
+          };
+          
+          const analysisPrompt = getProtocolPrompt(protocol);
+          
+          // Perform AI analysis based on selected model
+          let analysisText = "";
+          const base64Image = buffer.toString('base64');
+          
+          if (selectedModel === "deepseek" && deepseek) {
+            const response = await deepseek.chat.completions.create({
+              model: "deepseek-chat",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: analysisPrompt },
+                    { 
+                      type: "image_url", 
+                      image_url: { url: `data:image/jpeg;base64,${base64Image}` }
+                    }
+                  ]
+                }
+              ],
+              max_tokens: 4000,
+            });
+            analysisText = response.choices[0]?.message?.content || "";
+          } else if (selectedModel === "anthropic" && anthropic) {
+            const response = await anthropic.messages.create({
+              model: "claude-3-5-sonnet-20241022",
+              max_tokens: 4000,
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: analysisPrompt },
+                    {
+                      type: "image",
+                      source: {
+                        type: "base64",
+                        media_type: "image/jpeg",
+                        data: base64Image,
+                      },
+                    },
+                  ],
+                },
+              ],
+            });
+            analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+          } else if (openai) {
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: analysisPrompt },
+                    { 
+                      type: "image_url", 
+                      image_url: { url: `data:image/jpeg;base64,${base64Image}` }
+                    }
+                  ]
+                }
+              ],
+              max_tokens: 4000,
+            });
+            analysisText = response.choices[0]?.message?.content || "";
+          }
 
-**Protocol Focus:**
-${protocol.includes('cognitive') ? '• Cognitive processing patterns\n• Intelligence assessment\n• Mental agility evaluation' : ''}
-${protocol.includes('psychological') ? '• Personality traits and patterns\n• Emotional regulation\n• Behavioral indicators' : ''}
-${protocol.includes('psychopathological') ? '• Clinical psychological markers\n• Pathological indicators\n• Diagnostic considerations' : ''}
-
-The analysis is complete and ready for download.`;
-      
-      await storage.createMessage({
-        analysisId: analysis.id,
-        role: "assistant",
-        content: protocolMessage,
-        createdAt: new Date(),
-      });
-
-      const messages = await storage.getMessagesByAnalysisId(analysis.id);
-      
-      res.json({
-        analysisId: analysis.id,
-        messages: messages,
-        mediaData: {
-          type: mediaType,
-          fileName: file.originalname,
+          const analysis = await storage.createAnalysis({
+            sessionId: sessionId || 'default',
+            mediaType: "image" as MediaType,
+            model: selectedModel || 'deepseek',
+            prompt: analysisPrompt,
+            additionalInfo: `Protocol: ${protocol}`,
+            title: `${protocol.replace('-', ' ')} Image Analysis`,
+            personalityInsights: {
+              faceAnalysis,
+              comprehensiveAnalysis: analysisText,
+              protocol: protocol,
+              timestamp: new Date().toISOString(),
+              summary: `${protocol.replace('-', ' ')} analysis completed for image`
+            },
+            createdAt: new Date(),
+          });
+          
+          const message = await storage.createMessage({
+            analysisId: analysis.id,
+            role: "assistant",
+            content: analysisText,
+            createdAt: new Date(),
+          });
+          
+          return res.json({
+            analysisId: analysis.id,
+            messages: [message],
+            mediaData: {
+              type: "image",
+              fileName: file.originalname,
+            }
+          });
+          
+        } catch (error) {
+          console.error("Image protocol analysis error:", error);
+          return res.status(500).json({ error: "Failed to process image with protocol analysis" });
         }
-      });
+      } else {
+        // For videos, create analysis record for segment selection
+        const analysis = await storage.createAnalysis({
+          sessionId: sessionId || 'default',
+          mediaType: "video" as MediaType,
+          model: selectedModel || 'deepseek',
+          prompt: `${protocol} analysis of video`,
+          additionalInfo: `Protocol: ${protocol}`,
+          title: `${protocol.replace('-', ' ')} Video Analysis`,
+          createdAt: new Date(),
+        });
+
+        const protocolMessage = `Video uploaded for ${protocol.replace('-', ' ')} analysis. Please select a segment to analyze.`;
+        
+        await storage.createMessage({
+          analysisId: analysis.id,
+          role: "assistant",
+          content: protocolMessage,
+          createdAt: new Date(),
+        });
+
+        const messages = await storage.getMessagesByAnalysisId(analysis.id);
+        
+        return res.json({
+          analysisId: analysis.id,
+          messages: messages,
+          mediaData: {
+            type: "video",
+            fileName: file.originalname,
+          }
+        });
+      }
 
     } catch (error) {
       console.error("Protocol media upload error:", error);
@@ -428,42 +640,152 @@ The analysis is complete and ready for download.`;
 
       const { selectedModel, sessionId, protocol } = req.body;
       
+      // Parse document content
+      let documentText = "";
+      try {
+        if (file.mimetype === 'application/pdf') {
+          // For PDFs, we'd need a PDF parser - simplified for now
+          documentText = "PDF content parsing not implemented yet";
+        } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          // Parse DOCX
+          const result = await mammoth.extractRawText({ buffer: file.buffer });
+          documentText = result.value;
+        } else if (file.mimetype === 'text/plain') {
+          // Parse plain text
+          documentText = file.buffer.toString('utf-8');
+        }
+      } catch (parseError) {
+        console.error("Document parsing error:", parseError);
+        documentText = "Document content could not be parsed";
+      }
+
+      // Create protocol-specific analysis prompt for documents
+      const getDocumentProtocolPrompt = (protocol: string, text: string) => {
+        const basePrompt = `Analyze the following document text using ${protocol.replace('-', ' ')} protocol:
+
+DOCUMENT TEXT:
+${text}
+
+`;
+        
+        if (protocol === 'cognitive') {
+          return basePrompt + `COGNITIVE ASSESSMENT FOCUS:
+- Intelligence indicators in writing style and vocabulary
+- Logical reasoning patterns in text structure
+- Problem-solving approach evident in content
+- Cognitive processing patterns in language use
+- Mental organization reflected in document structure
+- Focus and attention indicators in writing clarity
+- Decision-making confidence visible in content`;
+        } else if (protocol === 'psychological') {
+          return basePrompt + `PSYCHOLOGICAL ASSESSMENT FOCUS:
+- Personality traits visible in writing style
+- Emotional regulation patterns in language
+- Social confidence and interpersonal style in content
+- Behavioral indicators in communication approach
+- Character traits evident in topic choices
+- Emotional stability signs in tone and content
+- Interpersonal orientation visible in writing`;
+        } else if (protocol === 'psychopathological') {
+          return basePrompt + `PSYCHOPATHOLOGICAL ASSESSMENT FOCUS:
+- Clinical psychological markers in language patterns
+- Pathological indicators in word choice and themes
+- Abnormal thought patterns in content structure
+- Mood disorder indicators in writing tone
+- Anxiety or stress markers in language
+- Potential diagnostic considerations from text analysis
+- Neurological or psychiatric signs in communication`;
+        } else if (protocol === 'comprehensive-cognitive') {
+          return basePrompt + `COMPREHENSIVE COGNITIVE ASSESSMENT:
+- Detailed intelligence assessment from language complexity
+- Working memory indicators in sentence structure
+- Processing speed signs in writing flow
+- Executive function evidence in organization
+- Attention and focus patterns in content coherence
+- Cognitive flexibility indicators in topic handling
+- Problem-solving approach assessment
+- Mental agility evidence in language use`;
+        } else if (protocol === 'comprehensive-psychological') {
+          return basePrompt + `COMPREHENSIVE PSYCHOLOGICAL ASSESSMENT:
+- In-depth personality trait analysis from writing
+- Complete emotional regulation assessment
+- Detailed behavioral pattern indicators
+- Character and temperament evaluation
+- Interpersonal style assessment from content
+- Coping mechanism indicators in language
+- Psychological resilience signs
+- Social adaptation patterns in communication`;
+        } else if (protocol === 'comprehensive-psychopathological') {
+          return basePrompt + `COMPREHENSIVE PSYCHOPATHOLOGICAL ASSESSMENT:
+- Detailed clinical marker evaluation
+- Complete diagnostic consideration analysis
+- Comprehensive pathological indicator assessment
+- Mental health status evaluation from text
+- Neurological sign detection in language
+- Psychiatric symptom identification
+- Risk factor assessment from content analysis
+- Clinical-grade psychological evaluation`;
+        }
+        return basePrompt;
+      };
+
+      const analysisPrompt = getDocumentProtocolPrompt(protocol, documentText);
+      
+      // Perform AI analysis based on selected model
+      let analysisText = "";
+      
+      if (selectedModel === "deepseek" && deepseek) {
+        const response = await deepseek.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [{ role: "user", content: analysisPrompt }],
+          max_tokens: 4000,
+        });
+        analysisText = response.choices[0]?.message?.content || "";
+      } else if (selectedModel === "anthropic" && anthropic) {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: analysisPrompt }],
+        });
+        analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+      } else if (openai) {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: analysisPrompt }],
+          max_tokens: 4000,
+        });
+        analysisText = response.choices[0]?.message?.content || "";
+      }
+
       const analysis = await storage.createAnalysis({
         sessionId: sessionId || 'default',
         mediaType: "document" as MediaType,
         model: selectedModel || 'deepseek',
-        prompt: `${protocol} analysis of document`,
+        prompt: analysisPrompt,
         additionalInfo: `Protocol: ${protocol}`,
         title: `${protocol.replace('-', ' ')} Document Analysis`,
+        personalityInsights: {
+          documentText,
+          comprehensiveAnalysis: analysisText,
+          protocol: protocol,
+          timestamp: new Date().toISOString(),
+          summary: `${protocol.replace('-', ' ')} analysis completed for document`,
+          fileName: file.originalname,
+          fileSize: file.size
+        },
         createdAt: new Date(),
       });
 
-      // Add analysis message based on protocol
-      const protocolMessage = `✅ **${protocol.replace('-', ' ').toUpperCase()} DOCUMENT ANALYSIS COMPLETE**
-
-Your document has been analyzed using the ${protocol.replace('-', ' ')} protocol.
-
-**Protocol Focus:**
-${protocol.includes('cognitive') ? '• Cognitive processing patterns in text\n• Intelligence assessment through language\n• Mental organization analysis' : ''}
-${protocol.includes('psychological') ? '• Personality traits in writing style\n• Emotional patterns\n• Behavioral indicators' : ''}
-${protocol.includes('psychopathological') ? '• Clinical psychological markers\n• Pathological language indicators\n• Diagnostic considerations' : ''}
-
-**Document:** ${file.originalname} (${Math.round(file.size / 1024)} KB)
-
-The analysis is complete and ready for download.`;
-      
-      await storage.createMessage({
+      const message = await storage.createMessage({
         analysisId: analysis.id,
         role: "assistant",
-        content: protocolMessage,
+        content: analysisText,
         createdAt: new Date(),
       });
 
-      const messages = await storage.getMessagesByAnalysisId(analysis.id);
-      
       res.json({
         analysisId: analysis.id,
-        messages: messages,
+        messages: [message],
       });
 
     } catch (error) {
