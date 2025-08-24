@@ -191,11 +191,15 @@ export default function HomePage() {
         const fileType = file.type.split("/")[0];
         if (fileType === "image" || fileType === "video") {
           handleUploadMedia.mutate(file);
+        } else if (file.type === "application/pdf" || 
+                   file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                   file.type === "text/plain") {
+          handleUploadDocument.mutate(file);
         } else {
           toast({
             variant: "destructive",
             title: "Unsupported File Type",
-            description: "Please upload an image or video file.",
+            description: "Please upload an image, video, PDF, DOCX, or TXT file.",
           });
         }
       }
@@ -208,6 +212,9 @@ export default function HomePage() {
     accept: {
       "image/*": [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"],
       "video/*": [".mp4", ".avi", ".mov", ".mkv", ".webm"],
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "text/plain": [".txt"],
     },
     multiple: false,
   });
@@ -220,8 +227,8 @@ export default function HomePage() {
       setAnalysisProgress(10);
       
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("model", selectedModel);
+      formData.append("media", file);
+      formData.append("selectedModel", selectedModel);
       formData.append("sessionId", sessionId);
       
       const response = await fetch("/api/upload/media-multipart", {
@@ -404,6 +411,50 @@ export default function HomePage() {
       toast({
         variant: "destructive",
         title: "Protocol Analysis Failed",
+        description: error.message,
+      });
+    },
+  });
+
+  // Document Upload mutation
+  const handleUploadDocument = useMutation({
+    mutationFn: async (file: File) => {
+      clearAllAnalysisState();
+      setIsAnalyzing(true);
+      setAnalysisProgress(10);
+      
+      const formData = new FormData();
+      formData.append("document", file);
+      formData.append("sessionId", sessionId);
+      
+      const response = await fetch("/api/upload/document", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Document upload failed");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setAnalysisProgress(100);
+      setMessages(data.messages || []);
+      setAnalysisId(data.analysisId);
+      setIsAnalyzing(false);
+      toast({
+        title: "Document Analysis Complete!",
+        description: "Your document has been analyzed successfully.",
+      });
+    },
+    onError: (error) => {
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+      toast({
+        variant: "destructive",
+        title: "Document Upload Failed",
         description: error.message,
       });
     },
@@ -602,7 +653,8 @@ export default function HomePage() {
                         </p>
                         <p className="text-sm text-gray-500">
                           Images: PNG, JPG, GIF, WebP<br />
-                          Videos: MP4, AVI, MOV, WebM
+                          Videos: MP4, AVI, MOV, WebM<br />
+                          Documents: PDF, DOCX, TXT
                         </p>
                       </div>
                     )}

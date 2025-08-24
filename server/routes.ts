@@ -1133,6 +1133,94 @@ Respond with valid JSON only:
       res.status(500).json({ error: "Failed to upload media" });
     }
   });
+
+  // Document upload endpoint
+  app.post("/api/upload/document", upload.single('document'), async (req, res) => {
+    try {
+      const file = req.file;
+      const { sessionId } = req.body;
+      
+      if (!file || !sessionId) {
+        return res.status(400).json({ error: "Document and session ID are required" });
+      }
+      
+      console.log(`Processing document upload: ${file.originalname} (${file.mimetype})`);
+      console.log(`File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      
+      const analysisId = `doc-${Date.now()}`;
+      let plainContent = '';
+      let formattedContent = '';
+      
+      // Parse document based on type
+      if (file.mimetype === 'application/pdf') {
+        const pdfParse = await import('pdf-parse');
+        const pdfData = await pdfParse.default(file.buffer);
+        plainContent = pdfData.text;
+        formattedContent = pdfData.text;
+      } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        plainContent = result.value;
+        formattedContent = result.value;
+      } else if (file.mimetype === 'text/plain') {
+        plainContent = file.buffer.toString('utf-8');
+        formattedContent = plainContent;
+      } else {
+        return res.status(400).json({ error: "Unsupported document type" });
+      }
+      
+      if (!plainContent.trim()) {
+        return res.status(400).json({ error: "Could not extract text from document" });
+      }
+      
+      // Create document chunks for analysis
+      const chunks = createDocumentChunks(plainContent, formattedContent);
+      
+      // Store document data
+      const documentData = {
+        fileName: file.originalname,
+        fileType: file.mimetype,
+        chunks: chunks,
+        totalWords: plainContent.split(/\s+/).length,
+        uploadedAt: new Date().toISOString()
+      };
+      
+      // Store analysis
+      const analysisResult = {
+        id: analysisId,
+        type: "document" as const,
+        content: plainContent.substring(0, 1000) + (plainContent.length > 1000 ? '...' : ''),
+        title: `Document Analysis: ${file.originalname}`,
+        createdAt: new Date().toISOString(),
+        sessionId,
+        documentData,
+        messages: [{
+          role: "assistant" as const,
+          content: `Document "${file.originalname}" uploaded successfully! 
+          
+**Document Summary:**
+- Type: ${file.mimetype}
+- Size: ${(file.size / 1024).toFixed(1)} KB
+- Words: ${documentData.totalWords}
+- Chunks: ${chunks.length}
+
+The document has been processed and is ready for analysis. You can now select specific chunks or run a comprehensive analysis on the entire document.`,
+        }]
+      };
+      
+      await storage.createAnalysis(analysisResult);
+      
+      res.json({
+        analysisId,
+        messages: analysisResult.messages,
+        documentData,
+        chunks
+      });
+      
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
   
   // Media upload endpoint - for images and videos with segment selection
   app.post("/api/upload/media", async (req, res) => {
