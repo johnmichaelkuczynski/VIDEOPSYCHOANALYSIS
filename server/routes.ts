@@ -490,29 +490,11 @@ MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
           
           const analysisPrompt = getProtocolPrompt(protocol);
           
-          // Perform AI analysis based on selected model
+          // Perform AI analysis - Note: DeepSeek doesn't support image analysis, so we fall back to vision-capable models
           let analysisText = "";
           const base64Image = buffer.toString('base64');
           
-          if (selectedModel === "deepseek" && deepseek) {
-            const response = await deepseek.chat.completions.create({
-              model: "deepseek-chat",
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    { type: "text", text: analysisPrompt },
-                    { 
-                      type: "image_url", 
-                      image_url: { url: `data:image/jpeg;base64,${base64Image}` }
-                    }
-                  ]
-                }
-              ],
-              max_tokens: 4000,
-            });
-            analysisText = response.choices[0]?.message?.content || "";
-          } else if (selectedModel === "anthropic" && anthropic) {
+          if (selectedModel === "anthropic" && anthropic) {
             const response = await anthropic.messages.create({
               model: "claude-3-5-sonnet-20241022",
               max_tokens: 4000,
@@ -552,6 +534,8 @@ MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
               max_tokens: 4000,
             });
             analysisText = response.choices[0]?.message?.content || "";
+          } else {
+            analysisText = "Image analysis requires OpenAI or Anthropic API. DeepSeek and Perplexity do not support image analysis.";
           }
 
           const analysis = await storage.createAnalysis({
