@@ -1096,20 +1096,23 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Input Preview</h2>
-              {!uploadedMedia && (
+              <div className="flex gap-2">
                 <Button 
                   variant="outline" 
                   onClick={() => {
-                    // Clear other inputs and focus on text
+                    // Clear media and switch to text input
                     setUploadedMedia(null);
+                    setMediaData(null);
                     setTextInput(textInput || "");
+                    setMessages([]);
+                    setAnalysisId(null);
                   }}
                   className="flex items-center gap-2"
                   disabled={isAnalyzing}
                 >
-                  <span>Text Input</span>
+                  <span>Switch to Text Input</span>
                 </Button>
-              )}
+              </div>
             </div>
             
             {uploadedMedia && mediaType === "image" && (
