@@ -263,13 +263,53 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   
+  // Function to clear ALL analysis state when switching between media types
+  const clearAllAnalysisState = () => {
+    // Clear messages and analysis results
+    setMessages([]);
+    setAnalysisId(null);
+    
+    // Clear comprehensive analysis state
+    setComprehensiveAnalysis(null);
+    setShowComprehensiveAnalysis(false);
+    setCognitiveParameters([]);
+    setPsychologicalParameters([]);
+    
+    // Clear media state
+    setUploadedMedia(null);
+    setMediaData(null);
+    
+    // Clear video state
+    setVideoSegments([]);
+    setVideoDuration(0);
+    setVideoSegmentStart(0);
+    setVideoSegmentDuration(3);
+    
+    // Clear document state
+    setDocumentChunks([]);
+    setSelectedChunks([]);
+    setShowChunkSelection(false);
+    setDocumentFileName("");
+    setDocumentFileType("");
+    setMetricsAnalysis(null);
+    
+    // Clear expanded states
+    setExpandedCognitiveParams(new Set());
+    setExpandedPsychParams(new Set());
+    setExpandedMetrics(new Set());
+    
+    // Reset progress
+    setAnalysisProgress(0);
+  };
+  
   // Text analysis
   const handleTextAnalysis = useMutation({
     mutationFn: async (text: string) => {
       try {
         setIsAnalyzing(true);
+        // Clear ALL previous analysis state
+        clearAllAnalysisState();
         setAnalysisProgress(10);
-        setMessages([]);
         
         const response = await analyzeText(text, sessionId, selectedModel, undefined, additionalInfo);
         
@@ -339,8 +379,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     mutationFn: async (file: File) => {
       try {
         setIsAnalyzing(true);
-        setAnalysisProgress(0);
-        setMessages([]);
+        // Clear ALL previous analysis state
+        clearAllAnalysisState();
         
         // Determine media type and set it
         const fileType = file.type.split('/')[0];
@@ -740,6 +780,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const handleDocumentUpload = useMutation({
     mutationFn: async (file: File) => {
       setIsAnalyzing(true);
+      // Clear ALL previous analysis state
+      clearAllAnalysisState();
       setAnalysisProgress(10);
       
       const reader = new FileReader();
@@ -903,8 +945,22 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl" {...getRootProps()}>
-      <h1 className="text-4xl font-bold text-center mb-4">AI Personality Analysis</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" {...getRootProps()}>
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        <header className="text-center mb-12">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              AI Personality Analysis
+            </h1>
+          </div>
+          <p className="text-slate-600 text-xl font-medium mb-2">Advanced Psychological Insights Platform</p>
+          <p className="text-slate-500 text-sm">Clinical-grade analysis with 40+ psychological markers</p>
+        </header>
       
       {/* App List */}
       <div className="flex justify-center mb-8">
@@ -922,27 +978,33 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         {/* Left Column - Inputs and Upload */}
-        <div className="space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* Model Selector */}
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Step 1: Select AI Model</h2>
-            <Select
-              value={selectedModel}
-              onValueChange={(value) => setSelectedModel(value as ModelType)}
-              disabled={isAnalyzing}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select AI Model" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
-                {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
-                <SelectItem value="deepseek">ZHI 3</SelectItem>
-                {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
-              </SelectContent>
-            </Select>
-            
-            <div className="mt-4">
+          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+            <div className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-md">
+                  <span className="text-white font-bold text-lg">1</span>
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800">Select AI Model</h2>
+              </div>
+              <Select
+                value={selectedModel}
+                onValueChange={(value) => setSelectedModel(value as ModelType)}
+                disabled={isAnalyzing}
+              >
+                <SelectTrigger className="h-14 border-2 border-slate-200 hover:border-blue-400 transition-all duration-200 bg-white">
+                  <SelectValue placeholder="Choose your AI model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableServices.anthropic && <SelectItem value="anthropic">🧠 ZHI 1 (Recommended)</SelectItem>}
+                  {availableServices.openai && <SelectItem value="openai">⚡ ZHI 2</SelectItem>}
+                  <SelectItem value="deepseek">🔬 ZHI 3</SelectItem>
+                  {availableServices.perplexity && <SelectItem value="perplexity">🎯 ZHI 4</SelectItem>}
+                </SelectContent>
+              </Select>
+              
+              <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-sm font-medium">Available Services</h3>
                 <Button 
@@ -1018,6 +1080,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   </>
                 )}
               </div>
+            </div>
             </div>
           </Card>
           
@@ -1127,10 +1190,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <Button 
                   onClick={() => {
                     if (mediaData) {
-                      // Clear messages for new analysis
-                      setMessages([]);
+                      // Clear ALL previous analysis state for new analysis
+                      clearAllAnalysisState();
                       setIsAnalyzing(true);
-                      setAnalysisProgress(0);
                       
                       // Use the stored media data directly
                       uploadMedia({
@@ -2149,6 +2211,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             </div>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );
