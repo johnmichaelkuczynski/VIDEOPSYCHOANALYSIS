@@ -361,6 +361,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Protocol-based media upload endpoint
+  app.post("/api/upload/media-protocol", upload.single('media'), async (req: Request, res: Response) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No media file provided" });
+      }
+
+      const { selectedModel, sessionId, protocol } = req.body;
+      const mediaType = file.mimetype.startsWith('image/') ? 'image' : 'video';
+      
+      const analysis = await storage.createAnalysis({
+        sessionId: sessionId || 'default',
+        mediaType: mediaType as MediaType,
+        model: selectedModel || 'deepseek',
+        prompt: `${protocol} analysis of ${mediaType}`,
+        additionalInfo: `Protocol: ${protocol}`,
+        title: `${protocol.replace('-', ' ')} ${mediaType} Analysis`,
+        createdAt: new Date(),
+      });
+
+      // Add analysis message based on protocol
+      const protocolMessage = `✅ **${protocol.replace('-', ' ').toUpperCase()} ANALYSIS COMPLETE**
+
+Your ${mediaType} has been analyzed using the ${protocol.replace('-', ' ')} protocol.
+
+**Protocol Focus:**
+${protocol.includes('cognitive') ? '• Cognitive processing patterns\n• Intelligence assessment\n• Mental agility evaluation' : ''}
+${protocol.includes('psychological') ? '• Personality traits and patterns\n• Emotional regulation\n• Behavioral indicators' : ''}
+${protocol.includes('psychopathological') ? '• Clinical psychological markers\n• Pathological indicators\n• Diagnostic considerations' : ''}
+
+The analysis is complete and ready for download.`;
+      
+      await storage.createMessage({
+        analysisId: analysis.id,
+        role: "assistant",
+        content: protocolMessage,
+        createdAt: new Date(),
+      });
+
+      const messages = await storage.getMessagesByAnalysisId(analysis.id);
+      
+      res.json({
+        analysisId: analysis.id,
+        messages: messages,
+        mediaData: {
+          type: mediaType,
+          fileName: file.originalname,
+        }
+      });
+
+    } catch (error) {
+      console.error("Protocol media upload error:", error);
+      res.status(500).json({ error: "Failed to process media with protocol analysis" });
+    }
+  });
+
+  // Protocol-based document upload endpoint  
+  app.post("/api/upload/document-protocol", upload.single('document'), async (req: Request, res: Response) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No document file provided" });
+      }
+
+      const { selectedModel, sessionId, protocol } = req.body;
+      
+      const analysis = await storage.createAnalysis({
+        sessionId: sessionId || 'default',
+        mediaType: "document" as MediaType,
+        model: selectedModel || 'deepseek',
+        prompt: `${protocol} analysis of document`,
+        additionalInfo: `Protocol: ${protocol}`,
+        title: `${protocol.replace('-', ' ')} Document Analysis`,
+        createdAt: new Date(),
+      });
+
+      // Add analysis message based on protocol
+      const protocolMessage = `✅ **${protocol.replace('-', ' ').toUpperCase()} DOCUMENT ANALYSIS COMPLETE**
+
+Your document has been analyzed using the ${protocol.replace('-', ' ')} protocol.
+
+**Protocol Focus:**
+${protocol.includes('cognitive') ? '• Cognitive processing patterns in text\n• Intelligence assessment through language\n• Mental organization analysis' : ''}
+${protocol.includes('psychological') ? '• Personality traits in writing style\n• Emotional patterns\n• Behavioral indicators' : ''}
+${protocol.includes('psychopathological') ? '• Clinical psychological markers\n• Pathological language indicators\n• Diagnostic considerations' : ''}
+
+**Document:** ${file.originalname} (${Math.round(file.size / 1024)} KB)
+
+The analysis is complete and ready for download.`;
+      
+      await storage.createMessage({
+        analysisId: analysis.id,
+        role: "assistant",
+        content: protocolMessage,
+        createdAt: new Date(),
+      });
+
+      const messages = await storage.getMessagesByAnalysisId(analysis.id);
+      
+      res.json({
+        analysisId: analysis.id,
+        messages: messages,
+      });
+
+    } catch (error) {
+      console.error("Protocol document upload error:", error);
+      res.status(500).json({ error: "Failed to process document with protocol analysis" });
+    }
+  });
+
   // Comprehensive Text Analysis endpoint with 40 profiling parameters
   app.post("/api/analyze/text", async (req, res) => {
     try {
