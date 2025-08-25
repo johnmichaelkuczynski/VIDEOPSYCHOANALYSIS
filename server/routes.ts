@@ -413,77 +413,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Create protocol-specific analysis prompt
           const getProtocolPrompt = (protocol: string) => {
-            const basePrompt = `CRITICAL INSTRUCTION: You are analyzing a clear, high-quality image. You MUST describe exactly what you observe. DO NOT claim you cannot see details when they are clearly visible.
+            const basePrompt = `You are conducting a professional assessment based on visual observation. Analyze this image and provide detailed observations and insights.
 
-MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
-1. DEMOGRAPHIC PROFILE: State the person's visible gender, estimated age, and physical features
-2. CLOTHING & ATTIRE: Describe exact clothing visible - colors, types, style, fit
-3. HAIR STYLE & GROOMING: Detail hair style, color, length, grooming state
-4. PHYSICAL BUILD & BODY TYPE: Describe visible physical structure and build
-5. BODY POSTURE & POSITIONING: Detail posture, position, and stance
-6. BODY LANGUAGE: Describe visible gestures, expressions, positioning
-7. SETTING & ENVIRONMENT: Detail background, location, surroundings
-8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, spatial context
+VISUAL OBSERVATIONS:
+First, describe what you see: person's apparent age, gender, clothing, posture, facial expression, setting, and environment.
 
 `;
             
             if (protocol === 'cognitive') {
-              return basePrompt + `COGNITIVE ASSESSMENT FOCUS:
-- Intelligence indicators in expression and posture
-- Alertness and mental acuity signs
-- Problem-solving approach visible in stance/expression
-- Cognitive processing patterns evident in facial features
-- Mental organization reflected in grooming/presentation
-- Focus and attention indicators
-- Decision-making confidence visible in posture`;
+              return basePrompt + `COGNITIVE ANALYSIS - Answer each question:
+
+1. INTELLIGENCE ASSESSMENT: What signs of intelligence level are visible in facial expression, eye engagement, and overall demeanor?
+
+2. ATTENTION & FOCUS: How does their gaze and facial expression suggest their attention span and focus capabilities?
+
+3. MENTAL PROCESSING: What does their facial expression and eye movement suggest about their thinking speed and processing style?
+
+4. PROBLEM-SOLVING APPROACH: Based on their posture and expression, how might they approach complex problems?
+
+5. COGNITIVE ORGANIZATION: What does their grooming, clothing choices, and presentation suggest about their mental organization?
+
+6. LEARNING STYLE: What visual cues suggest whether they might be more analytical or intuitive in their learning?
+
+7. DECISION-MAKING: What confidence level in decision-making is suggested by their posture and expression?
+
+8. INTELLECTUAL CURIOSITY: What signs of curiosity or intellectual engagement are visible?
+
+9. COGNITIVE FLEXIBILITY: What suggests their ability to adapt thinking to new situations?
+
+10. CONCENTRATION ABILITY: What physical signs suggest their ability to maintain focus?
+
+Provide specific examples from the image for each assessment.`;
             } else if (protocol === 'psychological') {
-              return basePrompt + `PSYCHOLOGICAL ASSESSMENT FOCUS:
-- Personality traits visible in expression and body language
-- Emotional regulation patterns
-- Social confidence and interpersonal style
-- Behavioral indicators in posture and presentation
-- Character traits evident in appearance choices
-- Emotional stability signs
-- Interpersonal orientation visible in stance`;
+              return basePrompt + `PSYCHOLOGICAL ANALYSIS - Answer each question:
+
+1. PERSONALITY TRAITS: What personality characteristics are suggested by their facial expression, posture, and presentation?
+
+2. EMOTIONAL EXPRESSION: How do they express emotions through facial expressions and body language?
+
+3. SOCIAL CONFIDENCE: What level of social comfort and confidence is suggested by their posture and expression?
+
+4. INTERPERSONAL STYLE: How do they likely interact with others based on their body language and presentation?
+
+5. EMOTIONAL REGULATION: What signs suggest how they manage and control their emotions?
+
+6. SELF-ESTEEM: What indicators suggest their level of self-confidence and self-regard?
+
+7. STRESS RESPONSE: What physical signs suggest how they might handle stress or pressure?
+
+8. COMMUNICATION STYLE: What does their expression and posture suggest about how they communicate?
+
+9. RELATIONSHIP APPROACH: What signs suggest their approach to forming and maintaining relationships?
+
+10. BEHAVIORAL PATTERNS: What consistent behavioral tendencies are suggested by their appearance and demeanor?
+
+Provide specific visual evidence for each psychological assessment.`;
             } else if (protocol === 'psychopathological') {
-              return basePrompt + `PSYCHOPATHOLOGICAL ASSESSMENT FOCUS:
-- Clinical psychological markers in facial expression
-- Pathological indicators in gaze and eye contact
-- Abnormal behavioral signs in posture/positioning
-- Mood disorder indicators
-- Anxiety or stress markers
-- Potential diagnostic considerations
-- Neurological or psychiatric signs`;
+              return basePrompt + `PSYCHOPATHOLOGICAL ANALYSIS - Answer each question:
+
+1. MOOD INDICATORS: What signs in facial expression or posture might suggest mood state or mood disorders?
+
+2. ANXIETY MARKERS: What physical signs might indicate anxiety levels or anxiety-related conditions?
+
+3. ATTENTION PATTERNS: What signs might suggest ADHD or attention-related concerns?
+
+4. SOCIAL FUNCTIONING: What indicators suggest their level of social functioning and potential social disorders?
+
+5. EMOTIONAL DYSREGULATION: What signs might indicate difficulty with emotional control or regulation?
+
+6. COGNITIVE SYMPTOMS: What might suggest cognitive impairment or neurological concerns?
+
+7. BEHAVIORAL SYMPTOMS: What behavioral patterns might indicate psychological distress or disorders?
+
+8. TRAUMA INDICATORS: What signs might suggest past trauma or PTSD-related symptoms?
+
+9. DEVELOPMENTAL CONCERNS: What might indicate developmental or learning disabilities?
+
+10. RISK FACTORS: What observable factors might suggest psychological vulnerability or risk?
+
+Note: This is observational analysis for educational purposes only, not diagnostic.`;
             } else if (protocol === 'comprehensive-cognitive') {
-              return basePrompt + `COMPREHENSIVE COGNITIVE ASSESSMENT:
-- Detailed intelligence assessment from visual cues
-- Working memory indicators in expression
-- Processing speed signs in alertness/response
-- Executive function evidence in organization/presentation
-- Attention and focus patterns
-- Cognitive flexibility indicators
-- Problem-solving approach assessment
-- Mental agility evidence`;
+              return basePrompt + `COMPREHENSIVE COGNITIVE ANALYSIS - Detailed assessment:
+
+Provide an extensive cognitive profile covering all 15 areas:
+
+1. GENERAL INTELLIGENCE: Comprehensive assessment of apparent IQ level and intellectual capacity
+2. VERBAL INTELLIGENCE: Signs of language processing and verbal reasoning abilities
+3. VISUAL-SPATIAL INTELLIGENCE: Evidence of spatial reasoning and visual processing skills
+4. WORKING MEMORY: Indicators of short-term memory and mental manipulation abilities
+5. PROCESSING SPEED: Signs of cognitive processing speed and mental agility
+6. EXECUTIVE FUNCTION: Evidence of planning, organization, and cognitive control
+7. ATTENTION SPAN: Assessment of sustained attention and concentration abilities
+8. COGNITIVE FLEXIBILITY: Signs of mental adaptability and set-shifting abilities
+9. ABSTRACT REASONING: Evidence of abstract thinking and conceptual abilities
+10. PROBLEM-SOLVING STYLE: Approach to complex problems and analytical thinking
+11. LEARNING CAPACITY: Indicators of learning potential and intellectual growth
+12. MEMORY SYSTEMS: Signs of different memory types and retention abilities
+13. COGNITIVE EFFICIENCY: Evidence of mental resource allocation and efficiency
+14. INTELLECTUAL CURIOSITY: Signs of intellectual engagement and curiosity
+15. METACOGNITION: Evidence of self-awareness about own thinking processes
+
+Provide detailed analysis with specific visual evidence for each area.`;
             } else if (protocol === 'comprehensive-psychological') {
-              return basePrompt + `COMPREHENSIVE PSYCHOLOGICAL ASSESSMENT:
-- In-depth personality trait analysis
-- Complete emotional regulation assessment
-- Detailed behavioral pattern indicators
-- Character and temperament evaluation
-- Interpersonal style assessment
-- Coping mechanism indicators
-- Psychological resilience signs
-- Social adaptation patterns`;
+              return basePrompt + `COMPREHENSIVE PSYCHOLOGICAL ANALYSIS - Detailed assessment:
+
+Provide an extensive psychological profile covering all 15 areas:
+
+1. PERSONALITY STRUCTURE: Complete personality assessment across major trait dimensions
+2. EMOTIONAL INTELLIGENCE: Assessment of emotional awareness and regulation abilities
+3. INTERPERSONAL SKILLS: Detailed analysis of social and relationship capabilities
+4. COPING MECHANISMS: Assessment of stress management and adaptive strategies
+5. SELF-CONCEPT: Analysis of self-esteem, self-image, and identity formation
+6. MOTIVATION PATTERNS: Assessment of drive, ambition, and goal orientation
+7. BEHAVIORAL TENDENCIES: Analysis of consistent behavior patterns and habits
+8. EMOTIONAL EXPRESSION: Assessment of how emotions are displayed and managed
+9. SOCIAL ADAPTATION: Analysis of social functioning and cultural adaptation
+10. PSYCHOLOGICAL RESILIENCE: Assessment of ability to handle adversity and bounce back
+11. COMMUNICATION STYLE: Analysis of interpersonal communication patterns
+12. RELATIONSHIP PATTERNS: Assessment of attachment style and relationship approach
+13. PSYCHOLOGICAL MATURITY: Analysis of emotional and psychological development level
+14. DEFENSE MECHANISMS: Assessment of psychological defenses and protective strategies
+15. PSYCHOLOGICAL INTEGRATION: Analysis of overall psychological coherence and integration
+
+Provide detailed analysis with specific visual evidence for each area.`;
             } else if (protocol === 'comprehensive-psychopathological') {
-              return basePrompt + `COMPREHENSIVE PSYCHOPATHOLOGICAL ASSESSMENT:
-- Detailed clinical marker evaluation
-- Complete diagnostic consideration analysis
-- Comprehensive pathological indicator assessment
-- Mental health status evaluation
-- Neurological sign detection
-- Psychiatric symptom identification
-- Risk factor assessment
-- Clinical-grade psychological evaluation`;
+              return basePrompt + `COMPREHENSIVE PSYCHOPATHOLOGICAL ANALYSIS - Detailed assessment:
+
+Provide an extensive clinical assessment covering all 15 areas:
+
+1. MOOD DISORDERS: Comprehensive assessment of depression, mania, and mood instability indicators
+2. ANXIETY DISORDERS: Detailed analysis of anxiety, panic, phobias, and related symptoms
+3. ATTENTION DISORDERS: Assessment of ADHD, attention deficits, and hyperactivity indicators
+4. PERSONALITY DISORDERS: Analysis of personality disorder traits and patterns
+5. TRAUMA-RELATED DISORDERS: Assessment of PTSD, trauma responses, and dissociative symptoms
+6. PSYCHOTIC SYMPTOMS: Analysis of reality testing, thought disorders, and perceptual disturbances
+7. SUBSTANCE-RELATED INDICATORS: Assessment of addiction or substance use disorder signs
+8. EATING DISORDER INDICATORS: Analysis of body image and eating-related concerns
+9. IMPULSE CONTROL ISSUES: Assessment of impulsivity and behavioral control problems
+10. SOCIAL FUNCTIONING DEFICITS: Analysis of social skills deficits and interpersonal problems
+11. COGNITIVE IMPAIRMENT: Assessment of dementia, delirium, and cognitive decline
+12. DEVELOPMENTAL DISORDERS: Analysis of autism spectrum and developmental concerns
+13. SLEEP-RELATED INDICATORS: Assessment of sleep disorders and circadian rhythm issues
+14. SOMATIC SYMPTOMS: Analysis of physical symptoms with psychological components
+15. RISK ASSESSMENT: Comprehensive evaluation of psychological vulnerability and protective factors
+
+Note: This is observational analysis for educational purposes only, not diagnostic. Provide detailed analysis with specific visual evidence for each area.`;
             }
             return basePrompt;
           };
