@@ -512,16 +512,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Analyzing ${selectedChunks.length} chunks with ${selectedModel}`);
       
-      // Create comprehensive AI-powered analysis prompt for both 25 metrics AND clinical analysis
-      const documentAnalysisPrompt = `You are a clinical psychologist conducting a comprehensive psychological evaluation. Analyze the following text using both 25 psychological metrics AND comprehensive clinical assessment.
+      // Define the 40 comprehensive parameters
+      const cognitiveParameters = [
+        { id: 1, name: "Compression Tolerance", description: "Degree to which the person seeks dense, abstract representations over surface details." },
+        { id: 2, name: "Inferential Depth", description: "How far ahead a person naturally projects in causal/logical chains before committing to conclusions." },
+        { id: 3, name: "Semantic Curvature", description: "Tendency to cross conceptual boundaries and reframe terms in adjacent but non-isomorphic domains." },
+        { id: 4, name: "Cognitive Load Bandwidth", description: "Number of variables or active threads someone can sustain in parallel before system degradation." },
+        { id: 5, name: "Epistemic Risk Tolerance", description: "Willingness to entertain unstable or fringe hypotheses when the payoff is deeper insight." },
+        { id: 6, name: "Narrative vs. Structural Bias", description: "Preference for anecdotal/story-based cognition vs. pattern/system-based models." },
+        { id: 7, name: "Heuristic Anchoring Bias", description: "How often first-pass intuitions dominate downstream reasoning." },
+        { id: 8, name: "Self-Compression Quotient", description: "Degree to which a person can summarize their own thought system into coherent abstract modules." },
+        { id: 9, name: "Recursion Depth on Self", description: "Number of layers deep a person tracks their own cognitive operations or psychological motives." },
+        { id: 10, name: "Reconceptualization Rate", description: "Speed and frequency with which one reforms or discards major conceptual categories." },
+        { id: 11, name: "Dominance Framing Bias", description: "Default positioning of oneself in terms of social, intellectual, or epistemic superiority/inferiority." },
+        { id: 12, name: "Validation Source Gradient", description: "Internal vs. external motivation for cognitive output." },
+        { id: 13, name: "Dialectical Agonism", description: "Ability to build arguments that strengthen the opposing view, even while refuting it." },
+        { id: 14, name: "Modality Preference", description: "Abstract-verbal vs. visual-spatial vs. kinetic-emotional thinking bias." },
+        { id: 15, name: "Granularity Preference", description: "Natural level of detail at which someone prefers to encode and work with information." },
+        { id: 16, name: "Temporal Orientation", description: "Relative cognitive weighting of past experience, present context, and future projection." },
+        { id: 17, name: "Uncertainty Tolerance", description: "Comfort with ambiguous or incomplete information versus need for closure." },
+        { id: 18, name: "Pattern Recognition Sensitivity", description: "Threshold for detecting meaningful patterns versus noise in data." },
+        { id: 19, name: "Cognitive Flexibility", description: "Ability to adapt thinking and approach when faced with new information or changing circumstances." },
+        { id: 20, name: "Meta-Cognitive Awareness", description: "Consciousness of one's own thinking processes and cognitive strategies." }
+      ];
+
+      const psychologicalParameters = [
+        { id: 21, name: "Emotional Regulation", description: "Capacity to manage and modulate emotional responses effectively." },
+        { id: 22, name: "Social Calibration", description: "Sensitivity to social dynamics and ability to adjust behavior accordingly." },
+        { id: 23, name: "Authority Orientation", description: "Relationship with hierarchy, rules, and power structures." },
+        { id: 24, name: "Risk Assessment Bias", description: "Tendency to over- or under-estimate potential negative outcomes." },
+        { id: 25, name: "Achievement Motivation", description: "Drive for accomplishment and goal attainment." },
+        { id: 26, name: "Interpersonal Sensitivity", description: "Awareness of others' emotional states and relational dynamics." },
+        { id: 27, name: "Stress Response Pattern", description: "Characteristic ways of reacting to pressure and challenging situations." },
+        { id: 28, name: "Identity Coherence", description: "Consistency and integration of self-concept across different contexts." },
+        { id: 29, name: "Moral Reasoning Style", description: "Approach to ethical decision-making and value judgments." },
+        { id: 30, name: "Attachment Security", description: "Comfort with intimacy and interdependence in relationships." },
+        { id: 31, name: "Defensive Operations", description: "Unconscious strategies used to protect against psychological threat." },
+        { id: 32, name: "Impulse Control", description: "Ability to resist immediate urges in service of longer-term goals." },
+        { id: 33, name: "Narcissistic Regulation", description: "Management of self-esteem and grandiose versus vulnerable self-states." },
+        { id: 34, name: "Projective Tendencies", description: "Inclination to attribute one's own thoughts or feelings to others." },
+        { id: 35, name: "Empathic Capacity", description: "Ability to understand and share the emotional experiences of others." },
+        { id: 36, name: "Existential Orientation", description: "Approach to questions of meaning, mortality, and life purpose." },
+        { id: 37, name: "Creativity Expression", description: "Capacity for original thought and innovative problem-solving." },
+        { id: 38, name: "Perfectionism", description: "Setting unrealistically high standards and being critical of one's performance." },
+        { id: 39, name: "Resilience Capacity", description: "Ability to bounce back from setbacks and adapt to adversity." },
+        { id: 40, name: "Psychological Mindedness", description: "Interest in and capacity for psychological insight and self-reflection." }
+      ];
+
+      // Create comprehensive AI-powered analysis prompt for 65 TOTAL METRICS (25 + 40)
+      const documentAnalysisPrompt = `You are a clinical psychologist conducting a comprehensive psychological evaluation. Analyze the following text using 65 total metrics: 25 psychological metrics + 40 comprehensive parameters.
 
 TEXT: "${selectedText}"
 
 PART 1: 25 PSYCHOLOGICAL METRICS
 Analyze using: Content Quality, Communication Style, Analytical Depth, Professional Competence, Clarity of Expression, Logical Organization, Attention to Detail, Conceptual Understanding, Critical Thinking, Creativity, Emotional Intelligence, Persuasiveness, Adaptability, Leadership Potential, Team Collaboration, Innovation, Risk Assessment, Strategic Thinking, Decision Making, Problem Solving, Learning Orientation, Resilience, Ethical Reasoning, Cultural Awareness, Future Orientation
 
-PART 2: COMPREHENSIVE CLINICAL ANALYSIS
-Assess these 10 clinical psychological markers with detailed evidence:
+PART 2: 40 COMPREHENSIVE PARAMETERS
+${cognitiveParameters.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+${psychologicalParameters.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+
+PART 3: CLINICAL MARKERS
+Assess these 10 clinical psychological markers:
 - Affect in Language: Emotional tone, mood indicators, affective quality
 - Attention Patterns: Focus, distractibility, attention deficits in writing
 - Expression Style: Verbal fluency, organization, coherence
@@ -545,6 +596,9 @@ Respond with valid JSON only:
       "quotes": ["exact quote from text"]
     }
   ],
+  "comprehensiveParameters": {
+    ${cognitiveParameters.map(p => `"${p.id}": {"name": "${p.name}", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}`).join(',\n    ')}${psychologicalParameters.length > 0 ? ',\n    ' : ''}${psychologicalParameters.map(p => `"${p.id}": {"name": "${p.name}", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}`).join(',\n    ')}
+  },
   "clinicalAnalysis": {
     "affectInLanguage": {"assessment": "detailed analysis", "evidence": "specific evidence", "quotes": ["exact quotes"]},
     "attentionPatterns": {"assessment": "detailed analysis", "patterns": ["key patterns"], "quotes": ["exact quotes"]},
@@ -557,7 +611,7 @@ Respond with valid JSON only:
     "globalIntegration": {"assessment": "detailed analysis", "integration": "assessment", "quotes": ["exact quotes"]},
     "psychoticMarkers": {"assessment": "detailed analysis", "markers": ["any markers present"], "quotes": ["exact quotes"]}
   },
-  "overallSummary": "Comprehensive clinical summary integrating all findings"
+  "overallSummary": "Comprehensive clinical summary integrating all 65 metrics and clinical findings"
 }`;
 
       let metricsAnalysis = null;
@@ -755,29 +809,40 @@ Respond with valid JSON only:
         });
       }
       
-      // Update analysis with metrics
+      // Update analysis with both metrics and comprehensive parameters
       const updatedPersonalityInsights = {
         ...(analysis.personalityInsights as any),
         metricsAnalysis,
+        comprehensiveParameters: metricsAnalysis?.comprehensiveParameters || {},
+        clinicalAnalysis: metricsAnalysis?.clinicalAnalysis || {},
+        cognitiveParameters,
+        psychologicalParameters,
         selectedChunks,
         analysisTimestamp: new Date().toISOString()
       };
       
       await storage.updateAnalysis(analysisId, { personalityInsights: updatedPersonalityInsights });
       
-      // Create summary message
+      // Create comprehensive summary message including all 65 metrics
       const summaryMessage = formatMetricsForDisplay(metricsAnalysis);
+      const comprehensiveMessage = metricsAnalysis?.overallSummary ? 
+        `${summaryMessage}\n\n## Clinical Summary\n${metricsAnalysis.overallSummary}` : 
+        summaryMessage;
       
       const message = await storage.createMessage({
         sessionId: analysis.sessionId,
         analysisId,
         role: "assistant",
-        content: summaryMessage
+        content: comprehensiveMessage
       });
       
       res.json({
         analysisId,
         metricsAnalysis,
+        comprehensiveParameters: metricsAnalysis?.comprehensiveParameters || {},
+        clinicalAnalysis: metricsAnalysis?.clinicalAnalysis || {},
+        cognitiveParameters,
+        psychologicalParameters,
         message,
         emailServiceAvailable: isEmailServiceConfigured
       });

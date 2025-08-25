@@ -304,7 +304,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     onSuccess: (data) => {
       toast({
         title: "Text Prepared for Analysis",
-        description: "Select text chunks below and click Analyze to get 25 psychological metrics.",
+        description: "Select text chunks below and click Analyze to get 65 comprehensive metrics.",
       });
       setTextInput("");
     }
@@ -811,9 +811,39 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     onSuccess: (data) => {
       toast({
         title: "Analysis Complete",
-        description: "25 psychological metrics have been analyzed.",
+        description: "65 comprehensive metrics have been analyzed.",
       });
       setIsAnalyzing(false);
+      setAnalysisProgress(0);
+      
+      if (data.metricsAnalysis) {
+        setMetricsAnalysis(data.metricsAnalysis);
+      }
+      
+      // Set comprehensive analysis data for all 40 parameters
+      if (data.comprehensiveParameters || data.clinicalAnalysis) {
+        setComprehensiveAnalysis({
+          cognitiveAnalysis: data.comprehensiveParameters || {},
+          psychologicalAnalysis: data.comprehensiveParameters || {},
+          clinicalAnalysis: data.clinicalAnalysis || {}
+        });
+        setShowComprehensiveAnalysis(true);
+      }
+      
+      // Set the parameter definitions
+      if (data.cognitiveParameters) {
+        setCognitiveParameters(data.cognitiveParameters);
+      }
+      if (data.psychologicalParameters) {
+        setPsychologicalParameters(data.psychologicalParameters);
+      }
+      
+      if (data.message) {
+        setMessages(prev => [...prev, data.message]);
+      }
+      
+      // Trigger re-fetch of messages to get the latest
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
     },
     onError: (error: any) => {
       console.error("Chunk analysis error:", error);
@@ -1501,11 +1531,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
 
-            {/* 25 Metrics Display */}
+            {/* 65 Metrics Display */}
             {metricsAnalysis && metricsAnalysis.metrics && (
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">25 Psychological Metrics</h3>
+                  <h3 className="text-lg font-semibold">65 Comprehensive Metrics</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1627,7 +1657,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       className="flex-1" 
                       disabled={!textInput.trim() || isAnalyzing}
                     >
-                      25 Psychological Metrics
+                      65 Comprehensive Metrics
                     </Button>
                   </div>
                 </form>
@@ -1778,7 +1808,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
                   <div className="bg-white rounded-md p-4">
                     <h3 className="text-lg font-semibold mb-4 text-center">
-                      25 Psychological Metrics
+                      65 Comprehensive Metrics
                     </h3>
                     
                     <Tabs defaultValue="cognitive" className="w-full">
