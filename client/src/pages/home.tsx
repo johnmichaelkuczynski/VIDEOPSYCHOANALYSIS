@@ -758,7 +758,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     onSuccess: (data) => {
       toast({
         title: "Document Uploaded",
-        description: "Select text chunks to analyze with 25 psychological metrics.",
+        description: "Select text chunks to analyze with 65 comprehensive metrics.",
       });
       setIsAnalyzing(false);
     },

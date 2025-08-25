@@ -429,8 +429,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let documentContent = "";
       
       // Extract text based on file type
-      if (fileType === "text/plain") {
+      if (fileType === "text/plain" || fileName.toLowerCase().endsWith('.txt') || fileType === "txt") {
         documentContent = fileBuffer.toString('utf-8');
+        console.log(`TXT file processed: ${fileName}, content length: ${documentContent.length} characters`);
+        
+        if (!documentContent.trim()) {
+          return res.status(400).json({ error: "TXT file appears to be empty. Please check your file content." });
+        }
       } else if (fileType === "application/pdf") {
         try {
           const pdf = require('pdf-parse');
@@ -447,7 +452,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           documentContent = 'DOCX parsing failed - please try converting to TXT format';
         }
       } else {
-        return res.status(400).json({ error: "Unsupported file type" });
+        return res.status(400).json({ 
+          error: `Unsupported file type: ${fileType}. Please upload TXT, PDF, or DOCX files only.`,
+          fileName: fileName,
+          receivedFileType: fileType
+        });
       }
       
       // Create chunks
