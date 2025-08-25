@@ -1,0 +1,70 @@
+PART 1: 25 PSYCHOLOGICAL METRICS
+Content Quality
+Communication Style
+Analytical Depth
+Professional Competence
+Clarity of Expression
+Logical Organization
+Attention to Detail
+Conceptual Understanding
+Critical Thinking
+Creativity
+Emotional Intelligence
+Persuasiveness
+Adaptability
+Leadership Potential
+Team Collaboration
+Innovation
+Risk Assessment
+Strategic Thinking
+Decision Making
+Problem Solving
+Learning Orientation
+Resilience
+Ethical Reasoning
+Cultural Awareness
+Future Orientation
+PART 2: 40 COMPREHENSIVE PARAMETERS
+COGNITIVE PARAMETERS (20)
+Compression Tolerance - Degree to which the person seeks dense, abstract representations over surface details
+Inferential Depth - How far ahead a person naturally projects in causal/logical chains before committing to conclusions
+Semantic Curvature - Tendency to cross conceptual boundaries and reframe terms in adjacent but non-isomorphic domains
+Cognitive Load Bandwidth - Number of variables or active threads someone can sustain in parallel before system degradation
+Epistemic Risk Tolerance - Willingness to entertain unstable or fringe hypotheses when the payoff is deeper insight
+Narrative vs. Structural Bias - Preference for anecdotal/story-based cognition vs. pattern/system-based models
+Heuristic Anchoring Bias - How often first-pass intuitions dominate downstream reasoning
+Self-Compression Quotient - Degree to which a person can summarize their own thought system into coherent abstract modules
+Recursion Depth on Self - Number of layers deep a person tracks their own cognitive operations or psychological motives
+Reconceptualization Rate - Speed and frequency with which one reforms or discards major conceptual categories
+Dominance Framing Bias - Default positioning of oneself in terms of social, intellectual, or epistemic superiority/inferiority
+Validation Source Gradient - Internal vs. external motivation for cognitive output
+Dialectical Agonism - Ability to build arguments that strengthen the opposing view, even while refuting it
+Modality Preference - Abstract-verbal vs. visual-spatial vs. kinetic-emotional thinking bias
+Granularity Preference - Natural level of detail at which someone prefers to encode and work with information
+Temporal Orientation - Relative cognitive weighting of past experience, present context, and future projection
+Uncertainty Tolerance - Comfort with ambiguous or incomplete information versus need for closure
+Pattern Recognition Sensitivity - Threshold for detecting meaningful patterns versus noise in data
+Cognitive Flexibility - Ability to adapt thinking and approach when faced with new information or changing circumstances
+Meta-Cognitive Awareness - Consciousness of one's own thinking processes and cognitive strategies
+PSYCHOLOGICAL PARAMETERS (20)
+Emotional Regulation - Capacity to manage and modulate emotional responses effectively
+Social Calibration - Sensitivity to social dynamics and ability to adjust behavior accordingly
+Authority Orientation - Relationship with hierarchy, rules, and power structures
+Risk Assessment Bias - Tendency to over- or under-estimate potential negative outcomes
+Achievement Motivation - Drive for accomplishment and goal attainment
+Interpersonal Sensitivity - Awareness of others' emotional states and relational dynamics
+Stress Response Pattern - Characteristic ways of reacting to pressure and challenging situations
+Identity Coherence - Consistency and integration of self-concept across different contexts
+Moral Reasoning Style - Approach to ethical decision-making and value judgments
+Attachment Security - Comfort with intimacy and interdependence in relationships
+Defensive Operations - Unconscious strategies used to protect against psychological threat
+Impulse Control - Ability to resist immediate urges in service of longer-term goals
+Narcissistic Regulation - Management of self-esteem and grandiose versus vulnerable self-states
+Projective Tendencies - Inclination to attribute one's own thoughts or feelings to others
+Empathic Capacity - Ability to understand and share the emotional experiences of others
+Existential Orientation - Approach to questions of meaning, mortality, and life purpose
+Creativity Expression - Capacity for original thought and innovative problem-solving
+Perfectionism - Setting unrealistically high standards and being critical of one's performance
+Resilience Capacity - Ability to bounce back from setbacks and adapt to adversity
+Psychological Mindedness - Interest in and capacity for psychological insight and self-reflection
+TOTAL: 65 COMPREHENSIVE METRIC

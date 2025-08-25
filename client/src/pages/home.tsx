@@ -139,6 +139,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [psychologicalParameters, setPsychologicalParameters] = useState<any[]>([]);
   const [expandedCognitiveParams, setExpandedCognitiveParams] = useState<Set<number>>(new Set());
   const [expandedPsychParams, setExpandedPsychParams] = useState<Set<number>>(new Set());
+  const [expandedClinical, setExpandedClinical] = useState<Set<string>>(new Set());
   const [additionalInfo, setAdditionalInfo] = useState<string>("");
   const [showAdditionalInfoDialog, setShowAdditionalInfoDialog] = useState<boolean>(false);
   const [showComprehensiveAnalysis, setShowComprehensiveAnalysis] = useState<boolean>(false);
@@ -1531,55 +1532,59 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
 
-            {/* 65 Metrics Display */}
+            {/* 65 COMPREHENSIVE METRICS DISPLAY */}
             {metricsAnalysis && metricsAnalysis.metrics && (
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">65 Comprehensive Metrics</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (analysisId && selectedChunks.length > 0) {
-                        handleChunkAnalysis.mutate({ analysisId, selectedChunks });
-                      }
-                    }}
-                    disabled={isAnalyzing || !analysisId || selectedChunks.length === 0}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate
-                  </Button>
-                </div>
-                
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {metricsAnalysis.metrics.map((metric: any, index: number) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                      onClick={() => toggleMetricExpansion(index)}
+              <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
+                <div className="bg-white rounded-md p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">65 Comprehensive Metrics</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (analysisId && selectedChunks.length > 0) {
+                          handleChunkAnalysis.mutate({ analysisId, selectedChunks });
+                        }
+                      }}
+                      disabled={isAnalyzing || !analysisId || selectedChunks.length === 0}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sm">{metric.name}</h4>
-                          <p className="text-xs text-gray-600 mt-1">{metric.explanation}</p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-right">
-                            <div className="text-lg font-bold">{metric.score}</div>
-                            <div className="text-xs text-gray-500">/100</div>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Regenerate
+                    </Button>
+                  </div>
+                  
+                  {/* SECTION 1: 25 PSYCHOLOGICAL METRICS */}
+                  <div className="mb-6">
+                    <h4 className="text-md font-semibold mb-3 text-blue-700">25 Psychological Metrics</h4>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {metricsAnalysis.metrics.map((metric: any, index: number) => (
+                        <div
+                          key={index}
+                          className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => toggleMetricExpansion(index)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-sm">{metric.name}</h5>
+                              <p className="text-xs text-gray-600 mt-1">{metric.explanation}</p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <div className="text-right">
+                                <div className="text-lg font-bold">{metric.score}</div>
+                                <div className="text-xs text-gray-500">/100</div>
+                              </div>
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${metric.score}%` }}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${metric.score}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {expandedMetrics.has(index) && (
-                        <div className="mt-3 pt-3 border-t">
-                          <h5 className="font-medium text-sm mb-2">Detailed Analysis</h5>
+                          
+                          {expandedMetrics.has(index) && (
+                            <div className="mt-3 pt-3 border-t">
+                              <h6 className="font-medium text-sm mb-2">Detailed Analysis</h6>
                           <p className="text-sm text-gray-700 mb-3">{metric.detailedAnalysis}</p>
                           
                           {metric.quotes && metric.quotes.length > 0 && (
@@ -1597,13 +1602,250 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-                
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs text-gray-500 text-center">
-                    Click on any metric to view detailed analysis and quotes
-                  </p>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  {/* SECTION 2: 40 COMPREHENSIVE PARAMETERS */}
+                  <div className="mb-6">
+                    <h4 className="text-md font-semibold mb-3 text-purple-700">40 Comprehensive Parameters</h4>
+                    <Tabs defaultValue="cognitive" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="cognitive">Cognitive Analysis (20)</TabsTrigger>
+                        <TabsTrigger value="psychological">Psychological Analysis (20)</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="cognitive" className="space-y-3 max-h-80 overflow-y-auto mt-4">
+                        {cognitiveParameters.map((param) => {
+                          const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
+                          if (!analysis) return null;
+                          
+                          return (
+                            <Collapsible
+                              key={param.id}
+                              open={expandedCognitiveParams.has(param.id)}
+                              onOpenChange={(open) => {
+                                const newExpanded = new Set(expandedCognitiveParams);
+                                if (open) {
+                                  newExpanded.add(param.id);
+                                } else {
+                                  newExpanded.delete(param.id);
+                                }
+                                setExpandedCognitiveParams(newExpanded);
+                              }}
+                            >
+                              <CollapsibleTrigger asChild>
+                                <div className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                      <h5 className="font-semibold text-sm">{param.name}</h5>
+                                      <p className="text-xs text-gray-600 mt-1">{param.description}</p>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold">{analysis.score || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500">/100</div>
+                                      </div>
+                                      {expandedCognitiveParams.has(param.id) ? 
+                                        <ChevronDown className="h-4 w-4" /> : 
+                                        <ChevronRight className="h-4 w-4" />
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
+                                <div className="space-y-3">
+                                  <div>
+                                    <h6 className="font-medium text-sm mb-2">Analysis</h6>
+                                    <p className="text-sm">{analysis.analysis}</p>
+                                  </div>
+                                  
+                                  {analysis.quotes && analysis.quotes.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-sm mb-2">Key Quotes</h6>
+                                      <div className="space-y-1">
+                                        {analysis.quotes.map((quote: string, quoteIndex: number) => (
+                                          <p key={quoteIndex} className="text-xs italic bg-white p-2 rounded border-l-2 border-purple-300">
+                                            "{quote}"
+                                          </p>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {analysis.evidence && (
+                                    <div>
+                                      <h6 className="font-medium text-sm mb-2">Evidence</h6>
+                                      <p className="text-sm">{analysis.evidence}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        })}
+                      </TabsContent>
+                      
+                      <TabsContent value="psychological" className="space-y-3 max-h-80 overflow-y-auto mt-4">
+                        {psychologicalParameters.map((param) => {
+                          const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
+                          if (!analysis) return null;
+                          
+                          return (
+                            <Collapsible
+                              key={param.id}
+                              open={expandedPsychParams.has(param.id)}
+                              onOpenChange={(open) => {
+                                const newExpanded = new Set(expandedPsychParams);
+                                if (open) {
+                                  newExpanded.add(param.id);
+                                } else {
+                                  newExpanded.delete(param.id);
+                                }
+                                setExpandedPsychParams(newExpanded);
+                              }}
+                            >
+                              <CollapsibleTrigger asChild>
+                                <div className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                      <h5 className="font-semibold text-sm">{param.name}</h5>
+                                      <p className="text-xs text-gray-600 mt-1">{param.description}</p>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold">{analysis.score || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500">/100</div>
+                                      </div>
+                                      {expandedPsychParams.has(param.id) ? 
+                                        <ChevronDown className="h-4 w-4" /> : 
+                                        <ChevronRight className="h-4 w-4" />
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
+                                <div className="space-y-3">
+                                  <div>
+                                    <h6 className="font-medium text-sm mb-2">Analysis</h6>
+                                    <p className="text-sm">{analysis.analysis}</p>
+                                  </div>
+                                  
+                                  {analysis.quotes && analysis.quotes.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-sm mb-2">Key Quotes</h6>
+                                      <div className="space-y-1">
+                                        {analysis.quotes.map((quote: string, quoteIndex: number) => (
+                                          <p key={quoteIndex} className="text-xs italic bg-white p-2 rounded border-l-2 border-purple-300">
+                                            "{quote}"
+                                          </p>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {analysis.evidence && (
+                                    <div>
+                                      <h6 className="font-medium text-sm mb-2">Evidence</h6>
+                                      <p className="text-sm">{analysis.evidence}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        })}
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                  
+                  {/* SECTION 3: CLINICAL ANALYSIS */}
+                  {metricsAnalysis.clinicalAnalysis && (
+                    <div className="mb-6">
+                      <h4 className="text-md font-semibold mb-3 text-red-700">Clinical Psychological Markers</h4>
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                        {Object.entries(metricsAnalysis.clinicalAnalysis).map(([key, analysis]: [string, any], index: number) => (
+                          <Collapsible
+                            key={key}
+                            open={expandedClinical.has(key)}
+                            onOpenChange={(open) => {
+                              const newExpanded = new Set(expandedClinical);
+                              if (open) {
+                                newExpanded.add(key);
+                              } else {
+                                newExpanded.delete(key);
+                              }
+                              setExpandedClinical(newExpanded);
+                            }}
+                          >
+                            <CollapsibleTrigger asChild>
+                              <div className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex-1">
+                                    <h5 className="font-semibold text-sm capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</h5>
+                                    <p className="text-xs text-gray-600 mt-1">{analysis.assessment?.substring(0, 100)}...</p>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                    {expandedClinical.has(key) ? 
+                                      <ChevronDown className="h-4 w-4" /> : 
+                                      <ChevronRight className="h-4 w-4" />
+                                    }
+                                  </div>
+                                </div>
+                              </div>
+                            </CollapsibleTrigger>
+                            
+                            <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
+                              <div className="space-y-3">
+                                <div>
+                                  <h6 className="font-medium text-sm mb-2">Clinical Assessment</h6>
+                                  <p className="text-sm">{analysis.assessment}</p>
+                                </div>
+                                
+                                {analysis.evidence && (
+                                  <div>
+                                    <h6 className="font-medium text-sm mb-2">Clinical Evidence</h6>
+                                    <p className="text-sm">{analysis.evidence}</p>
+                                  </div>
+                                )}
+                                
+                                {analysis.quotes && analysis.quotes.length > 0 && (
+                                  <div>
+                                    <h6 className="font-medium text-sm mb-2">Supporting Quotes</h6>
+                                    <div className="space-y-1">
+                                      {analysis.quotes.map((quote: string, quoteIndex: number) => (
+                                        <p key={quoteIndex} className="text-xs italic bg-white p-2 rounded border-l-2 border-red-300">
+                                          "{quote}"
+                                        </p>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* OVERALL SUMMARY */}
+                  {metricsAnalysis.overallSummary && (
+                    <div className="mt-4 p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-md">
+                      <h4 className="font-semibold text-sm mb-2">Overall Clinical Summary</h4>
+                      <p className="text-sm">{metricsAnalysis.overallSummary}</p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs text-gray-500 text-center">
+                      Complete 65-metric comprehensive psychological analysis
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
