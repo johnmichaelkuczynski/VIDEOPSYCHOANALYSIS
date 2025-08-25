@@ -1701,10 +1701,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
             
-            <>
             <div>
               {/* OLD METRICS DISPLAY */}
-              {metricsAnalysis && metricsAnalysis.metrics && (
+            {metricsAnalysis && metricsAnalysis.metrics && (
               <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
                 <div className="bg-white rounded-md p-4">
                   <h3 className="text-lg font-semibold mb-4">Analysis Complete</h3>
@@ -1875,7 +1874,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </Tabs>
                   </div>
                 </div>
-            <>
               </div>
             )}
             
@@ -1968,8 +1966,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
               )}
             </div>
-            </>
-            </>
+            
             {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */
             <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
               <DialogContent className="max-w-[98vw] max-h-[98vh] w-[98vw] h-[98vh] p-0 overflow-hidden">
