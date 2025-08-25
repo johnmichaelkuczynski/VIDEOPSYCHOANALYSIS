@@ -282,6 +282,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setDocumentFileName(response.fileName || "Direct Text Input");
           setDocumentFileType(response.fileType || "text/plain");
           setSelectedChunks(response.chunks.map((_: any, index: number) => index)); // Select all chunks by default
+          setShowChunkSelection(true); // Show the chunk selection UI
         }
         
         setEmailServiceAvailable(response.emailServiceAvailable || false);
@@ -1626,7 +1627,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       className="flex-1" 
                       disabled={!textInput.trim() || isAnalyzing}
                     >
-                      Comprehensive Analysis (40 Parameters)
+                      25 Psychological Metrics
                     </Button>
                   </div>
                 </form>
@@ -1777,7 +1778,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
                   <div className="bg-white rounded-md p-4">
                     <h3 className="text-lg font-semibold mb-4 text-center">
-                      Comprehensive 40-Parameter Analysis
+                      25 Psychological Metrics
                     </h3>
                     
                     <Tabs defaultValue="cognitive" className="w-full">
