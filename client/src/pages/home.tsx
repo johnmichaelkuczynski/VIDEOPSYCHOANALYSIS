@@ -283,7 +283,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setDocumentChunks(response.chunks);
           setDocumentFileName(response.fileName || "Direct Text Input");
           setDocumentFileType(response.fileType || "text/plain");
-          setSelectedChunks(response.chunks.map((_: any, index: number) => index)); // Select all chunks by default
+          setSelectedChunks(response.chunks.map((chunk: any) => chunk.id)); // Select all chunks by default
           setShowChunkSelection(true); // Show the chunk selection UI
         }
         
@@ -742,6 +742,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             if (response && response.analysisId) {
               setAnalysisId(response.analysisId);
               setDocumentChunks(response.chunks || []);
+              setSelectedChunks((response.chunks || []).map((chunk: any) => chunk.id));
               setDocumentFileName(file.name);
               setDocumentFileType(file.type);
               setShowChunkSelection(true);
@@ -884,16 +885,28 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   
   // Analyze selected chunks
   const analyzeSelectedChunks = () => {
-    if (!analysisId || selectedChunks.length === 0) {
+    if (!analysisId) {
       toast({
         variant: "destructive",
-        title: "No Chunks Selected",
-        description: "Please select at least one chunk to analyze.",
+        title: "No Analysis Available",
+        description: "Please create an analysis first.",
       });
       return;
     }
     
-    handleChunkAnalysis.mutate({ analysisId, selectedChunks });
+    // Auto-select all chunks if none selected
+    const chunksToAnalyze = selectedChunks.length === 0 ? chunks.map(c => c.id) : selectedChunks;
+    
+    if (chunksToAnalyze.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Chunks Available",
+        description: "No document chunks available to analyze.",
+      });
+      return;
+    }
+    
+    handleChunkAnalysis.mutate({ analysisId, selectedChunks: chunksToAnalyze });
   };
   
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1519,16 +1532,22 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
                 
                 <div className="mt-4 flex justify-between items-center">
-                  <p className="text-sm text-gray-600">
-                    {selectedChunks.length} chunks selected
-                  </p>
+                  {documentChunks.length === 1 ? (
+                    <p className="text-sm text-gray-600">
+                      Single document ready for analysis
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      {selectedChunks.length} of {documentChunks.length} chunks selected
+                    </p>
+                  )}
                   <Button 
                     onClick={analyzeSelectedChunks}
-                    disabled={selectedChunks.length === 0 || isAnalyzing}
+                    disabled={isAnalyzing}
                     className="flex items-center space-x-2"
                   >
                     <Eye className="w-4 h-4" />
-                    <span>Analyze Selected</span>
+                    <span>{documentChunks.length === 1 ? 'Analyze Document' : 'Analyze Selected'}</span>
                   </Button>
                 </div>
               </div>

@@ -87,14 +87,24 @@ function createDocumentChunks(plainContent: string, formattedContent?: string): 
  * Helper function to format metrics for display
  */
 function formatMetricsForDisplay(metricsAnalysis: any): string {
-  return `## Document Analysis Complete
-
-**Summary:** ${metricsAnalysis.summary}
-
-**Key Metrics:**
-${metricsAnalysis.metrics.map((metric: any) => `- **${metric.name}:** ${metric.score}/100 - ${metric.explanation}`).join('\n')}
-
-*Click on individual metrics above to view detailed analysis and supporting quotes.*`;
+  if (!metricsAnalysis) {
+    return "Protocol analysis completed successfully.";
+  }
+  
+  // Handle protocol responses instead of old metrics format
+  if (metricsAnalysis.protocolResponses && metricsAnalysis.protocolResponses.length > 0) {
+    const responses = metricsAnalysis.protocolResponses.slice(0, 5).map((response: any) => 
+      `- **${response.question}**: ${response.score || 'N/A'}/100 - ${response.answer || 'Analysis completed'}`
+    ).join('\n');
+    return `## Protocol Analysis Complete\n\n**Summary:** ${metricsAnalysis.summary || 'Protocol analysis completed'}\n\n**Key Protocol Questions:**\n${responses}\n\n*View the full analysis popup for all ${metricsAnalysis.protocolResponses.length} protocol questions.*`;
+  }
+  
+  // Fallback for old format
+  if (metricsAnalysis.metrics && metricsAnalysis.metrics.length > 0) {
+    return `## Document Analysis Complete\n\n**Summary:** ${metricsAnalysis.summary}\n\n**Key Metrics:**\n${metricsAnalysis.metrics.map((metric: any) => `- **${metric.name}:** ${metric.score}/100 - ${metric.explanation}`).join('\n')}\n\n*Click on individual metrics above to view detailed analysis and supporting quotes.*`;
+  }
+  
+  return "Protocol analysis completed successfully.";
 }
 
 /**
@@ -794,7 +804,15 @@ Respond with JSON only:
             
             const text = response.choices[0]?.message?.content || "";
             const jsonMatch = text.match(/\{[\s\S]*\}/);
-            return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            if (jsonMatch) {
+              try {
+                return JSON.parse(jsonMatch[0]);
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
+                return null;
+              }
+            }
+            return null;
             
           } else if (model === "anthropic" && anthropic) {
             const response = await anthropic.messages.create({
@@ -806,7 +824,15 @@ Respond with JSON only:
             
             const text = response.content[0]?.text || "";
             const jsonMatch = text.match(/\{[\s\S]*\}/);
-            return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            if (jsonMatch) {
+              try {
+                return JSON.parse(jsonMatch[0]);
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
+                return null;
+              }
+            }
+            return null;
             
           } else if (model === "openai" && openai) {
             const response = await openai.chat.completions.create({
@@ -818,7 +844,15 @@ Respond with JSON only:
             
             const text = response.choices[0]?.message?.content || "";
             const jsonMatch = text.match(/\{[\s\S]*\}/);
-            return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            if (jsonMatch) {
+              try {
+                return JSON.parse(jsonMatch[0]);
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
+                return null;
+              }
+            }
+            return null;
           }
         } catch (error) {
           console.error(`AI call failed for ${model}:`, error);
