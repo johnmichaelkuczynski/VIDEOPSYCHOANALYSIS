@@ -370,277 +370,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Text and session ID are required" });
       }
       
-      console.log(`Processing comprehensive text analysis with model: ${selectedModel}`);
+      console.log(`Processing unified text analysis with model: ${selectedModel}`);
       
-      // Define the 40 profiling parameters
-      const cognitiveParameters = [
-        { id: 1, name: "Compression Tolerance", description: "Degree to which the person seeks dense, abstract representations over surface details." },
-        { id: 2, name: "Inferential Depth", description: "How far ahead a person naturally projects in causal/logical chains before committing to conclusions." },
-        { id: 3, name: "Semantic Curvature", description: "Tendency to cross conceptual boundaries and reframe terms in adjacent but non-isomorphic domains." },
-        { id: 4, name: "Cognitive Load Bandwidth", description: "Number of variables or active threads someone can sustain in parallel before system degradation." },
-        { id: 5, name: "Epistemic Risk Tolerance", description: "Willingness to entertain unstable or fringe hypotheses when the payoff is deeper insight." },
-        { id: 6, name: "Narrative vs. Structural Bias", description: "Preference for anecdotal/story-based cognition vs. pattern/system-based models." },
-        { id: 7, name: "Heuristic Anchoring Bias", description: "How often first-pass intuitions dominate downstream reasoning." },
-        { id: 8, name: "Self-Compression Quotient", description: "Degree to which a person can summarize their own thought system into coherent abstract modules." },
-        { id: 9, name: "Recursion Depth on Self", description: "Number of layers deep a person tracks their own cognitive operations or psychological motives." },
-        { id: 10, name: "Reconceptualization Rate", description: "Speed and frequency with which one reforms or discards major conceptual categories." },
-        { id: 11, name: "Dominance Framing Bias", description: "Default positioning of oneself in terms of social, intellectual, or epistemic superiority/inferiority." },
-        { id: 12, name: "Validation Source Gradient", description: "Internal vs. external motivation for cognitive output." },
-        { id: 13, name: "Dialectical Agonism", description: "Ability to build arguments that strengthen the opposing view, even while refuting it." },
-        { id: 14, name: "Modality Preference", description: "Abstract-verbal vs. visual-spatial vs. kinetic-emotional thinking bias." },
-        { id: 15, name: "Schema Flexibility", description: "Ease of updating or discarding core frameworks in light of contradictory evidence." },
-        { id: 16, name: "Proceduralism Threshold", description: "Degree to which one respects systems, protocols, or legalistic steps vs. valuing results." },
-        { id: 17, name: "Predictive Modeling Index", description: "Preference for models that maximize forecasting power over coherence." },
-        { id: 18, name: "Social System Complexity Model", description: "Granularity of one's working model of institutions, networks, reputations." },
-        { id: 19, name: "Mythology Bias", description: "Degree to which narrative/mythic structures override or inform analytic judgment." },
-        { id: 20, name: "Asymmetry Detection Quotient", description: "Sensitivity to unspoken structural asymmetries in systems or conversations." }
-      ];
+      // Create chunks from text (same as document upload)
+      const chunks = createDocumentChunks(text);
       
-      const psychologicalParameters = [
-        { id: 21, name: "Attachment Mode", description: "Secure vs. anxious vs. avoidant vs. disorganized; predicts interpersonal stance." },
-        { id: 22, name: "Drive Sublimation Quotient", description: "Ability to channel raw drives into symbolic/intellectual work." },
-        { id: 23, name: "Validation Hunger Index", description: "Degree to which external affirmation is required for psychic stability." },
-        { id: 24, name: "Shame-Anger Conversion Tendency", description: "Likelihood of transmuting shame into hostility or aggression." },
-        { id: 25, name: "Ego Fragility", description: "Sensitivity to critique or loss of control; predicts defensiveness." },
-        { id: 26, name: "Affect Labeling Proficiency", description: "Accuracy in identifying one's own emotional states." },
-        { id: 27, name: "Implicit Emotion Model", description: "Degree to which one runs on internalized emotional schemas." },
-        { id: 28, name: "Projection Bias", description: "Tendency to offload inner conflict onto external targets." },
-        { id: 29, name: "Defensive Modality Preference", description: "Primary psychological defense type (e.g., repression, denial, rationalization)." },
-        { id: 30, name: "Emotional Time Lag", description: "Delay between emotional stimulus and self-aware response." },
-        { id: 31, name: "Distress Tolerance", description: "Capacity to function under high emotional strain." },
-        { id: 32, name: "Impulse Channeling Index", description: "Degree to which urges are shaped into structured output." },
-        { id: 33, name: "Mood Volatility", description: "Amplitude and frequency of emotional state swings." },
-        { id: 34, name: "Despair Threshold", description: "Point at which one shifts from struggle to collapse or apathy." },
-        { id: 35, name: "Self-Soothing Access", description: "Availability of effective mechanisms to calm emotional states." },
-        { id: 36, name: "Persona-Alignment Quotient", description: "Gap between external presentation and internal self-perception." },
-        { id: 37, name: "Envy Index", description: "Intensity of comparative pain from perceived inferiority." },
-        { id: 38, name: "Emotional Reciprocity Capacity", description: "Ability to engage empathically without detachment or flooding." },
-        { id: 39, name: "Narrative Self-Justification Tendency", description: "Compulsive construction of explanatory myths to protect ego ideal." },
-        { id: 40, name: "Symbolic Reframing Ability", description: "Capacity to convert painful material into metaphor, narrative, or philosophy." }
-      ];
-      
-      // Create comprehensive analysis prompt
-      const comprehensivePrompt = `Conduct a comprehensive analysis of the following text using both cognitive and psychological profiling parameters, plus detailed clinical psychological markers.
-
-TEXT TO ANALYZE:
-"${text}"
-
-${additionalInfo ? `ADDITIONAL CONTEXT PROVIDED BY USER:\n"${additionalInfo}"\n` : ''}
-
-CLINICAL PSYCHOLOGICAL MARKERS TO ASSESS:
-
-A. AFFECT IN LANGUAGE:
-- Blunted affect in text (emotionally flat, monotonous writing)
-- Inappropriate affect (jokes, eroticism, violence in irrelevant contexts)
-- Labile affect (sudden shifts from calm to angry, tender to hostile)
-- Affective incongruity (words vs. tone mismatch)
-- Over-intensity (exaggerated emotional words out of proportion)
-
-B. ATTENTION/FOCUS PATTERNS:
-- Fixated repetition of themes (circling same idea obsessively)
-- Hyper-detailed observation (extreme micro-description of trivial details)
-- Avoidance of key topics (sidestepping obvious questions)
-- Paranoid attention markers (constant suspicion, being watched/controlled)
-- Disorganized focus (jumps with no logical link)
-
-C. EXPRESSION STYLE/SYNTAX:
-- Thought blocking (abrupt sentence stops, trailing ellipses)
-- Neologisms (invented words or bizarre usages)
-- Clanging (rhyming/alliteration instead of meaning)
-- Word salad (incoherent combinations)
-- Over-structured/compulsive formality (stiff, rigid, over-grammatical)
-
-D. CONTENT OF SPEECH:
-- Delusional material (grandiose claims, bizarre beliefs as fact)
-- Ideas of reference (everything tied to self, conspiracies)
-- Magical thinking ("if I think it, it happens" logic)
-- Violent ideation (fixation on blood, knives, punishment)
-- Erotic/perverse content (intrusive sexual themes)
-
-E. RELATIONAL/ATTACHMENT LANGUAGE:
-- Dismissive-avoidant stance (cold detachment, no reciprocity)
-- Fearful-avoidant (warm then hostile/fearful)
-- Clinging/dependent tone (constant reassurance seeking)
-- Hostile/paranoid projection ("they are all against me")
-- Complete relational absence (soliloquy, no audience awareness)
-
-F. DEFENSES IN LANGUAGE:
-- Projection ("they want me dead," "they hate me")
-- Isolation of affect (coldly describing trauma with no feeling)
-- Intellectualization (hiding behind abstract jargon)
-- Denial (blunt contradictions like "I am not angry" in angry prose)
-- Dissociation signals (dreamlike, detached registers)
-
-G. COGNITIVE ORGANIZATION:
-- Loose associations (ideas connected by weak tangents)
-- Derailment (topic shifts mid-sentence)
-- Tangentiality (related but never on point)
-- Perseveration (repeating same phrase)
-- Concrete thinking (inability to handle metaphor/abstraction)
-
-H. PSYCHOMOTOR/BEHAVIORAL EQUIVALENTS:
-- Agitated text rhythm (exclamation, caps, erratic punctuation)
-- Slowed/retarded pace (long, dragging sentences)
-- Catatonic blankness ("I ate. I slept. I sat.")
-- Compulsions in text (excessive counting, ordering, listing)
-- Ritualistic phrasing (fixed stock phrases)
-
-I. GLOBAL INTEGRATION:
-- Narrative fragmentation (no beginning-middle-end)
-- Contradictory self-concepts (flipping identity)
-- Over-rigidity (perfectly uniform tone, sterile prose)
-- Under-integration (sudden voice/perspective shifts)
-- Semantic collapse (meaning drains into abstraction)
-
-J. MARKERS OF PSYCHOTIC PROCESS:
-- Voices in text ("They told me," "The voices say")
-- Third-person self-reference (writing about self as "he/she")
-- Bizarre, idiosyncratic metaphors
-- Hyper-abstract vagueness (dense fog of words)
-- Over-determined symbolism (paranoid allegory)
-
-ANALYSIS REQUIREMENTS:
-1. Analyze ALL 40 parameters systematically
-2. Assess ALL clinical psychological markers above
-3. For each parameter, provide:
-   - A score from 1-100 (where applicable)
-   - Detailed reasoning with specific evidence from the text
-   - Direct quotations that support your assessment
-   - Clear explanations of your reasoning process
-
-4. Format as JSON with this structure:
-{
-  "clinicalMarkers": {
-    "affectInLanguage": "Assessment of emotional expression patterns with specific examples...",
-    "attentionPatterns": "Analysis of focus and attention markers with evidence...",
-    "expressionStyle": "Evaluation of syntax and expression patterns with quotes...",
-    "contentAnalysis": "Assessment of speech content markers with examples...",
-    "relationalLanguage": "Analysis of attachment and relational patterns with evidence...",
-    "defensesInLanguage": "Evaluation of psychological defense patterns with quotes...",
-    "cognitiveOrganization": "Assessment of thought organization with examples...",
-    "psychomotorEquivalents": "Analysis of behavioral equivalents in text with evidence...",
-    "globalIntegration": "Evaluation of overall integration patterns with quotes...",
-    "psychoticMarkers": "Assessment of psychotic process indicators with examples..."
-  },
-  "cognitiveAnalysis": {
-    "1": {
-      "name": "Compression Tolerance",
-      "score": 75,
-      "analysis": "Detailed analysis with reasoning...",
-      "quotations": ["specific quote 1", "specific quote 2"],
-      "evidence": "Specific behavioral or linguistic evidence..."
-    },
-    // ... continue for parameters 1-20
-  },
-  "psychologicalAnalysis": {
-    "21": {
-      "name": "Attachment Mode",
-      "score": 65,
-      "analysis": "Detailed analysis with reasoning...",
-      "quotations": ["specific quote 1", "specific quote 2"],
-      "evidence": "Specific psychological indicators..."
-    },
-    // ... continue for parameters 21-40
-  },
-  "overallSummary": "Comprehensive summary integrating cognitive, psychological, and clinical insights...",
-  "keyInsights": ["insight 1", "insight 2", "insight 3"],
-  "recommendedFocusAreas": ["area 1", "area 2", "area 3"]
-}
-
-CRITICAL INSTRUCTIONS:
-- Use ONLY the provided text as evidence
-- Include direct quotations for each assessment
-- Provide detailed reasoning for each score
-- Address ALL clinical psychological markers systematically
-- Focus on observable patterns in the text
-- Avoid speculation beyond what the text supports`;
-
-      let analysisResult = null;
-      
-      try {
-        if (selectedModel === "deepseek" && deepseek) {
-          const response = await deepseek.chat.completions.create({
-            model: "deepseek-chat",
-            messages: [{ role: "user", content: comprehensivePrompt }],
-            max_tokens: 8000,
-            temperature: 0.7
-          });
-          analysisResult = response.choices[0]?.message?.content || "";
-        } else if (selectedModel === "anthropic" && anthropic) {
-          const response = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 8000,
-            messages: [{ role: "user", content: comprehensivePrompt }]
-          });
-          analysisResult = response.content[0]?.type === 'text' ? response.content[0].text : "";
-        } else if (openai) {
-          const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [{ role: "user", content: comprehensivePrompt }],
-            max_tokens: 8000,
-            temperature: 0.7
-          });
-          analysisResult = response.choices[0]?.message?.content || "";
-        }
-      } catch (error) {
-        console.warn("AI analysis failed:", error);
-        analysisResult = null;
-      }
-      
-      let parsedAnalysis = null;
-      if (analysisResult) {
-        try {
-          // Try to extract JSON from the response
-          const jsonMatch = analysisResult.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            parsedAnalysis = JSON.parse(jsonMatch[0]);
-          }
-        } catch (error) {
-          console.warn("Failed to parse analysis JSON:", error);
-        }
-      }
-      
-      // Create analysis record with comprehensive data
+      // Create analysis record with chunks (same structure as document upload)
       const analysis = await storage.createAnalysis({
         sessionId,
         mediaUrl: `text:${Date.now()}`,
-        mediaType: "text",
+        mediaType: "document",
+        fileName: title || "Direct Text Input",
+        fileType: "text/plain",
         personalityInsights: { 
-          originalText: text,
-          additionalInfo,
-          comprehensiveAnalysis: parsedAnalysis,
-          cognitiveParameters,
-          psychologicalParameters,
-          model: selectedModel,
-          timestamp: new Date().toISOString()
+          chunks,
+          originalContent: text,
+          fileName: title || "Direct Text Input",
+          fileType: "text/plain"
         },
-        title: title || "Comprehensive Text Analysis"
+        documentType: "text",
+        title: title || "Text Analysis"
       });
-      
-      // Create display message
-      const displayMessage = parsedAnalysis ? 
-        "Comprehensive 40-Parameter Analysis Complete\n\nYour text has been analyzed across 20 cognitive and 20 psychological parameters. Each parameter includes detailed reasoning, quotations, and evidence-based scoring." :
-        "Text Analysis Complete\n\nYour text has been processed for comprehensive psychological and cognitive profiling.";
-      
-      const message = await storage.createMessage({
-        sessionId,
-        analysisId: analysis.id,
-        role: "assistant",
-        content: displayMessage
-      });
-      
+
+      // Return same structure as document upload (chunks for selection)
       res.json({
         analysisId: analysis.id,
-        messages: [message],
-        comprehensiveAnalysis: parsedAnalysis,
-        cognitiveParameters,
-        psychologicalParameters,
+        chunks,
+        fileName: title || "Direct Text Input",
+        fileType: "text/plain",
+        totalWords: text.split(/\s+/).length,
         emailServiceAvailable: isEmailServiceConfigured
       });
       
     } catch (error) {
-      console.error("Comprehensive text analysis error:", error);
-      res.status(500).json({ error: "Failed to analyze text comprehensively" });
+      console.error("Text analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze text" });
     }
   });
 

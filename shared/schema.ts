@@ -32,7 +32,7 @@ export const analyses = pgTable("analyses", {
   // LLM model used for analysis
   modelUsed: text("model_used", { enum: ["deepseek", "openai", "anthropic", "perplexity"] }).notNull().default("deepseek"),
   // For document type tracking
-  documentType: text("document_type", { enum: ["pdf", "docx", "other"] }),
+  documentType: text("document_type", { enum: ["pdf", "docx", "other", "text"] }),
   // Feature: Save download status for easy access
   hasDownloaded: boolean("has_downloaded").default(false),
   // Creation timestamp

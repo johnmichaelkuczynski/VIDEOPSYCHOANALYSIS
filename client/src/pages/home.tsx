@@ -276,24 +276,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setAnalysisProgress(80);
         setAnalysisId(response.analysisId);
         
-        if (response.messages && response.messages.length > 0) {
-          setMessages(response.messages);
+        // Set up document analysis UI (same as document upload)
+        if (response.chunks) {
+          setDocumentChunks(response.chunks);
+          setDocumentFileName(response.fileName || "Direct Text Input");
+          setDocumentFileType(response.fileType || "text/plain");
+          setSelectedChunks(response.chunks.map((_: any, index: number) => index)); // Select all chunks by default
         }
         
-        // Store comprehensive analysis data if available
-        if (response.comprehensiveAnalysis) {
-          setComprehensiveAnalysis(response.comprehensiveAnalysis);
-          setShowComprehensiveAnalysis(true);
-        }
-        
-        if (response.cognitiveParameters) {
-          setCognitiveParameters(response.cognitiveParameters);
-        }
-        
-        if (response.psychologicalParameters) {
-          setPsychologicalParameters(response.psychologicalParameters);
-        }
-        
+        setEmailServiceAvailable(response.emailServiceAvailable || false);
         setAnalysisProgress(100);
         return response;
       } catch (error: any) {
@@ -310,23 +301,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       }
     },
     onSuccess: (data) => {
-      // Get all messages for the session to be sure we have the latest
-      if (data?.analysisId) {
-        // If we received an analysis ID, fetch any messages related to it
-        fetch(`/api/messages?sessionId=${sessionId}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && Array.isArray(data) && data.length > 0) {
-              console.log("Fetched messages after text analysis:", data);
-              setMessages(data);
-            }
-          })
-          .catch(err => console.error("Error fetching messages after text analysis:", err));
-      }
-      
       toast({
-        title: "Comprehensive Analysis Complete",
-        description: "Your text has been analyzed across 40 psychological and cognitive parameters.",
+        title: "Text Prepared for Analysis",
+        description: "Select text chunks below and click Analyze to get 25 psychological metrics.",
       });
       setTextInput("");
     }
