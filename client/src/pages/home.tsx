@@ -1701,10 +1701,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
             
-            <>
-            <div>
-              {/* OLD METRICS DISPLAY */}
-              {metricsAnalysis && metricsAnalysis.metrics && (
+            {/* OLD METRICS DISPLAY */}
+            {metricsAnalysis && metricsAnalysis.metrics && (
               <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
                 <div className="bg-white rounded-md p-4">
                   <h3 className="text-lg font-semibold mb-4">Analysis Complete</h3>
@@ -1875,8 +1873,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </Tabs>
                   </div>
                 </div>
-            <>
-              </div>
             )}
             
             {/* SECTION 3: CLINICAL ANALYSIS */}
@@ -1949,7 +1945,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         ))}
                       </div>
                     </div>
-                  )}
+                  </div>
                   
                   {/* OVERALL SUMMARY */}
                   {metricsAnalysis.overallSummary && (
@@ -1966,27 +1962,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   </div>
                 </div>
               </div>
-              )}
-            </div>
-            </>
-            </>
-            {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */
-            <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
-              <DialogContent className="max-w-[98vw] max-h-[98vh] w-[98vw] h-[98vh] p-0 overflow-hidden">
-                <div className="flex flex-col h-full">
-                  <DialogHeader className="p-6 border-b flex-shrink-0">
-                    <DialogTitle className="text-3xl font-bold text-center">
-                      Complete Psychological Protocol Analysis
-                    </DialogTitle>
-                    <p className="text-center text-gray-600 mt-2">
-                      {metricsAnalysis?.protocolResponses?.length || 0} Protocol Questions Answered
-                    </p>
-                  </DialogHeader>
-                  
-                  <div className="flex-1 overflow-y-scroll p-6" style={{ maxHeight: 'calc(98vh - 120px)' }}>
-                    <div className="max-w-6xl mx-auto space-y-4">
-                      
-                      {/* ALL PROTOCOL QUESTIONS IN ONE SCROLLABLE LIST */}
+            )}
+            
+            {!uploadedMedia && (
                       {metricsAnalysis?.protocolResponses?.map((response: any, index: number) => (
                         <Collapsible key={index}>
                           <Card className="border hover:shadow-lg transition-all duration-200">
@@ -2675,6 +2653,173 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           </Card>
         </div>
       </div>
+      
+      {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */}
+      <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
+        <DialogContent className="max-w-[98vw] max-h-[98vh] w-[98vw] h-[98vh] p-0 overflow-hidden">
+          <div className="flex flex-col h-full">
+            <DialogHeader className="p-6 border-b flex-shrink-0">
+              <DialogTitle className="text-3xl font-bold text-center">
+                Complete Psychological Protocol Analysis
+              </DialogTitle>
+              <p className="text-center text-gray-600 mt-2">
+                {metricsAnalysis?.protocolResponses?.length || 0} Protocol Questions Answered
+              </p>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-scroll p-6" style={{ maxHeight: 'calc(98vh - 120px)' }}>
+              <div className="max-w-6xl mx-auto space-y-4">
+                
+                {/* ALL PROTOCOL QUESTIONS IN ONE SCROLLABLE LIST */}
+                {metricsAnalysis?.protocolResponses?.map((response: any, index: number) => (
+                  <Collapsible key={index}>
+                    <Card className="border hover:shadow-lg transition-all duration-200">
+                      <CollapsibleTrigger className="w-full p-4 text-left hover:bg-gray-50">
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`text-xs px-2 py-1 rounded font-medium ${
+                                index < 18 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {index < 18 ? 'PSYCHOLOGICAL' : 'INTELLIGENCE'} Q{(index % 18) + 1}
+                              </div>
+                              <h3 className="font-semibold text-base">{response.question}</h3>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-4">
+                            <div>
+                              <div className={`text-2xl font-bold ${
+                                index < 18 ? 'text-red-600' : 'text-blue-600'
+                              }`}>
+                                {response.score || 'N/A'}
+                              </div>
+                              <div className="text-xs text-gray-500">/100</div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <div className="p-4 border-t bg-gray-50 space-y-4">
+                          {/* Score Bar */}
+                          {response.score && (
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                              <div 
+                                className={`h-3 rounded-full transition-all duration-500 ${
+                                  index < 18 ? 'bg-red-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${response.score}%` }}
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Analysis */}
+                          <div className={`p-4 rounded-lg ${
+                            index < 18 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
+                          } border`}>
+                            <h5 className={`font-semibold text-lg mb-3 ${
+                              index < 18 ? 'text-red-700' : 'text-blue-700'
+                            }`}>
+                              Analysis
+                            </h5>
+                            <p className="text-base leading-relaxed text-gray-800">
+                              {response.answer || 'Analysis pending...'}
+                            </p>
+                          </div>
+                          
+                          {/* Evidence */}
+                          {response.evidence && (
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                              <h5 className="font-semibold text-lg mb-3 text-gray-700">
+                                Evidence
+                              </h5>
+                              <p className="text-base text-gray-700 leading-relaxed">
+                                {response.evidence}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Supporting Quotes */}
+                          {response.quotes && response.quotes.length > 0 && (
+                            <div className={`p-4 rounded-lg border ${
+                              index < 18 ? 'bg-red-100 border-red-200' : 'bg-blue-100 border-blue-200'
+                            }`}>
+                              <h5 className={`font-semibold text-lg mb-3 ${
+                                index < 18 ? 'text-red-700' : 'text-blue-700'
+                              }`}>
+                                Supporting Quotes
+                              </h5>
+                              <div className="space-y-2">
+                                {response.quotes.map((quote: string, qIndex: number) => (
+                                  <blockquote key={qIndex} className={`border-l-4 pl-4 py-2 italic text-base ${
+                                    index < 18 ? 'border-red-300 text-red-800' : 'border-blue-300 text-blue-800'
+                                  }`}>
+                                    "{quote}"
+                                  </blockquote>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                ))}
+                
+                {/* Overall Analysis Summary */}
+                {metricsAnalysis && (
+                  <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 mt-8">
+                    <div className="p-6">
+                      <h3 className="text-2xl font-bold text-purple-700 mb-4 text-center">
+                        Complete Analysis Summary
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="bg-red-100 p-4 rounded-lg border border-red-200">
+                          <h4 className="font-semibold text-lg text-red-700 mb-2">Psychological Analysis</h4>
+                          <p className="text-sm text-red-600">
+                            {metricsAnalysis.protocolResponses?.filter((_: any, index: number) => index < 18).length || 0} psychological markers analyzed
+                          </p>
+                        </div>
+                        <div className="bg-blue-100 p-4 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-lg text-blue-700 mb-2">Intelligence Analysis</h4>
+                          <p className="text-sm text-blue-600">
+                            {metricsAnalysis.protocolResponses?.filter((_: any, index: number) => index >= 18).length || 0} intelligence factors evaluated
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white p-4 rounded-lg mt-4">
+                        <h4 className="font-semibold text-lg text-purple-700 mb-3">Overall Assessment</h4>
+                        <p className="text-base text-gray-700">
+                          {metricsAnalysis.overallSummary || "Complete protocol analysis with all questions answered"}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+                
+              </div>
+            </div>
+            
+            <DialogFooter className="p-6 border-t bg-gray-50 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Complete Psychological Protocol Analysis • Generated on {new Date().toLocaleDateString()}
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" size="lg" onClick={() => setShowFullAnalysisPopup(false)}>
+                  Close Analysis
+                </Button>
+                <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
+                  Download Report
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
     </div>
   );
 }
