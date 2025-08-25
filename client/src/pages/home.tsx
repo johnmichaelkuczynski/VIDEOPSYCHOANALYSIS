@@ -1857,313 +1857,211 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold text-center">
-                    Complete 65-Metric Psychological Analysis
+                    Complete Psychological Protocol Analysis
                   </DialogTitle>
                 </DialogHeader>
                 
                 <div className="flex-1 overflow-hidden">
-                  <Tabs defaultValue="metrics25" className="w-full h-full flex flex-col">
-                    <TabsList className="grid w-full grid-cols-4 mb-4">
-                      <TabsTrigger value="metrics25" className="text-sm font-semibold">
-                        25 Psychological Metrics
+                  <Tabs defaultValue="psychological" className="w-full h-full flex flex-col">
+                    <TabsList className="grid w-full grid-cols-3 mb-4">
+                      <TabsTrigger value="psychological" className="text-sm font-semibold">
+                        18 Psychological Protocol
                       </TabsTrigger>
-                      <TabsTrigger value="cognitive20" className="text-sm font-semibold">
-                        20 Cognitive Parameters
-                      </TabsTrigger>
-                      <TabsTrigger value="psychological20" className="text-sm font-semibold">
-                        20 Psychological Parameters
+                      <TabsTrigger value="intelligence" className="text-sm font-semibold">
+                        18 Intelligence Protocol
                       </TabsTrigger>
                       <TabsTrigger value="summary" className="text-sm font-semibold">
-                        Summary & Discussion
+                        Summary & Analysis
                       </TabsTrigger>
                     </TabsList>
                     
-                    {/* TAB 1: 25 PSYCHOLOGICAL METRICS */}
-                    <TabsContent value="metrics25" className="flex-1 overflow-y-auto space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[
-                          "Content Quality", "Communication Style", "Analytical Depth", "Professional Competence", 
-                          "Clarity of Expression", "Logical Organization", "Attention to Detail", "Conceptual Understanding", 
-                          "Critical Thinking", "Creativity", "Emotional Intelligence", "Persuasiveness", 
-                          "Adaptability", "Leadership Potential", "Team Collaboration", "Innovation", 
-                          "Risk Assessment", "Strategic Thinking", "Decision Making", "Problem Solving", 
-                          "Learning Orientation", "Resilience", "Ethical Reasoning", "Cultural Awareness", "Future Orientation"
-                        ].map((metricName, index) => {
-                          const metric = metricsAnalysis?.metrics?.find((m: any) => m.name === metricName) || {
-                            name: metricName,
-                            score: Math.floor(Math.random() * 40) + 60,
-                            explanation: `Analysis of ${metricName.toLowerCase()} based on text content`,
-                            detailedAnalysis: `Detailed analysis of ${metricName.toLowerCase()} showing specific patterns and insights from the provided text.`,
-                            quotes: [`"Example quote from text related to ${metricName.toLowerCase()}"`]
-                          };
-                          
-                          return (
-                            <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="font-semibold text-sm">{metric.name}</h4>
-                                  <div className="text-right">
-                                    <div className="text-xl font-bold text-blue-600">{metric.score}</div>
-                                    <div className="text-xs text-gray-500">/100</div>
-                                  </div>
+                    {/* TAB 1: 18 PSYCHOLOGICAL PROTOCOL QUESTIONS */}
+                    <TabsContent value="psychological" className="flex-1 overflow-y-auto space-y-4">
+                      <div className="space-y-4">
+                        {metricsAnalysis?.protocolResponses?.filter((response: any, index: number) => index < 18).map((response: any, index: number) => (
+                          <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-semibold text-sm flex-1 pr-4">{response.question}</h4>
+                                <div className="text-right">
+                                  <div className="text-xl font-bold text-red-600">{response.score || 'N/A'}</div>
+                                  <div className="text-xs text-gray-500">/100</div>
                                 </div>
-                                
+                              </div>
+                              
+                              {response.score && (
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${response.score}%` }}
+                                  />
+                                </div>
+                              )}
+                              
+                              <div className="bg-red-50 p-3 rounded text-xs">
+                                <h6 className="font-medium mb-1">Analysis</h6>
+                                <p>{response.answer || 'Analysis pending...'}</p>
+                              </div>
+                              
+                              {response.evidence && (
+                                <div className="bg-gray-50 p-3 rounded text-xs">
+                                  <h6 className="font-medium mb-1">Evidence</h6>
+                                  <p>{response.evidence}</p>
+                                </div>
+                              )}
+                              
+                              {response.quotes && response.quotes.length > 0 && (
+                                <div className="bg-red-100 p-3 rounded text-xs">
+                                  <h6 className="font-medium mb-1">Supporting Quotes</h6>
+                                  {response.quotes.map((quote: string, qIndex: number) => (
+                                    <p key={qIndex} className="italic border-l-2 border-red-300 pl-2 mt-1">
+                                      {quote}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        )) || (
+                          <div className="text-center text-gray-500 py-8">
+                            <p>Protocol responses loading...</p>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                    
+                    {/* TAB 2: 18 INTELLIGENCE PROTOCOL QUESTIONS */}
+                    <TabsContent value="intelligence" className="flex-1 overflow-y-auto space-y-4">
+                      <div className="space-y-4">
+                        {metricsAnalysis?.protocolResponses?.filter((response: any, index: number) => index >= 18).map((response: any, index: number) => (
+                          <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-semibold text-sm flex-1 pr-4">{response.question}</h4>
+                                <div className="text-right">
+                                  <div className="text-xl font-bold text-blue-600">{response.score || 'N/A'}</div>
+                                  <div className="text-xs text-gray-500">/100</div>
+                                </div>
+                              </div>
+                              
+                              {response.score && (
                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                   <div 
                                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${metric.score}%` }}
+                                    style={{ width: `${response.score}%` }}
                                   />
                                 </div>
-                                
-                                <p className="text-xs text-gray-600">{metric.explanation}</p>
-                                
-                                <Collapsible>
-                                  <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="w-full justify-start p-0">
-                                      <ChevronRight className="h-3 w-3 mr-1" />
-                                      <span className="text-xs">View Details</span>
-                                    </Button>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2 space-y-2">
-                                    <div className="bg-gray-50 p-3 rounded text-xs">
-                                      <h6 className="font-medium mb-1">Detailed Analysis</h6>
-                                      <p>{metric.detailedAnalysis}</p>
-                                    </div>
-                                    {metric.quotes && metric.quotes.length > 0 && (
-                                      <div className="bg-blue-50 p-3 rounded text-xs">
-                                        <h6 className="font-medium mb-1">Key Quotes</h6>
-                                        {metric.quotes.map((quote: string, qIndex: number) => (
-                                          <p key={qIndex} className="italic border-l-2 border-blue-300 pl-2 mt-1">
-                                            {quote}
-                                          </p>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </CollapsibleContent>
-                                </Collapsible>
+                              )}
+                              
+                              <div className="bg-blue-50 p-3 rounded text-xs">
+                                <h6 className="font-medium mb-1">Analysis</h6>
+                                <p>{response.answer || 'Analysis pending...'}</p>
                               </div>
-                            </Card>
-                          );
-                        })}
+                              
+                              {response.evidence && (
+                                <div className="bg-gray-50 p-3 rounded text-xs">
+                                  <h6 className="font-medium mb-1">Evidence</h6>
+                                  <p>{response.evidence}</p>
+                                </div>
+                              )}
+                              
+                              {response.quotes && response.quotes.length > 0 && (
+                                <div className="bg-blue-100 p-3 rounded text-xs">
+                                  <h6 className="font-medium mb-1">Supporting Quotes</h6>
+                                  {response.quotes.map((quote: string, qIndex: number) => (
+                                    <p key={qIndex} className="italic border-l-2 border-blue-300 pl-2 mt-1">
+                                      {quote}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        )) || (
+                          <div className="text-center text-gray-500 py-8">
+                            <p>Intelligence protocol responses loading...</p>
+                          </div>
+                        )}
                       </div>
                     </TabsContent>
                     
-                    {/* TAB 2: 20 COGNITIVE PARAMETERS */}
-                    <TabsContent value="cognitive20" className="flex-1 overflow-y-auto space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {cognitiveParameters.map((param) => {
-                          const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id] || {
-                            name: param.name,
-                            score: Math.floor(Math.random() * 40) + 60,
-                            analysis: `Analysis of ${param.name} showing specific cognitive patterns and processing style.`,
-                            quotes: [`"Text evidence for ${param.name}"`],
-                            evidence: `Supporting evidence for ${param.name} assessment.`
-                          };
-                          
-                          return (
-                            <Card key={param.id} className="p-4 hover:shadow-lg transition-shadow">
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="font-semibold text-sm">{param.name}</h4>
-                                  <div className="text-right">
-                                    <div className="text-xl font-bold text-purple-600">{analysis.score}</div>
-                                    <div className="text-xs text-gray-500">/100</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${analysis.score}%` }}
-                                  />
-                                </div>
-                                
-                                <p className="text-xs text-gray-600">{param.description}</p>
-                                
-                                <Collapsible>
-                                  <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="w-full justify-start p-0">
-                                      <ChevronRight className="h-3 w-3 mr-1" />
-                                      <span className="text-xs">View Analysis</span>
-                                    </Button>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2 space-y-2">
-                                    <div className="bg-gray-50 p-3 rounded text-xs">
-                                      <h6 className="font-medium mb-1">Assessment</h6>
-                                      <p>{analysis.analysis}</p>
-                                    </div>
-                                    {analysis.evidence && (
-                                      <div className="bg-purple-50 p-3 rounded text-xs">
-                                        <h6 className="font-medium mb-1">Evidence</h6>
-                                        <p>{analysis.evidence}</p>
-                                      </div>
-                                    )}
-                                    {analysis.quotes && analysis.quotes.length > 0 && (
-                                      <div className="bg-indigo-50 p-3 rounded text-xs">
-                                        <h6 className="font-medium mb-1">Supporting Quotes</h6>
-                                        {analysis.quotes.map((quote: string, qIndex: number) => (
-                                          <p key={qIndex} className="italic border-l-2 border-purple-300 pl-2 mt-1">
-                                            {quote}
-                                          </p>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </TabsContent>
-                    
-                    {/* TAB 3: 20 PSYCHOLOGICAL PARAMETERS */}
-                    <TabsContent value="psychological20" className="flex-1 overflow-y-auto space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {psychologicalParameters.map((param) => {
-                          const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id] || {
-                            name: param.name,
-                            score: Math.floor(Math.random() * 40) + 60,
-                            analysis: `Psychological analysis of ${param.name} showing emotional and interpersonal patterns.`,
-                            quotes: [`"Text evidence for ${param.name}"`],
-                            evidence: `Supporting evidence for ${param.name} psychological assessment.`
-                          };
-                          
-                          return (
-                            <Card key={param.id} className="p-4 hover:shadow-lg transition-shadow">
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="font-semibold text-sm">{param.name}</h4>
-                                  <div className="text-right">
-                                    <div className="text-xl font-bold text-green-600">{analysis.score}</div>
-                                    <div className="text-xs text-gray-500">/100</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${analysis.score}%` }}
-                                  />
-                                </div>
-                                
-                                <p className="text-xs text-gray-600">{param.description}</p>
-                                
-                                <Collapsible>
-                                  <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="w-full justify-start p-0">
-                                      <ChevronRight className="h-3 w-3 mr-1" />
-                                      <span className="text-xs">View Analysis</span>
-                                    </Button>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2 space-y-2">
-                                    <div className="bg-gray-50 p-3 rounded text-xs">
-                                      <h6 className="font-medium mb-1">Assessment</h6>
-                                      <p>{analysis.analysis}</p>
-                                    </div>
-                                    {analysis.evidence && (
-                                      <div className="bg-green-50 p-3 rounded text-xs">
-                                        <h6 className="font-medium mb-1">Evidence</h6>
-                                        <p>{analysis.evidence}</p>
-                                      </div>
-                                    )}
-                                    {analysis.quotes && analysis.quotes.length > 0 && (
-                                      <div className="bg-emerald-50 p-3 rounded text-xs">
-                                        <h6 className="font-medium mb-1">Supporting Quotes</h6>
-                                        {analysis.quotes.map((quote: string, qIndex: number) => (
-                                          <p key={qIndex} className="italic border-l-2 border-green-300 pl-2 mt-1">
-                                            {quote}
-                                          </p>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </TabsContent>
-                    
-                    {/* TAB 4: SUMMARY & DISCUSSION */}
+                    {/* TAB 3: SUMMARY & ANALYSIS */}
                     <TabsContent value="summary" className="flex-1 overflow-y-auto space-y-6 p-6">
                       <div className="max-w-4xl mx-auto space-y-8">
-                        {/* Overall Summary */}
+                        {/* Text Summary */}
                         <Card className="p-6">
-                          <h3 className="text-xl font-bold mb-4 text-center">Overall Clinical Summary</h3>
+                          <h3 className="text-xl font-bold mb-4 text-center">Text Summary</h3>
                           <p className="text-sm leading-relaxed">
-                            {metricsAnalysis?.overallSummary || "This comprehensive 65-metric analysis reveals a complex psychological profile with strengths in analytical thinking and professional competence. The individual demonstrates sophisticated cognitive processing abilities, particularly in areas of compression tolerance and inferential depth. Psychological parameters indicate strong emotional regulation and interpersonal sensitivity, with notable patterns in stress response and identity coherence."}
+                            {metricsAnalysis?.summary || "Protocol-based analysis completed"}
                           </p>
                         </Card>
                         
-                        {/* Key Insights */}
+                        {/* Psychological Category */}
                         <Card className="p-6">
-                          <h3 className="text-lg font-semibold mb-4">Key Psychological Insights</h3>
+                          <h3 className="text-lg font-semibold mb-4">Psychological Category</h3>
+                          <p className="text-sm leading-relaxed bg-purple-50 p-4 rounded">
+                            {metricsAnalysis?.psychologicalCategory || "Category assessment pending..."}
+                          </p>
+                        </Card>
+                        
+                        {/* Overall Assessment */}
+                        <Card className="p-6">
+                          <h3 className="text-lg font-semibold mb-4">Overall Assessment</h3>
+                          <p className="text-sm leading-relaxed">
+                            {metricsAnalysis?.overallSummary || "Complete protocol analysis with all questions answered"}
+                          </p>
+                        </Card>
+                        
+                        {/* Protocol Summary */}
+                        <Card className="p-6">
+                          <h3 className="text-lg font-semibold mb-4">Protocol Analysis Summary</h3>
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <h4 className="font-medium text-blue-600 mb-2">Cognitive Strengths</h4>
+                              <h4 className="font-medium text-red-600 mb-2">Psychological Protocol</h4>
                               <ul className="text-sm space-y-1 text-gray-700">
-                                <li>• High analytical and critical thinking capabilities</li>
-                                <li>• Strong pattern recognition and inference abilities</li>
-                                <li>• Excellent cognitive flexibility and adaptation</li>
-                                <li>• Advanced meta-cognitive awareness</li>
+                                <li>• Self-concept and ego strength evaluation</li>
+                                <li>• Defense mechanism assessment</li>
+                                <li>• Affect integration analysis</li>
+                                <li>• Object constancy and relationship patterns</li>
+                                <li>• Growth potential and resilience factors</li>
+                                <li>• Reality testing and authenticity measures</li>
                               </ul>
                             </div>
                             <div>
-                              <h4 className="font-medium text-green-600 mb-2">Psychological Profile</h4>
+                              <h4 className="font-medium text-blue-600 mb-2">Intelligence Protocol</h4>
                               <ul className="text-sm space-y-1 text-gray-700">
-                                <li>• Balanced emotional regulation patterns</li>
-                                <li>• Strong interpersonal sensitivity</li>
-                                <li>• Healthy attachment and identity coherence</li>
-                                <li>• Effective stress management strategies</li>
+                                <li>• Insight and point development</li>
+                                <li>• Organizational structure assessment</li>
+                                <li>• Logical reasoning and coherence</li>
+                                <li>• Authenticity vs. simulation analysis</li>
+                                <li>• System-level cognitive control</li>
+                                <li>• Directness and intellectual honesty</li>
                               </ul>
                             </div>
                           </div>
                         </Card>
                         
-                        {/* Clinical Markers Summary */}
+                        {/* Protocol Questions Count */}
                         <Card className="p-6">
-                          <h3 className="text-lg font-semibold mb-4">Clinical Assessment Summary</h3>
-                          <div className="space-y-3">
-                            {metricsAnalysis?.clinicalAnalysis ? Object.entries(metricsAnalysis.clinicalAnalysis).map(([key, analysis]: [string, any]) => (
-                              <div key={key} className="border-l-4 border-red-300 pl-4">
-                                <h5 className="font-medium text-sm capitalize text-red-700">
-                                  {key.replace(/([A-Z])/g, ' $1').trim()}
-                                </h5>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  {analysis.assessment?.substring(0, 150)}...
-                                </p>
+                          <h3 className="text-lg font-semibold mb-4">Analysis Completion</h3>
+                          <div className="flex justify-between items-center">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-red-600">
+                                {metricsAnalysis?.protocolResponses?.filter((r: any, i: number) => i < 18).length || 0}
                               </div>
-                            )) : (
-                              <p className="text-sm text-gray-500">
-                                Clinical markers analysis provides additional diagnostic context and therapeutic considerations for comprehensive psychological evaluation.
-                              </p>
-                            )}
-                          </div>
-                        </Card>
-                        
-                        {/* Discussion Section */}
-                        <Card className="p-6">
-                          <h3 className="text-lg font-semibold mb-4">Clinical Discussion & Recommendations</h3>
-                          <div className="space-y-4 text-sm">
-                            <div>
-                              <h4 className="font-medium mb-2">Therapeutic Implications</h4>
-                              <p className="text-gray-700">
-                                The analysis reveals a profile suitable for cognitive-behavioral interventions with emphasis on leveraging existing analytical strengths while addressing areas of psychological growth.
-                              </p>
+                              <div className="text-xs text-gray-500">Psychological Questions</div>
                             </div>
-                            <div>
-                              <h4 className="font-medium mb-2">Areas for Development</h4>
-                              <p className="text-gray-700">
-                                Focus areas include enhancing emotional expression, developing interpersonal communication strategies, and building resilience in high-stress environments.
-                              </p>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-blue-600">
+                                {metricsAnalysis?.protocolResponses?.filter((r: any, i: number) => i >= 18).length || 0}
+                              </div>
+                              <div className="text-xs text-gray-500">Intelligence Questions</div>
                             </div>
-                            <div>
-                              <h4 className="font-medium mb-2">Follow-up Recommendations</h4>
-                              <p className="text-gray-700">
-                                Regular psychological assessment intervals, targeted skill development programs, and continued monitoring of cognitive and emotional patterns.
-                              </p>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">
+                                {metricsAnalysis?.protocolResponses?.length || 0}
+                              </div>
+                              <div className="text-xs text-gray-500">Total Questions</div>
                             </div>
                           </div>
                         </Card>
@@ -2174,7 +2072,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 
                 <DialogFooter className="flex justify-between items-center mt-4">
                   <div className="text-xs text-gray-500">
-                    Complete 65-Metric Psychological Analysis • Generated on {new Date().toLocaleDateString()}
+                    Complete Psychological Protocol Analysis • Generated on {new Date().toLocaleDateString()}
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setShowFullAnalysisPopup(false)}>

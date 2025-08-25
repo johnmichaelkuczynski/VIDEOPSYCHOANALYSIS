@@ -568,217 +568,218 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { id: 40, name: "Psychological Mindedness", description: "Interest in and capacity for psychological insight and self-reflection." }
       ];
 
-      // CHUNKED ANALYSIS: Generate all 65 metrics in smaller batches to avoid overwhelming AI
-      console.log("Starting chunked analysis for all 65 metrics...");
-      let finalMetrics = [];
-      let finalComprehensiveParameters = {};
-      let finalClinicalAnalysis = {};
+      // PROTOCOL-BASED ANALYSIS: Using the actual psychological protocol questions
+      console.log("Starting protocol-based psychological analysis...");
+      let protocolResponses = [];
       
-      // CHUNK 1: First 10 psychological metrics
-      const chunk1Metrics = ["Content Quality", "Communication Style", "Analytical Depth", "Professional Competence", "Clarity of Expression", "Logical Organization", "Attention to Detail", "Conceptual Understanding", "Critical Thinking", "Creativity"];
+      // CHUNK 1: First 6 psychological protocol questions
+      const psychologicalQuestions1 = [
+        "Does the text reveal a stable, coherent self-concept, or is the self fragmented/contradictory?",
+        "Is there evidence of ego strength (resilience, capacity to tolerate conflict/ambiguity), or does the psyche rely on brittle defenses?",
+        "Are defenses primarily mature (sublimation, humor, anticipation), neurotic (intellectualization, repression), or primitive (splitting, denial, projection)?",
+        "Does the writing show integration of affect and thought, or are emotions split off / overly intellectualized?",
+        "Is the author's stance defensive/avoidant or direct/engaged?",
+        "Does the psyche appear narcissistically organized (grandiosity, fragile self-esteem, hunger for validation), or not?"
+      ];
       
-      const chunk1Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological metrics only:
+      const chunk1Prompt = `Answer these questions in connection with this text. A score of N/100 means (100-N)/100 outperform the subject with respect to the psychological capacity defined by the question. You are not grading; you are answering these questions. Do not default to diagnostic checklists; describe configuration of psyche. Evaluate relative to the general population, not only "advanced" or "pathological" groups.
 
 TEXT: "${selectedText}"
 
-METRICS: ${chunk1Metrics.join(', ')}
+QUESTIONS:
+${psychologicalQuestions1.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 Respond with JSON only:
 {
-  "metrics": [
-    {"name": "Content Quality", "score": 75, "explanation": "Brief explanation", "detailedAnalysis": "Detailed analysis", "quotes": ["exact quotes"]}
+  "responses": [
+    {"question": "Does the text reveal...", "answer": "detailed answer", "score": 75, "evidence": "specific evidence from text", "quotes": ["exact quotes"]}
   ]
 }`;
       
       let chunk1Result = await callAI(selectedModel, chunk1Prompt);
-      if (chunk1Result?.metrics) finalMetrics.push(...chunk1Result.metrics);
+      if (chunk1Result?.responses) protocolResponses.push(...chunk1Result.responses);
       
       // 10 second pause
       await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 1, pausing 10 seconds...");
+      console.log("Completed psychological chunk 1, pausing 10 seconds...");
       
-      // CHUNK 2: Next 10 psychological metrics
-      const chunk2Metrics = ["Emotional Intelligence", "Persuasiveness", "Adaptability", "Leadership Potential", "Team Collaboration", "Innovation", "Risk Assessment", "Strategic Thinking", "Decision Making", "Problem Solving"];
+      // CHUNK 2: Next 6 psychological protocol questions
+      const psychologicalQuestions2 = [
+        "Are desires/drives expressed openly, displaced, or repressed?",
+        "Does the voice suggest internal conflict (superego vs. id, competing identifications), or monolithic certainty?",
+        "Is there evidence of object constancy (capacity to sustain nuanced view of others) or splitting (others seen as all-good/all-bad)?",
+        "Is aggression integrated (channeled productively) or dissociated/projected?",
+        "Is the author capable of irony/self-reflection, or trapped in compulsive earnestness / defensiveness?",
+        "Does the text suggest psychological growth potential (openness, curiosity, capacity to metabolize experience) or rigidity?"
+      ];
       
-      const chunk2Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological metrics only:
+      const chunk2Prompt = `Answer these questions in connection with this text. A score of N/100 means (100-N)/100 outperform the subject with respect to the psychological capacity defined by the question. You are not grading; you are answering these questions.
 
 TEXT: "${selectedText}"
 
-METRICS: ${chunk2Metrics.join(', ')}
+QUESTIONS:
+${psychologicalQuestions2.map((q, i) => `${i + 7}. ${q}`).join('\n')}
 
 Respond with JSON only:
 {
-  "metrics": [
-    {"name": "Emotional Intelligence", "score": 75, "explanation": "Brief explanation", "detailedAnalysis": "Detailed analysis", "quotes": ["exact quotes"]}
+  "responses": [
+    {"question": "Are desires/drives...", "answer": "detailed answer", "score": 75, "evidence": "specific evidence from text", "quotes": ["exact quotes"]}
   ]
 }`;
       
       let chunk2Result = await callAI(selectedModel, chunk2Prompt);
-      if (chunk2Result?.metrics) finalMetrics.push(...chunk2Result.metrics);
+      if (chunk2Result?.responses) protocolResponses.push(...chunk2Result.responses);
       
       // 10 second pause  
       await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 2, pausing 10 seconds...");
+      console.log("Completed psychological chunk 2, pausing 10 seconds...");
       
-      // CHUNK 3: Final 5 psychological metrics
-      const chunk3Metrics = ["Learning Orientation", "Resilience", "Ethical Reasoning", "Cultural Awareness", "Future Orientation"];
+      // CHUNK 3: Final 6 psychological protocol questions
+      const psychologicalQuestions3 = [
+        "Is the discourse paranoid / persecutory (others as threats, conspiracies) or reality-based?",
+        "Does the tone reflect authentic engagement with reality, or phony simulation of depth?",
+        "Is the psyche resilient under stress, or fragile / evasive?",
+        "Is there evidence of compulsion or repetition (obsessional returns to the same themes), or flexible progression?",
+        "Does the author show capacity for intimacy / genuine connection, or only instrumental/defended relations?",
+        "Is shame/guilt worked through constructively or disavowed/projected?"
+      ];
       
-      const chunk3Prompt = `You are a clinical psychologist. Analyze this text for these 5 psychological metrics only:
+      const chunk3Prompt = `Answer these questions in connection with this text. A score of N/100 means (100-N)/100 outperform the subject with respect to the psychological capacity defined by the question. You are not grading; you are answering these questions.
 
 TEXT: "${selectedText}"
 
-METRICS: ${chunk3Metrics.join(', ')}
+QUESTIONS:
+${psychologicalQuestions3.map((q, i) => `${i + 13}. ${q}`).join('\n')}
 
 Respond with JSON only:
 {
-  "metrics": [
-    {"name": "Learning Orientation", "score": 75, "explanation": "Brief explanation", "detailedAnalysis": "Detailed analysis", "quotes": ["exact quotes"]}
+  "responses": [
+    {"question": "Is the discourse paranoid...", "answer": "detailed answer", "score": 75, "evidence": "specific evidence from text", "quotes": ["exact quotes"]}
   ]
 }`;
       
       let chunk3Result = await callAI(selectedModel, chunk3Prompt);
-      if (chunk3Result?.metrics) finalMetrics.push(...chunk3Result.metrics);
+      if (chunk3Result?.responses) protocolResponses.push(...chunk3Result.responses);
       
       // 10 second pause
       await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 3, pausing 10 seconds...");
+      console.log("Completed psychological chunk 3, pausing 10 seconds...");
       
-      // CHUNK 4: First 10 cognitive parameters (1-10)
-      const chunk4Params = cognitiveParameters.slice(0, 10);
-      const chunk4Prompt = `You are a clinical psychologist. Analyze this text for these 10 cognitive parameters only:
+      // CHUNK 4: First 6 intelligence protocol questions
+      const intelligenceQuestions1 = [
+        "Is it insightful?",
+        "Does it develop points? (Or, if it is a short excerpt, is there evidence that it would develop points if extended)?",
+        "Is the organization merely sequential (just one point after another, little or no logical scaffolding)? Or are the ideas arranged, not just sequentially but hierarchically?",
+        "If the points it makes are not insightful, does it operate skillfully with canons of logic/reasoning?",
+        "Are the points cliches? Or are they 'fresh'?",
+        "Does it use technical jargon to obfuscate or to render more precise?"
+      ];
+      
+      const chunk4Prompt = `Answer these questions in connection with this text. You do not use a risk-averse standard; you do not attempt to be diplomatic; you do not attempt to comply with risk-averse, medium-range IQ, academic norms. If a work is a work of genius, you say that, and you say why. Think very very very hard about your answers. Do not give credit merely for use of jargon or for referencing authorities. Focus on substance.
 
 TEXT: "${selectedText}"
 
-PARAMETERS: ${chunk4Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+QUESTIONS:
+${intelligenceQuestions1.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 Respond with JSON only:
 {
-  "parameters": {
-    "1": {"name": "Compression Tolerance", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
-  }
+  "responses": [
+    {"question": "Is it insightful?", "answer": "detailed answer", "score": 75, "evidence": "specific evidence from text", "quotes": ["exact quotes"]}
+  ]
 }`;
       
       let chunk4Result = await callAI(selectedModel, chunk4Prompt);
-      if (chunk4Result?.parameters) {
-        Object.assign(finalComprehensiveParameters, chunk4Result.parameters);
-      }
+      if (chunk4Result?.responses) protocolResponses.push(...chunk4Result.responses);
       
       // 10 second pause
       await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 4, pausing 10 seconds...");
+      console.log("Completed intelligence chunk 1, pausing 10 seconds...");
       
-      // CHUNK 5: Next 10 cognitive parameters (11-20)
-      const chunk5Params = cognitiveParameters.slice(10, 20);
-      const chunk5Prompt = `You are a clinical psychologist. Analyze this text for these 10 cognitive parameters only:
+      // CHUNK 5: Next 6 intelligence protocol questions
+      const intelligenceQuestions2 = [
+        "Is it organic? Do points develop in an organic, natural way? Do they 'unfold'? Or are they forced and artificial?",
+        "Does it open up new domains? Or, on the contrary, does it shut off inquiry (by conditionalizing further discussion of the matters on acceptance of its internal and possibly very faulty logic)?",
+        "Is it actually intelligent or just the work of somebody who, judging by the subject-matter, is presumed to be intelligent (but may not be)?",
+        "Is it real or is it phony?",
+        "Do the sentences exhibit complex and coherent internal logic?",
+        "Is the passage governed by a strong concept? Or is the only organization driven purely by expository (as opposed to epistemic) norms?"
+      ];
+      
+      const chunk5Prompt = `Answer these questions in connection with this text. You do not use a risk-averse standard. Focus on substance. Do not penalize boldness or insights that, if correct, stand on their own.
 
 TEXT: "${selectedText}"
 
-PARAMETERS: ${chunk5Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+QUESTIONS:
+${intelligenceQuestions2.map((q, i) => `${i + 7}. ${q}`).join('\n')}
 
 Respond with JSON only:
 {
-  "parameters": {
-    "11": {"name": "Dominance Framing Bias", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
-  }
+  "responses": [
+    {"question": "Is it organic?", "answer": "detailed answer", "score": 75, "evidence": "specific evidence from text", "quotes": ["exact quotes"]}
+  ]
 }`;
       
       let chunk5Result = await callAI(selectedModel, chunk5Prompt);
-      if (chunk5Result?.parameters) {
-        Object.assign(finalComprehensiveParameters, chunk5Result.parameters);
-      }
+      if (chunk5Result?.responses) protocolResponses.push(...chunk5Result.responses);
       
       // 10 second pause
       await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 5, pausing 10 seconds...");
+      console.log("Completed intelligence chunk 2, pausing 10 seconds...");
       
-      // CHUNK 6: First 10 psychological parameters (21-30)
-      const chunk6Params = psychologicalParameters.slice(0, 10);
-      const chunk6Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological parameters only:
+      // CHUNK 6: Final 6 intelligence protocol questions
+      const intelligenceQuestions3 = [
+        "Is there system-level control over ideas? In other words, does the author seem to recall what he said earlier and to be in a position to integrate it into points he has made since then?",
+        "Are the points 'real'? Are they fresh? Or is some institution or some accepted vein of propaganda or orthodoxy just using the author as a mouth piece?",
+        "Is the writing evasive or direct?",
+        "Are the statements ambiguous?",
+        "Does the progression of the text develop according to who said what or according to what entails or confirms what?",
+        "Does the author use other authors to develop his ideas or to cloak his own lack of ideas?"
+      ];
+      
+      const chunk6Prompt = `Answer these questions in connection with this text. You do not use a risk-averse standard. Focus on substance. This is not a grading app - you are evaluating intelligence based on the text given.
 
 TEXT: "${selectedText}"
 
-PARAMETERS: ${chunk6Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+QUESTIONS:
+${intelligenceQuestions3.map((q, i) => `${i + 13}. ${q}`).join('\n')}
 
 Respond with JSON only:
 {
-  "parameters": {
-    "21": {"name": "Emotional Regulation", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
-  }
+  "responses": [
+    {"question": "Is there system-level control...", "answer": "detailed answer", "score": 75, "evidence": "specific evidence from text", "quotes": ["exact quotes"]}
+  ]
 }`;
       
       let chunk6Result = await callAI(selectedModel, chunk6Prompt);
-      if (chunk6Result?.parameters) {
-        Object.assign(finalComprehensiveParameters, chunk6Result.parameters);
-      }
+      if (chunk6Result?.responses) protocolResponses.push(...chunk6Result.responses);
       
-      // 10 second pause
+      // Final summary
       await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 6, pausing 10 seconds...");
+      console.log("Completed intelligence chunk 3, generating summary...");
       
-      // CHUNK 7: Final 10 psychological parameters (31-40)
-      const chunk7Params = psychologicalParameters.slice(10, 20);
-      const chunk7Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological parameters only:
+      const summaryPrompt = `Summarize the text and categorize the psychological presentation (e.g., narcissistic, depressive, obsessional, resilient, fragmented). Evaluate relative to the general population.
 
 TEXT: "${selectedText}"
 
-PARAMETERS: ${chunk7Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
-
 Respond with JSON only:
 {
-  "parameters": {
-    "31": {"name": "Defensive Operations", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
-  }
+  "summary": "text summary",
+  "psychologicalCategory": "category description",
+  "overallAssessment": "comprehensive assessment"
 }`;
       
-      let chunk7Result = await callAI(selectedModel, chunk7Prompt);
-      if (chunk7Result?.parameters) {
-        Object.assign(finalComprehensiveParameters, chunk7Result.parameters);
-      }
+      let summaryResult = await callAI(selectedModel, summaryPrompt);
       
-      // 10 second pause
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      console.log("Completed chunk 7, pausing 10 seconds...");
-      
-      // CHUNK 8: Clinical markers
-      const clinicalPrompt = `You are a clinical psychologist. Analyze this text for these clinical markers only:
-
-TEXT: "${selectedText}"
-
-CLINICAL MARKERS:
-- Affect in Language: Emotional tone, mood indicators, affective quality
-- Attention Patterns: Focus, distractibility, attention deficits in writing
-- Expression Style: Verbal fluency, organization, coherence
-- Content Analysis: Themes, preoccupations, thought content
-- Relational Language: How relationships and interpersonal dynamics are described
-- Defenses: Psychological defense mechanisms (denial, projection, rationalization)
-- Cognitive Organization: Logic, reality testing, abstract thinking
-- Psychomotor Equivalents: Energy level, activity patterns in language
-- Global Integration: Overall coherence and integration
-- Psychotic Markers: Any signs of thought disorder or reality distortion
-
-Respond with JSON only:
-{
-  "clinicalAnalysis": {
-    "affectInLanguage": {"assessment": "detailed analysis", "evidence": "specific evidence", "quotes": ["exact quotes"]},
-    "attentionPatterns": {"assessment": "detailed analysis", "patterns": ["key patterns"], "quotes": ["exact quotes"]}
-  }
-}`;
-      
-      let clinicalResult = await callAI(selectedModel, clinicalPrompt);
-      if (clinicalResult?.clinicalAnalysis) {
-        finalClinicalAnalysis = clinicalResult.clinicalAnalysis;
-      }
-      
-      // Combine all results
+      // Combine all protocol responses
       const metricsAnalysis = {
-        summary: "Comprehensive 65-metric analysis completed through chunked processing",
-        metrics: finalMetrics,
-        comprehensiveParameters: finalComprehensiveParameters,
-        clinicalAnalysis: finalClinicalAnalysis,
-        overallSummary: "Complete psychological evaluation with all 65 metrics analyzed through systematic chunked approach"
+        summary: summaryResult?.summary || "Protocol-based psychological and intelligence analysis completed",
+        protocolResponses: protocolResponses,
+        psychologicalCategory: summaryResult?.psychologicalCategory || "Analysis completed",
+        overallSummary: summaryResult?.overallAssessment || "Complete protocol analysis with all questions answered"
       };
       
-      console.log(`Final analysis completed: ${finalMetrics.length} metrics, ${Object.keys(finalComprehensiveParameters).length} parameters, ${Object.keys(finalClinicalAnalysis).length} clinical markers`);
+      console.log(`Protocol analysis completed: ${protocolResponses.length} questions answered`);
       
       // Helper function to call AI models
       async function callAI(model: string, prompt: string): Promise<any> {
