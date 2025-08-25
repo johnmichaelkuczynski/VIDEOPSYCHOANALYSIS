@@ -1873,9 +1873,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             
             {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */}
             <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
-              <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full p-0">
+              <DialogContent className="max-w-[98vw] max-h-[98vh] w-[98vw] h-[98vh] p-0 overflow-hidden">
                 <div className="flex flex-col h-full">
-                  <DialogHeader className="p-6 border-b">
+                  <DialogHeader className="p-6 border-b flex-shrink-0">
                     <DialogTitle className="text-3xl font-bold text-center">
                       Complete Psychological Protocol Analysis
                     </DialogTitle>
@@ -1884,7 +1884,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </p>
                   </DialogHeader>
                   
-                  <div className="flex-1 overflow-y-auto p-6">
+                  <div className="flex-1 overflow-y-scroll p-6" style={{ maxHeight: 'calc(98vh - 120px)' }}>
                     <div className="max-w-6xl mx-auto space-y-4">
                       
                       {/* ALL PROTOCOL QUESTIONS IN ONE SCROLLABLE LIST */}
