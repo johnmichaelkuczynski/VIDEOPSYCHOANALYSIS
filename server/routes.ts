@@ -659,9 +659,8 @@ Note: This is observational analysis for educational purposes only, not diagnost
           const analysis = await storage.createAnalysis({
             sessionId: sessionId || 'default',
             mediaType: "image" as MediaType,
-            model: selectedModel || 'deepseek',
-            prompt: analysisPrompt,
-            additionalInfo: `Protocol: ${protocol}`,
+            mediaUrl: `image:${Date.now()}`,
+            modelUsed: selectedModel || 'openai',
             title: `${protocol.replace('-', ' ')} Image Analysis`,
             personalityInsights: {
               faceAnalysis,
@@ -669,15 +668,14 @@ Note: This is observational analysis for educational purposes only, not diagnost
               protocol: protocol,
               timestamp: new Date().toISOString(),
               summary: `${protocol.replace('-', ' ')} analysis completed for image`
-            },
-            createdAt: new Date(),
+            }
           });
           
           const message = await storage.createMessage({
+            sessionId: sessionId || 'default',
             analysisId: analysis.id,
             role: "assistant",
-            content: analysisText,
-            createdAt: new Date(),
+            content: analysisText
           });
           
           return res.json({
@@ -698,20 +696,19 @@ Note: This is observational analysis for educational purposes only, not diagnost
         const analysis = await storage.createAnalysis({
           sessionId: sessionId || 'default',
           mediaType: "video" as MediaType,
-          model: selectedModel || 'deepseek',
-          prompt: `${protocol} analysis of video`,
-          additionalInfo: `Protocol: ${protocol}`,
+          mediaUrl: `video:${Date.now()}`,
+          modelUsed: selectedModel || 'deepseek',
           title: `${protocol.replace('-', ' ')} Video Analysis`,
-          createdAt: new Date(),
+          personalityInsights: { protocol: protocol }
         });
 
         const protocolMessage = `Video uploaded for ${protocol.replace('-', ' ')} analysis. Please select a segment to analyze.`;
         
         await storage.createMessage({
+          sessionId: sessionId || 'default',
           analysisId: analysis.id,
           role: "assistant",
-          content: protocolMessage,
-          createdAt: new Date(),
+          content: protocolMessage
         });
 
         const messages = await storage.getMessagesByAnalysisId(analysis.id);
@@ -862,9 +859,8 @@ ${text}
       const analysis = await storage.createAnalysis({
         sessionId: sessionId || 'default',
         mediaType: "document" as MediaType,
-        model: selectedModel || 'deepseek',
-        prompt: analysisPrompt,
-        additionalInfo: `Protocol: ${protocol}`,
+        mediaUrl: `document:${Date.now()}`,
+        modelUsed: selectedModel || 'deepseek',
         title: `${protocol.replace('-', ' ')} Document Analysis`,
         personalityInsights: {
           documentText,
@@ -874,15 +870,14 @@ ${text}
           summary: `${protocol.replace('-', ' ')} analysis completed for document`,
           fileName: file.originalname,
           fileSize: file.size
-        },
-        createdAt: new Date(),
+        }
       });
 
       const message = await storage.createMessage({
+        sessionId: sessionId || 'default',
         analysisId: analysis.id,
         role: "assistant",
-        content: analysisText,
-        createdAt: new Date(),
+        content: analysisText
       });
 
       res.json({
