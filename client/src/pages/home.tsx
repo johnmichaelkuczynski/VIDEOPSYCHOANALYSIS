@@ -38,26 +38,26 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
         // Calculate new dimensions while maintaining aspect ratio
         let width = img.width;
         let height = img.height;
-        
+
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
         }
-        
+
         // Create canvas for resizing
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        
+
         // Draw and resize image on canvas
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error('Could not get canvas context'));
           return;
         }
-        
+
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Convert canvas to data URL
         try {
           const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
@@ -66,22 +66,22 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
           reject(e);
         }
       };
-      
+
       img.onerror = () => {
         reject(new Error('Failed to load image'));
       };
-      
+
       if (typeof readerEvent.target?.result === 'string') {
         img.src = readerEvent.target.result;
       } else {
         reject(new Error('Failed to read file'));
       }
     };
-    
+
     reader.onerror = () => {
       reject(new Error('Failed to read file'));
     };
-    
+
     reader.readAsDataURL(file);
   });
 }
@@ -104,7 +104,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [input, setInput] = useState("");
   const [textInput, setTextInput] = useState("");
   const queryClient = useQueryClient();
-  
+
   // Media states
   const [uploadedMedia, setUploadedMedia] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<MediaType>("image");
@@ -115,7 +115,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>("anthropic");
-  
+
   // Document analysis states
   const [documentChunks, setDocumentChunks] = useState<any[]>([]);
   const [selectedChunks, setSelectedChunks] = useState<number[]>([]);
@@ -124,7 +124,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [metricsAnalysis, setMetricsAnalysis] = useState<any>(null);
   const [expandedMetrics, setExpandedMetrics] = useState<Set<number>>(new Set());
   const [showChunkSelection, setShowChunkSelection] = useState(false);
-  
+
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
   const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(5);
@@ -132,7 +132,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [videoSegments, setVideoSegments] = useState<any[]>([]);
   const [selectedVideoSegment, setSelectedVideoSegment] = useState<number | null>(null);
   const [requiresSegmentSelection, setRequiresSegmentSelection] = useState<boolean>(false);
-  
+
   // Comprehensive text analysis states
   const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
   const [cognitiveParameters, setCognitiveParameters] = useState<any[]>([]);
@@ -144,10 +144,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [showAdditionalInfoDialog, setShowAdditionalInfoDialog] = useState<boolean>(false);
   const [showComprehensiveAnalysis, setShowComprehensiveAnalysis] = useState<boolean>(false);
   const [showFullAnalysisPopup, setShowFullAnalysisPopup] = useState<boolean>(false);
-  
+
   // UI states
   const [showAdvancedServices, setShowAdvancedServices] = useState<boolean>(false);
-  
+
   // References
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -182,7 +182,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     deepgram: false,
     azure_video_indexer: false
   });
-  
+
   // Check API status on component mount
   useEffect(() => {
     const checkStatus = async () => {
@@ -190,10 +190,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         const res = await fetch('/api/status');
         const status = await res.json();
         console.log("API Status:", status);
-        
+
         // Set email service availability
         setEmailServiceAvailable(status.sendgrid || false);
-        
+
         // Set available services
         setAvailableServices({
           deepseek: true, // DeepSeek is always available as default
@@ -209,7 +209,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           deepgram: status.deepgram || false,
           azure_video_indexer: status.azure_video_indexer || false
         });
-        
+
         // Set default selected model based on availability
         // Anthropic (ZHI 1) is the default
         setSelectedModel("anthropic");
@@ -217,7 +217,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         console.error("Error checking API status:", error);
       }
     };
-    
+
     checkStatus();
   }, []);
 
@@ -230,19 +230,19 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           if (data.analysis && data.messages) {
             // Set the analysis data
             setAnalysisId(data.analysis.id);
-            
+
             // Set uploaded media preview if available
             if (data.analysis.mediaUrl) {
               setUploadedMedia(data.analysis.mediaUrl);
               setMediaType(data.analysis.mediaType as MediaType);
             }
-            
+
             // Set messages
             setMessages(data.messages);
-            
+
             // Set email service status
             setEmailServiceAvailable(data.emailServiceAvailable);
-            
+
             toast({
               title: "Shared Analysis Loaded",
               description: "Viewing a shared personality analysis."
@@ -259,12 +259,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
     }
   }, [shareId, toast]);
-  
+
   // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  
+
   // Text analysis
   const handleTextAnalysis = useMutation({
     mutationFn: async (text: string) => {
@@ -272,12 +272,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setIsAnalyzing(true);
         setAnalysisProgress(10);
         setMessages([]);
-        
+
         const response = await analyzeText(text, sessionId, selectedModel, undefined, additionalInfo);
-        
+
         setAnalysisProgress(80);
         setAnalysisId(response.analysisId);
-        
+
         // Set up document analysis UI (same as document upload)
         if (response.chunks) {
           setDocumentChunks(response.chunks);
@@ -285,7 +285,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setDocumentFileType(response.fileType || "text/plain");
           setSelectedChunks(response.chunks.map((chunk: any) => chunk.id)); // Select all chunks by default
           setShowChunkSelection(response.chunks.length > 1); // Only show chunk selection UI if multiple chunks
-          
+
           // Auto-analyze if single chunk
           if (response.chunks.length === 1) {
             setTimeout(() => {
@@ -296,7 +296,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             }, 500);
           }
         }
-        
+
         setEmailServiceAvailable(response.emailServiceAvailable || false);
         setAnalysisProgress(100);
         return response;
@@ -331,16 +331,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setIsAnalyzing(true);
         setAnalysisProgress(0);
         setMessages([]);
-        
+
         // Determine media type and set it
         const fileType = file.type.split('/')[0];
         const isVideo = fileType === 'video';
         const mediaFileType: MediaType = isVideo ? "video" : "image";
         setMediaType(mediaFileType);
-        
+
         // Update progress
         setAnalysisProgress(20);
-        
+
         // Show appropriate progress message for video vs image
         if (isVideo) {
           toast({
@@ -348,7 +348,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             description: "Extracting segment and analyzing content...",
           });
         }
-        
+
         // For images, resize if needed to meet AWS limits
         let mediaData: string;
         if (mediaFileType === "image" && file.size > 4 * 1024 * 1024) {
@@ -360,14 +360,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             reader.onload = (e) => resolve(e.target?.result as string);
             reader.readAsDataURL(file);
           });
-          
+
           // For videos, get duration for segment selection and enforce size limits
           if (isVideo) {
             // Check file size - if over 15MB, we'll get segment selection
             if (file.size > 15 * 1024 * 1024) {
               console.log(`Large video file detected: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
             }
-            
+
             const videoElement = document.createElement('video');
             await new Promise<void>((resolve) => {
               videoElement.onloadedmetadata = () => {
@@ -378,49 +378,49 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             });
           }
         }
-        
+
         // Set preview and store media data for re-analysis
         setUploadedMedia(mediaData);
         setMediaData(mediaData);
         setAnalysisProgress(50);
-        
+
         // Maximum 5 people to analyze
         const maxPeople = 5;
-        
+
         // Upload for analysis
         const options = { 
           selectedModel, 
           maxPeople,
           ...(isVideo && { videoSegmentStart, videoSegmentDuration })
         };
-        
+
         console.log(`Starting ${isVideo ? 'video segment' : 'image'} analysis:`, options);
-        
+
         let response;
-        
+
         // Use multipart upload for all videos (to avoid base64 encoding overhead)
         if (isVideo) {
           console.log(`Large video file detected: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
           console.log("Starting video segment analysis:", { selectedModel, maxPeople: 5, videoSegmentStart: 0, videoSegmentDuration: 5 });
           console.log(`Uploading ${file.type} for analysis with model: ${selectedModel}, sessionId: ${sessionId}`);
-          
+
           // Use FormData for large file uploads
           const formData = new FormData();
           formData.append('media', file);
           formData.append('sessionId', sessionId);
           formData.append('selectedModel', selectedModel);
           formData.append('title', `${mediaFileType} Analysis`);
-          
+
           const uploadResponse = await fetch('/api/upload/media-multipart', {
             method: 'POST',
             body: formData
           });
-          
+
           if (!uploadResponse.ok) {
             const errorData = await uploadResponse.json();
             throw new Error(errorData.error || 'Upload failed');
           }
-          
+
           response = await uploadResponse.json();
         } else {
           // Use regular JSON upload for smaller files
@@ -433,11 +433,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             title: `${mediaFileType} Analysis`
           });
         }
-        
+
         setAnalysisProgress(90);
-        
+
         console.log("Response from uploadMedia:", response);
-        
+
         // Handle different response types
         if (response.requiresSegmentSelection) {
           // Video is too large, show segment selection
@@ -445,14 +445,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setVideoSegments(response.segments || []);
           setVideoDuration(response.duration || 0);
           setAnalysisId(response.analysisId);
-          
+
           toast({
             title: "Video Uploaded",
             description: "Please select a 5-second segment to analyze.",
           });
         } else if (response && response.analysisId) {
           setAnalysisId(response.analysisId);
-          
+
           // Make sure we update the messages state with the response
           if (response && response.messages && Array.isArray(response.messages) && response.messages.length > 0) {
             console.log("Setting messages from response:", response.messages);
@@ -472,7 +472,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             }
           }
         }
-        
+
         setAnalysisProgress(100);
         return response;
       } catch (error: any) {
@@ -502,7 +502,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           })
           .catch(err => console.error("Error fetching messages:", err));
       }
-      
+
       toast({
         title: "Analysis Complete",
         description: "Your media has been successfully analyzed.",
@@ -538,11 +538,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   // Video segment analysis function
   const handleAnalyzeVideoSegment = async () => {
     if (!selectedVideoSegment || !analysisId || !mediaData) return;
-    
+
     try {
       setIsAnalyzing(true);
       setAnalysisProgress(10);
-      
+
       const response = await fetch('/api/analyze/video-segment', {
         method: 'POST',
         headers: {
@@ -555,15 +555,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           sessionId
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to analyze video segment');
       }
-      
+
       const data = await response.json();
       setAnalysisProgress(90);
-      
+
       // Add the analysis message to the chat, replacing any existing video analysis
       if (data.message) {
         setMessages(prev => {
@@ -574,17 +574,17 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           return [...filteredMessages, data.message];
         });
       }
-      
+
       // Hide segment selection and show results
       setRequiresSegmentSelection(false);
-      
+
       setAnalysisProgress(100);
-      
+
       toast({
         title: "Segment Analysis Complete",
         description: "Your video segment has been successfully analyzed!",
       });
-      
+
     } catch (error: any) {
       console.error('Video segment analysis error:', error);
       toast({
@@ -602,7 +602,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const shareForm = useForm<z.infer<typeof shareSchema>>({
     resolver: zodResolver(shareSchema),
   });
-  
+
   const shareMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shareSchema>) => {
       if (!analysisId) throw new Error("No analysis to share");
@@ -627,7 +627,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   // Handle file upload
   const handleFileUpload = (file: File) => {
     const fileType = file.type.split('/')[0];
-    
+
     // Check file size early for videos
     if (fileType === 'video' && file.size > 50 * 1024 * 1024) {
       toast({
@@ -637,7 +637,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       });
       return;
     }
-    
+
     if (fileType === 'image' || fileType === 'video') {
       handleUploadMedia.mutate(file);
     } else {
@@ -656,7 +656,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       handleTextAnalysis.mutate(textInput);
     }
   };
-  
+
   // Handle chat message submission
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -674,11 +674,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       submitHandler(e as unknown as React.FormEvent);
     }
   };
-  
+
   const onShareSubmit = (data: z.infer<typeof shareSchema>) => {
     shareMutation.mutate(data);
   };
-  
+
   // Generic dropzone for all file types
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -700,14 +700,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       fileInputRef.current.click();
     }
   };
-  
+
   // Document upload handler
   const handleDocumentClick = () => {
     if (documentInputRef.current) {
       documentInputRef.current.click();
     }
   };
-  
+
   const handleDocumentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -725,20 +725,20 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       }
     }
   };
-  
+
   // Document upload mutation
   const handleDocumentUpload = useMutation({
     mutationFn: async (file: File) => {
       setIsAnalyzing(true);
       setAnalysisProgress(10);
-      
+
       const reader = new FileReader();
       return new Promise((resolve, reject) => {
         reader.onload = async (e) => {
           try {
             const fileData = e.target?.result as string;
             setAnalysisProgress(30);
-            
+
             const response = await analyzeDocument(
               fileData,
               file.name,
@@ -746,9 +746,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               sessionId,
               selectedModel
             );
-            
+
             setAnalysisProgress(50);
-            
+
             if (response && response.analysisId) {
               setAnalysisId(response.analysisId);
               setDocumentChunks(response.chunks || []);
@@ -757,7 +757,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               setDocumentFileType(file.type);
               setShowChunkSelection((response.chunks || []).length > 1);
               setAnalysisProgress(100);
-              
+
               // Auto-analyze if single chunk
               if ((response.chunks || []).length === 1) {
                 setTimeout(() => {
@@ -768,7 +768,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 }, 500);
               }
             }
-            
+
             resolve(response);
           } catch (error) {
             reject(error);
@@ -796,31 +796,31 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       setAnalysisProgress(0);
     },
   });
-  
+
   // Document chunks analysis mutation
   const handleChunkAnalysis = useMutation({
     mutationFn: async ({ analysisId, selectedChunks }: { analysisId: number, selectedChunks: number[] }) => {
       setIsAnalyzing(true);
       setAnalysisProgress(10);
-      
+
       // Show progress during analysis
       const progressInterval = setInterval(() => {
         setAnalysisProgress(prev => Math.min(prev + 8, 85));
       }, 3000);
-      
+
       try {
         const response = await analyzeDocumentChunks(
           analysisId,
           selectedChunks,
           selectedModel
         );
-        
+
         clearInterval(progressInterval);
         setAnalysisProgress(100);
-        
+
         if (response && response.metricsAnalysis) {
           setMetricsAnalysis(response.metricsAnalysis);
-          
+
           // Generate comprehensive report for chat
           const protocolResponses = response.metricsAnalysis.protocolResponses || [];
           const fullReport = `# Complete Psychological Protocol Analysis\n\n**${protocolResponses.length} Protocol Questions Analyzed**\n\n## Summary\n${response.metricsAnalysis.summary || 'Analysis completed'}\n\n## Detailed Protocol Responses\n\n${protocolResponses.map((resp: any, index: number) => {
@@ -828,7 +828,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             const qNum = (index % 18) + 1;
             return `### ${category} Q${qNum}: ${resp.question}\n\n**Score:** ${resp.score || 'N/A'}/100\n\n**Analysis:** ${resp.answer || 'Analysis completed'}\n\n**Evidence:** ${resp.evidence || 'Supporting evidence provided'}\n\n**Key Quotes:** ${(resp.quotes || []).map((q: string) => `"${q}"`).join(', ')}\n\n---\n`;
           }).join('\n')}\n\n## Overall Assessment\n${response.metricsAnalysis.overallSummary || 'Complete protocol analysis with all questions answered'}\n\n*This is the complete protocol analysis. You can ask me questions about any specific aspects or request clarifications.*`;
-          
+
           // Add full report to chat
           setMessages(prev => [...prev, {
             role: "assistant",
@@ -836,7 +836,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             timestamp: new Date().toISOString()
           }]);
         }
-        
+
         return response;
       } catch (error) {
         clearInterval(progressInterval);
@@ -850,11 +850,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       });
       setIsAnalyzing(false);
       setAnalysisProgress(0);
-      
+
       if (data.metricsAnalysis) {
         setMetricsAnalysis(data.metricsAnalysis);
       }
-      
+
       // Set comprehensive analysis data for all 40 parameters
       if (data.comprehensiveParameters || data.clinicalAnalysis) {
         setComprehensiveAnalysis({
@@ -865,7 +865,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         setShowComprehensiveAnalysis(true);
         setShowFullAnalysisPopup(true); // Show the huge popup
       }
-      
+
       // Set the parameter definitions
       if (data.cognitiveParameters) {
         setCognitiveParameters(data.cognitiveParameters);
@@ -873,11 +873,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       if (data.psychologicalParameters) {
         setPsychologicalParameters(data.psychologicalParameters);
       }
-      
+
       if (data.message) {
         setMessages(prev => [...prev, data.message]);
       }
-      
+
       // Trigger re-fetch of messages to get the latest
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
     },
@@ -892,7 +892,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       setAnalysisProgress(0);
     },
   });
-  
+
   // Toggle chunk selection
   const toggleChunkSelection = (chunkId: number) => {
     setSelectedChunks(prev => 
@@ -901,7 +901,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         : [...prev, chunkId]
     );
   };
-  
+
   // Toggle metric expansion
   const toggleMetricExpansion = (metricIndex: number) => {
     setExpandedMetrics(prev => {
@@ -914,7 +914,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       return newSet;
     });
   };
-  
+
   // Analyze selected chunks
   const analyzeSelectedChunks = () => {
     if (!analysisId) {
@@ -925,10 +925,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       });
       return;
     }
-    
+
     // Auto-select all chunks if none selected
     const chunksToAnalyze = selectedChunks.length === 0 ? documentChunks.map(c => c.id) : selectedChunks;
-    
+
     if (chunksToAnalyze.length === 0) {
       toast({
         variant: "destructive",
@@ -937,10 +937,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       });
       return;
     }
-    
+
     handleChunkAnalysis.mutate({ analysisId, selectedChunks: chunksToAnalyze });
   };
-  
+
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -961,7 +961,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   return (
     <div className="container mx-auto p-4 max-w-6xl" {...getRootProps()}>
       <h1 className="text-4xl font-bold text-center mb-4">AI Personality Analysis</h1>
-      
+
       {/* App List */}
       <div className="flex justify-center mb-8">
         <div className="flex space-x-6 text-sm text-muted-foreground">
@@ -975,7 +975,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           </a>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         {/* Left Column - Inputs and Upload */}
         <div className="space-y-6">
@@ -997,7 +997,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
-            
+
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-sm font-medium">Available Services</h3>
@@ -1010,7 +1010,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   {showAdvancedServices ? "Hide Details" : "Show All"}
                 </Button>
               </div>
-              
+
               <div className="text-xs space-y-1 text-muted-foreground">
                 <div className="flex items-center">
                   <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -1028,7 +1028,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.perplexity ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 4</span>
                 </div>
-                
+
                 {showAdvancedServices && (
                   <>
                     <div className="h-px bg-gray-200 my-2"></div>
@@ -1049,7 +1049,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.aws_rekognition ? 'bg-green-500' : 'bg-red-500'}`}></div>
                       <span>AWS Rekognition</span>
                     </div>
-                    
+
                     <div className="h-px bg-gray-200 my-2"></div>
                     <h4 className="font-medium mb-1">Transcription</h4>
                     <div className="flex items-center">
@@ -1064,7 +1064,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.deepgram ? 'bg-green-500' : 'bg-red-500'}`}></div>
                       <span>Deepgram</span>
                     </div>
-                    
+
                     <div className="h-px bg-gray-200 my-2"></div>
                     <h4 className="font-medium mb-1">Video Analysis</h4>
                     <div className="flex items-center">
@@ -1076,7 +1076,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             </div>
           </Card>
-          
+
           {/* Upload Options */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Step 2: Choose Input Type</h2>
@@ -1097,7 +1097,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   onChange={(e) => handleFileInputChange(e)}
                 />
               </Button>
-              
+
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center" 
@@ -1107,7 +1107,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <Film className="h-8 w-8 mb-2" />
                 <span>Video</span>
               </Button>
-              
+
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center" 
@@ -1125,7 +1125,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 />
               </Button>
             </div>
-            
+
             {isAnalyzing && (
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between">
@@ -1135,7 +1135,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <Progress value={analysisProgress} className="w-full" />
               </div>
             )}
-            
+
             {/* Drag area info */}
             <div className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-muted"}`}>
               <input {...getInputProps()} />
@@ -1147,7 +1147,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </p>
             </div>
           </Card>
-          
+
           {/* Input Preview */}
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -1167,7 +1167,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </Button>
               )}
             </div>
-            
+
             {uploadedMedia && mediaType === "image" && (
               <div className="space-y-4">
                 <img 
@@ -1178,7 +1178,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <div className="text-center text-sm text-muted-foreground mb-4">
                   Face detection will analyze personality traits and emotions
                 </div>
-                
+
                 {/* Re-analyze with current model button */}
                 <Button 
                   onClick={() => {
@@ -1187,7 +1187,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       setMessages([]);
                       setIsAnalyzing(true);
                       setAnalysisProgress(0);
-                      
+
                       // Use the stored media data directly
                       uploadMedia({
                         sessionId,
@@ -1198,15 +1198,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         title: "Image Re-analysis"
                       }).then(response => {
                         setAnalysisProgress(100);
-                        
+
                         if (response && response.analysisId) {
                           setAnalysisId(response.analysisId);
                         }
-                        
+
                         if (response && response.messages && Array.isArray(response.messages)) {
                           setMessages(response.messages);
                         }
-                        
+
                         toast({
                           title: "Analysis Complete",
                           description: "Your image has been re-analyzed with " + getModelDisplayName(selectedModel),
@@ -1229,7 +1229,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </Button>
               </div>
             )}
-            
+
             {uploadedMedia && mediaType === "video" && (
               <div className="space-y-4">
                 <video 
@@ -1241,7 +1241,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <div className="text-center text-sm text-muted-foreground mb-4">
                   Video analysis will extract visual and audio insights
                 </div>
-                
+
                 {/* Video Segment Selection for Large Videos */}
                 {requiresSegmentSelection && videoSegments.length > 0 && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
@@ -1252,7 +1252,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Analysis focuses on facial expressions, body language, and speech patterns in the selected segment.
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                       {videoSegments.map((segment) => (
                         <button
@@ -1269,13 +1269,13 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         </button>
                       ))}
                     </div>
-                    
+
                     {videoDuration > 0 && (
                       <div className="text-xs text-blue-600">
                         Total video duration: {videoDuration.toFixed(1)}s | {videoSegments.length} segments available
                       </div>
                     )}
-                    
+
                     {selectedVideoSegment && (
                       <Button
                         onClick={() => handleAnalyzeVideoSegment()}
@@ -1287,7 +1287,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     )}
                   </div>
                 )}
-                
+
                 {/* Original Video Segment Selection for Small Videos */}
                 {!requiresSegmentSelection && mediaType === "video" && videoDuration > 0 && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
@@ -1299,7 +1299,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
                       audio transcription, and emotional insights from your selected segment.
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-blue-900 mb-1">
@@ -1315,7 +1315,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           className="w-full"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-blue-900 mb-1">
                           Duration (max 5s)
@@ -1331,7 +1331,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         />
                       </div>
                     </div>
-                    
+
                     {videoDuration > 0 && (
                       <div className="text-xs text-blue-600">
                         Video duration: {videoDuration.toFixed(1)}s | 
@@ -1340,7 +1340,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     )}
                   </div>
                 )}
-                
+
                 {/* View full transcript button - only shows after analysis */}
                 {analysisId && (
                   <Button 
@@ -1354,24 +1354,24 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           if (data.audioTranscription) {
                             // Format transcript for display
                             let formattedTranscript = "# Full Video Transcript\n\n";
-                            
+
                             // Add provider info with emoji
                             const provider = data.audioTranscription.provider || 'AI transcription service';
                             formattedTranscript += `*Transcription provided by ${provider}*\n\n`;
-                            
+
                             // Get the transcription data from the standardized format
                             const transcriptionData = data.audioTranscription.transcriptionData || data.audioTranscription.transcription;
-                            
+
                             // Add timestamps and text if utterances are available
                             if (transcriptionData?.utterances && transcriptionData.utterances.length > 0) {
                               // Sort utterances by start time if available
                               const sortedUtterances = [...transcriptionData.utterances].sort((a, b) => a.start - b.start);
-                              
+
                               // Add sentiment indicators if available
                               sortedUtterances.forEach((utterance: any) => {
                                 const start = new Date(utterance.start * 1000).toISOString().substr(14, 5);
                                 const end = new Date(utterance.end * 1000).toISOString().substr(14, 5);
-                                
+
                                 // Add sentiment emoji if available
                                 let sentimentIndicator = '';
                                 if (utterance.sentiment) {
@@ -1379,17 +1379,17 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                   else if (utterance.sentiment === 'negative') sentimentIndicator = ' 😔';
                                   else if (utterance.sentiment === 'neutral') sentimentIndicator = ' 😐';
                                 }
-                                
+
                                 formattedTranscript += `**[${start} - ${end}]**${sentimentIndicator} ${utterance.text}\n\n`;
                               });
                             } else if (transcriptionData?.words && transcriptionData.words.length > 0) {
                               // Alternative format with words
                               let lastTimestamp = 0;
                               let currentParagraph = "";
-                              
+
                               // Sort words by start time
                               const sortedWords = [...transcriptionData.words].sort((a, b) => a.start - b.start);
-                              
+
                               sortedWords.forEach((word: any, index: number) => {
                                 // Start a new paragraph every 15 seconds or on punctuation
                                 const isPunctuation = word.text.match(/[.!?]$/);
@@ -1401,7 +1401,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                 } else {
                                   currentParagraph += word.text + " ";
                                 }
-                                
+
                                 // Add final paragraph
                                 if (index === sortedWords.length - 1 && currentParagraph) {
                                   const paragraphTime = new Date(lastTimestamp * 1000).toISOString().substr(14, 5);
@@ -1420,7 +1420,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             } else {
                               formattedTranscript += "No detailed transcript available.";
                             }
-                            
+
                             // Show transcript in a dialog
                             setMessages(prevMessages => [
                               ...prevMessages,
@@ -1429,7 +1429,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                 content: formattedTranscript
                               }
                             ]);
-                            
+
                             toast({
                               title: "Transcript Loaded",
                               description: "Full video transcript added to the conversation"
@@ -1456,7 +1456,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     View Full Transcript
                   </Button>
                 )}
-                
+
                 {/* Re-analyze with current model button */}
                 <Button 
                   onClick={async () => {
@@ -1464,7 +1464,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       try {
                         setIsAnalyzing(true);
                         setAnalysisProgress(10);
-                        
+
                         // Find segment that corresponds to current time range
                         let targetSegmentId = 1;
                         if (videoSegments.length > 1) {
@@ -1474,10 +1474,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           );
                           targetSegmentId = targetSegment?.id || 1;
                         }
-                        
+
                         const response = await analyzeVideoSegment(analysisId, targetSegmentId, selectedModel, sessionId);
                         setAnalysisProgress(90);
-                        
+
                         // Clear previous video analysis messages and add the new one
                         if (response.videoAnalysis) {
                           const newMessage = {
@@ -1485,7 +1485,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             content: `# Video Segment Analysis (${getModelDisplayName(selectedModel)})\n\n${response.videoAnalysis.summary}\n\n${response.videoAnalysis.analysisText}`,
                             timestamp: new Date().toISOString()
                           };
-                          
+
                           // Filter out previous video analysis messages and add the new one
                           setMessages(prev => {
                             const filteredMessages = prev.filter(msg => 
@@ -1495,14 +1495,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             return [...filteredMessages, newMessage];
                           });
                         }
-                        
+
                         setAnalysisProgress(100);
-                        
+
                         toast({
                           title: "Re-Analysis Complete",
                           description: "Video segment re-analyzed with " + getModelDisplayName(selectedModel),
                         });
-                        
+
                       } catch (error: any) {
                         console.error('Video re-analysis error:', error);
                         toast({
@@ -1523,7 +1523,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </Button>
               </div>
             )}
-            
+
             {/* Document Chunk Selection */}
             {showChunkSelection && documentChunks.length > 0 && (
               <div className="mb-6">
@@ -1531,7 +1531,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <p className="text-sm text-gray-600 mb-4">
                   File: {documentFileName} | {documentChunks.length} chunks | Select chunks to analyze
                 </p>
-                
+
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {documentChunks.map((chunk) => (
                     <div
@@ -1562,7 +1562,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="mt-4 flex justify-between items-center">
                   {documentChunks.length === 1 ? (
                     <p className="text-sm text-gray-600">
@@ -1617,7 +1617,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         </Button>
                       </div>
                     </div>
-                    
+
                     {/* Progress Bar */}
                     {isAnalyzing && (
                       <div className="mb-4">
@@ -1633,7 +1633,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         </div>
                       </div>
                     )}
-                  
+
                   {/* SECTION 1: 25 PSYCHOLOGICAL METRICS */}
                   <div className="mb-6">
                     <h4 className="text-md font-semibold mb-3 text-blue-700">25 Psychological Metrics</h4>
@@ -1662,12 +1662,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                               </div>
                             </div>
                           </div>
-                          
+
                           {expandedMetrics.has(index) && (
                             <div className="mt-3 pt-3 border-t">
                               <h6 className="font-medium text-sm mb-2">Detailed Analysis</h6>
                           <p className="text-sm text-gray-700 mb-3">{metric.detailedAnalysis}</p>
-                          
+
                           {metric.quotes && metric.quotes.length > 0 && (
                             <div>
                               <h6 className="font-medium text-sm mb-2">Key Quotes</h6>
@@ -1686,7 +1686,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       ))}
                     </div>
                   </div>
-                  
+
                   {/* PROTOCOL SUMMARY */}
                   <div className="mb-6">
                     <h4 className="text-md font-semibold mb-3 text-purple-700">Protocol Summary</h4>
@@ -1700,9 +1700,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               </div>
             )}
-            
-            <>
-              {/* OLD METRICS DISPLAY */}
+
+            {/* OLD METRICS DISPLAY */}
             {metricsAnalysis && metricsAnalysis.metrics && (
               <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
                 <div className="bg-white rounded-md p-4">
@@ -1716,7 +1715,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       {cognitiveParameters.map((param) => {
                           const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
                           if (!analysis) return null;
-                          
+
                           return (
                             <Collapsible
                               key={param.id}
@@ -1751,14 +1750,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                   </div>
                                 </div>
                               </CollapsibleTrigger>
-                              
+
                               <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
                                 <div className="space-y-3">
                                   <div>
                                     <h6 className="font-medium text-sm mb-2">Analysis</h6>
                                     <p className="text-sm">{analysis.analysis}</p>
                                   </div>
-                                  
+
                                   {analysis.quotes && analysis.quotes.length > 0 && (
                                     <div>
                                       <h6 className="font-medium text-sm mb-2">Key Quotes</h6>
@@ -1771,7 +1770,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                       </div>
                                     </div>
                                   )}
-                                  
+
                                   {analysis.evidence && (
                                     <div>
                                       <h6 className="font-medium text-sm mb-2">Evidence</h6>
@@ -1784,12 +1783,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           );
                         })}
                       </TabsContent>
-                      
+
                       <TabsContent value="psychological" className="space-y-3 max-h-80 overflow-y-auto mt-4">
                         {psychologicalParameters.map((param) => {
                           const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
                           if (!analysis) return null;
-                          
+
                           return (
                             <Collapsible
                               key={param.id}
@@ -1824,14 +1823,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                   </div>
                                 </div>
                               </CollapsibleTrigger>
-                              
+
                               <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
                                 <div className="space-y-3">
                                   <div>
                                     <h6 className="font-medium text-sm mb-2">Analysis</h6>
                                     <p className="text-sm">{analysis.analysis}</p>
                                   </div>
-                                  
+
                                   {analysis.quotes && analysis.quotes.length > 0 && (
                                     <div>
                                       <h6 className="font-medium text-sm mb-2">Key Quotes</h6>
@@ -1844,7 +1843,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                       </div>
                                     </div>
                                   )}
-                                  
+
                                   {analysis.evidence && (
                                     <div>
                                       <h6 className="font-medium text-sm mb-2">Evidence</h6>
@@ -1857,12 +1856,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           );
                         })}
                       </TabsContent>
-                      
+
                       <TabsContent value="psychological" className="space-y-3 max-h-80 overflow-y-auto mt-4">
                         {psychologicalParameters.map((param) => {
                           const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
                           if (!analysis) return null;
-                          
+
                           return (
                             <div key={param.id} className="border rounded-lg p-3">
                               <h5 className="font-semibold text-sm">{param.name}</h5>
@@ -1874,9 +1873,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </Tabs>
                   </div>
                 </div>
-              </div>
             )}
-            
+
             {/* SECTION 3: CLINICAL ANALYSIS */}
             {metricsAnalysis && metricsAnalysis.clinicalAnalysis && (
                 <div className="mb-6 border rounded-lg bg-gradient-to-r from-red-50 to-orange-50 p-1">
@@ -1914,21 +1912,21 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                 </div>
                               </div>
                             </CollapsibleTrigger>
-                            
+
                             <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
                               <div className="space-y-3">
                                 <div>
                                   <h6 className="font-medium text-sm mb-2">Clinical Assessment</h6>
                                   <p className="text-sm">{analysis.assessment}</p>
                                 </div>
-                                
+
                                 {analysis.evidence && (
                                   <div>
                                     <h6 className="font-medium text-sm mb-2">Clinical Evidence</h6>
                                     <p className="text-sm">{analysis.evidence}</p>
                                   </div>
                                 )}
-                                
+
                                 {analysis.quotes && analysis.quotes.length > 0 && (
                                   <div>
                                     <h6 className="font-medium text-sm mb-2">Supporting Quotes</h6>
@@ -1947,8 +1945,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         ))}
                       </div>
                     </div>
-                  )}
-                  
+                  </div>
+
                   {/* OVERALL SUMMARY */}
                   {metricsAnalysis.overallSummary && (
                     <div className="mt-4 p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-md">
@@ -1956,7 +1954,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       <p className="text-sm">{metricsAnalysis.overallSummary}</p>
                     </div>
                   )}
-                  
+
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-xs text-gray-500 text-center">
                       Complete protocol analysis complete
@@ -1964,26 +1962,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   </div>
                 </div>
               </div>
-              )}
-            </div>
-            
-            {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */
-            <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
-              <DialogContent className="max-w-[98vw] max-h-[98vh] w-[98vw] h-[98vh] p-0 overflow-hidden">
-                <div className="flex flex-col h-full">
-                  <DialogHeader className="p-6 border-b flex-shrink-0">
-                    <DialogTitle className="text-3xl font-bold text-center">
-                      Complete Psychological Protocol Analysis
-                    </DialogTitle>
-                    <p className="text-center text-gray-600 mt-2">
-                      {metricsAnalysis?.protocolResponses?.length || 0} Protocol Questions Answered
-                    </p>
-                  </DialogHeader>
-                  
-                  <div className="flex-1 overflow-y-scroll p-6" style={{ maxHeight: 'calc(98vh - 120px)' }}>
-                    <div className="max-w-6xl mx-auto space-y-4">
-                      
-                      {/* ALL PROTOCOL QUESTIONS IN ONE SCROLLABLE LIST */}
+            )}
+
+            {!uploadedMedia && (
                       {metricsAnalysis?.protocolResponses?.map((response: any, index: number) => (
                         <Collapsible key={index}>
                           <Card className="border hover:shadow-lg transition-all duration-200">
@@ -2012,7 +1993,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                 </div>
                               </div>
                             </CollapsibleTrigger>
-                            
+
                             <CollapsibleContent>
                               <div className="p-4 border-t bg-gray-50 space-y-4">
                                 {/* Score Bar */}
@@ -2026,7 +2007,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                     />
                                   </div>
                                 )}
-                                
+
                                 {/* Analysis */}
                                 <div className={`p-4 rounded-lg ${
                                   index < 18 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
@@ -2040,7 +2021,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                     {response.answer || 'Analysis pending...'}
                                   </p>
                                 </div>
-                                
+
                                 {/* Evidence */}
                                 {response.evidence && (
                                   <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -2052,7 +2033,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                     </p>
                                   </div>
                                 )}
-                                
+
                                 {/* Supporting Quotes */}
                                 {response.quotes && response.quotes.length > 0 && (
                                   <div className={`p-4 rounded-lg border ${
@@ -2084,7 +2065,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           <p>Analysis is still processing or hasn't started yet.</p>
                         </div>
                       )}
-                      
+
                       {/* SUMMARY SECTION AT BOTTOM */}
                       {metricsAnalysis && (
                         <Card className="mt-8 border-2 border-purple-200">
@@ -2092,7 +2073,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             <h3 className="text-2xl font-bold text-center text-purple-800 mb-6">
                               Protocol Analysis Summary
                             </h3>
-                            
+
                             <div className="grid md:grid-cols-2 gap-6">
                               <div className="bg-white p-4 rounded-lg">
                                 <h4 className="font-semibold text-lg text-purple-700 mb-3">Text Summary</h4>
@@ -2100,7 +2081,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                   {metricsAnalysis.summary || "Protocol-based analysis completed"}
                                 </p>
                               </div>
-                              
+
                               <div className="bg-white p-4 rounded-lg">
                                 <h4 className="font-semibold text-lg text-purple-700 mb-3">Psychological Category</h4>
                                 <p className="text-base text-gray-700">
@@ -2108,7 +2089,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                 </p>
                               </div>
                             </div>
-                            
+
                             <div className="bg-white p-4 rounded-lg mt-4">
                               <h4 className="font-semibold text-lg text-purple-700 mb-3">Overall Assessment</h4>
                               <p className="text-base text-gray-700">
@@ -2118,10 +2099,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           </div>
                         </Card>
                       )}
-                      
+
                     </div>
                   </div>
-                  
+
                   <DialogFooter className="p-6 border-t bg-gray-50 flex justify-between items-center">
                     <div className="text-sm text-gray-600">
                       Complete Psychological Protocol Analysis • Generated on {new Date().toLocaleDateString()}
@@ -2138,8 +2119,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               </DialogContent>
             </Dialog>
-            
-            <div>
+
             {!uploadedMedia && (
               <div className="space-y-4">
                 <form onSubmit={handleTextSubmit} className="space-y-4">
@@ -2151,7 +2131,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     className="min-h-[250px] resize-y"
                     disabled={isAnalyzing}
                   />
-                  
+
                   {/* Additional info dialog button */}
                   <div className="flex gap-2">
                     <Dialog open={showAdditionalInfoDialog} onOpenChange={setShowAdditionalInfoDialog}>
@@ -2183,7 +2163,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                    
+
                     <Button 
                       type="submit" 
                       className="flex-1" 
@@ -2193,7 +2173,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </Button>
                   </div>
                 </form>
-                
+
                 {additionalInfo && (
                   <div className="bg-blue-50 p-3 rounded-md">
                     <p className="text-sm text-blue-800">
@@ -2206,7 +2186,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             )}
           </Card>
         </div>
-        
+
         {/* Right Column - Results and Chat */}
         <div className="space-y-6">
           {/* ANALYSIS BOX */}
@@ -2223,11 +2203,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     try {
                       // First clear the session on the server
                       await clearSession(sessionId);
-                      
+
                       // Generate a new session ID to ensure a completely clean state
                       const newSessionId = nanoid();
                       window.location.href = `/?session=${newSessionId}`;
-                      
+
                       // Clear all current state to start a new analysis
                       setMessages([]);
                       setUploadedMedia(null);
@@ -2253,7 +2233,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <span>New Analysis</span>
                 </Button>
               </div>
-              
+
               {messages.length > 0 && (
                 <div className="flex gap-2">
                   {/* Download button */}
@@ -2274,7 +2254,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       <span>Download TXT</span>
                     </Button>
                   )}
-                  
+
                   {/* Share button */}
                   {emailServiceAvailable && (
                     <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
@@ -2333,7 +2313,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               )}
             </div>
-            
+
             <div className="h-[400px] flex flex-col">
               {/* Comprehensive Analysis Display */}
               {showComprehensiveAnalysis && comprehensiveAnalysis && (
@@ -2342,18 +2322,18 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     <h3 className="text-lg font-semibold mb-4 text-center">
                       65 Comprehensive Metrics
                     </h3>
-                    
+
                     <Tabs defaultValue="cognitive" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="cognitive">Cognitive Analysis (20)</TabsTrigger>
                         <TabsTrigger value="psychological">Psychological Analysis (20)</TabsTrigger>
                       </TabsList>
-                      
+
                       <TabsContent value="cognitive" className="space-y-3 max-h-80 overflow-y-auto">
                         {cognitiveParameters.map((param) => {
                           const analysis = comprehensiveAnalysis?.cognitiveAnalysis?.[param.id];
                           if (!analysis) return null;
-                          
+
                           return (
                             <Collapsible
                               key={param.id}
@@ -2388,14 +2368,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                   </div>
                                 </div>
                               </CollapsibleTrigger>
-                              
+
                               <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
                                 <div className="space-y-3">
                                   <div>
                                     <h5 className="font-medium text-sm mb-2">Analysis</h5>
                                     <p className="text-sm text-gray-700">{analysis.analysis}</p>
                                   </div>
-                                  
+
                                   {analysis.quotations && analysis.quotations.length > 0 && (
                                     <div>
                                       <h5 className="font-medium text-sm mb-2">Key Quotations</h5>
@@ -2408,7 +2388,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                       </div>
                                     </div>
                                   )}
-                                  
+
                                   {analysis.evidence && (
                                     <div>
                                       <h5 className="font-medium text-sm mb-2">Evidence</h5>
@@ -2421,12 +2401,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           );
                         })}
                       </TabsContent>
-                      
+
                       <TabsContent value="psychological" className="space-y-3 max-h-80 overflow-y-auto">
                         {psychologicalParameters.map((param) => {
                           const analysis = comprehensiveAnalysis?.psychologicalAnalysis?.[param.id];
                           if (!analysis) return null;
-                          
+
                           return (
                             <Collapsible
                               key={param.id}
@@ -2461,14 +2441,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                   </div>
                                 </div>
                               </CollapsibleTrigger>
-                              
+
                               <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
                                 <div className="space-y-3">
                                   <div>
                                     <h5 className="font-medium text-sm mb-2">Analysis</h5>
                                     <p className="text-sm text-gray-700">{analysis.analysis}</p>
                                   </div>
-                                  
+
                                   {analysis.quotations && analysis.quotations.length > 0 && (
                                     <div>
                                       <h5 className="font-medium text-sm mb-2">Key Quotations</h5>
@@ -2481,7 +2461,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                       </div>
                                     </div>
                                   )}
-                                  
+
                                   {analysis.evidence && (
                                     <div>
                                       <h5 className="font-medium text-sm mb-2">Evidence</h5>
@@ -2495,14 +2475,14 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         })}
                       </TabsContent>
                     </Tabs>
-                    
+
                     {comprehensiveAnalysis.overallSummary && (
                       <div className="mt-4 p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-md">
                         <h4 className="font-semibold text-sm mb-2">Overall Summary</h4>
                         <p className="text-sm">{comprehensiveAnalysis.overallSummary}</p>
                       </div>
                     )}
-                    
+
 {/* Removed overlapping "Discuss Your Analysis" section - now only in popup */}
                   </div>
                 </div>
@@ -2523,7 +2503,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     <div className="text-xs text-muted-foreground mb-2">
                       Debug: Found {messages.length} messages, {messages.filter(m => m.role === "assistant").length} are from assistant
                     </div>
-                    
+
                     {/* Download info message */}
                     {analysisId && (
                       <div className="bg-blue-50 text-blue-800 p-3 rounded-md mb-4 flex items-center gap-2 text-sm">
@@ -2549,7 +2529,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                               .replace(/- (.*?)$/gm, '<li class="ml-4">• $1</li>')
                           }} 
                         />
-                        
+
                         {/* Download buttons at bottom of each analysis */}
                         {analysisId && index === messages.filter(m => m.role === "assistant").length - 1 && (
                           <div className="flex gap-2 mt-4 justify-end">
@@ -2568,7 +2548,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                               <Download className="h-3 w-3" />
                               <span>Save as PDF</span>
                             </Button>
-                            
+
                             <Button
                               variant="outline"
                               size="sm"
@@ -2584,7 +2564,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                               <File className="h-3 w-3" />
                               <span>Save as Word</span>
                             </Button>
-                            
+
                             <Button
                               variant="outline"
                               size="sm"
@@ -2610,13 +2590,13 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               )}
             </div>
           </Card>
-          
+
           {/* CHAT BOX */}
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Chat</h2>
             </div>
-            
+
             <div className="h-[300px] flex flex-col">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center space-y-4 h-full text-center text-muted-foreground">
@@ -2650,7 +2630,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   </div>
                 </ScrollArea>
               )}
-              
+
               <form onSubmit={handleChatSubmit} className="mt-auto">
                 <div className="flex gap-2">
                   <Textarea
@@ -2670,10 +2650,176 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               </form>
             </div>
-            </div>
           </Card>
         </div>
       </div>
+
+      {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */}
+      <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
+        <DialogContent className="max-w-[98vw] max-h-[98vh] w-[98vw] h-[98vh] p-0 overflow-hidden">
+          <div className="flex flex-col h-full">
+            <DialogHeader className="p-6 border-b flex-shrink-0">
+              <DialogTitle className="text-3xl font-bold text-center">
+                Complete Psychological Protocol Analysis
+              </DialogTitle>
+              <p className="text-center text-gray-600 mt-2">
+                {metricsAnalysis?.protocolResponses?.length || 0} Protocol Questions Answered
+              </p>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-scroll p-6" style={{ maxHeight: 'calc(98vh - 120px)' }}>
+              <div className="max-w-6xl mx-auto space-y-4">
+
+                {/* ALL PROTOCOL QUESTIONS IN ONE SCROLLABLE LIST */}
+                {metricsAnalysis?.protocolResponses?.map((response: any, index: number) => (
+                  <Collapsible key={index}>
+                    <Card className="border hover:shadow-lg transition-all duration-200">
+                      <CollapsibleTrigger className="w-full p-4 text-left hover:bg-gray-50">
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`text-xs px-2 py-1 rounded font-medium ${
+                                index < 18 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {index < 18 ? 'PSYCHOLOGICAL' : 'INTELLIGENCE'} Q{(index % 18) + 1}
+                              </div>
+                              <h3 className="font-semibold text-base">{response.question}</h3>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-4">
+                            <div>
+                              <div className={`text-2xl font-bold ${
+                                index < 18 ? 'text-red-600' : 'text-blue-600'
+                              }`}>
+                                {response.score || 'N/A'}
+                              </div>
+                              <div className="text-xs text-gray-500">/100</div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <div className="p-4 border-t bg-gray-50 space-y-4">
+                          {/* Score Bar */}
+                          {response.score && (
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                              <div 
+                                className={`h-3 rounded-full transition-all duration-500 ${
+                                  index < 18 ? 'bg-red-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${response.score}%` }}
+                              />
+                            </div>
+                          )}
+
+                          {/* Analysis */}
+                          <div className={`p-4 rounded-lg ${
+                            index < 18 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
+                          } border`}>
+                            <h5 className={`font-semibold text-lg mb-3 ${
+                              index < 18 ? 'text-red-700' : 'text-blue-700'
+                            }`}>
+                              Analysis
+                            </h5>
+                            <p className="text-base leading-relaxed text-gray-800">
+                              {response.answer || 'Analysis pending...'}
+                            </p>
+                          </div>
+
+                          {/* Evidence */}
+                          {response.evidence && (
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                              <h5 className="font-semibold text-lg mb-3 text-gray-700">
+                                Evidence
+                              </h5>
+                              <p className="text-base text-gray-700 leading-relaxed">
+                                {response.evidence}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Supporting Quotes */}
+                          {response.quotes && response.quotes.length > 0 && (
+                            <div className={`p-4 rounded-lg border ${
+                              index < 18 ? 'bg-red-100 border-red-200' : 'bg-blue-100 border-blue-200'
+                            }`}>
+                              <h5 className={`font-semibold text-lg mb-3 ${
+                                index < 18 ? 'text-red-700' : 'text-blue-700'
+                              }`}>
+                                Supporting Quotes
+                              </h5>
+                              <div className="space-y-2">
+                                {response.quotes.map((quote: string, qIndex: number) => (
+                                  <blockquote key={qIndex} className={`border-l-4 pl-4 py-2 italic text-base ${
+                                    index < 18 ? 'border-red-300 text-red-800' : 'border-blue-300 text-blue-800'
+                                  }`}>
+                                    "{quote}"
+                                  </blockquote>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                ))}
+
+                {/* Overall Analysis Summary */}
+                {metricsAnalysis && (
+                  <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 mt-8">
+                    <div className="p-6">
+                      <h3 className="text-2xl font-bold text-purple-700 mb-4 text-center">
+                        Complete Analysis Summary
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="bg-red-100 p-4 rounded-lg border border-red-200">
+                          <h4 className="font-semibold text-lg text-red-700 mb-2">Psychological Analysis</h4>
+                          <p className="text-sm text-red-600">
+                            {metricsAnalysis.protocolResponses?.filter((_: any, index: number) => index < 18).length || 0} psychological markers analyzed
+                          </p>
+                        </div>
+                        <div className="bg-blue-100 p-4 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-lg text-blue-700 mb-2">Intelligence Analysis</h4>
+                          <p className="text-sm text-blue-600">
+                            {metricsAnalysis.protocolResponses?.filter((_: any, index: number) => index >= 18).length || 0} intelligence factors evaluated
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-lg mt-4">
+                        <h4 className="font-semibold text-lg text-purple-700 mb-3">Overall Assessment</h4>
+                        <p className="text-base text-gray-700">
+                          {metricsAnalysis.overallSummary || "Complete protocol analysis with all questions answered"}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+              </div>
+            </div>
+
+            <DialogFooter className="p-6 border-t bg-gray-50 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Complete Psychological Protocol Analysis • Generated on {new Date().toLocaleDateString()}
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" size="lg" onClick={() => setShowFullAnalysisPopup(false)}>
+                  Close Analysis
+                </Button>
+                <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
+                  Download Report
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
