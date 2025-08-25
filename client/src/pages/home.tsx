@@ -927,7 +927,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     }
     
     // Auto-select all chunks if none selected
-    const chunksToAnalyze = selectedChunks.length === 0 ? chunks.map(c => c.id) : selectedChunks;
+    const chunksToAnalyze = selectedChunks.length === 0 ? documentChunks.map(c => c.id) : selectedChunks;
     
     if (chunksToAnalyze.length === 0) {
       toast({
@@ -1683,7 +1683,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         </div>
                       )}
                     </div>
-                        ))}
+                      ))}
                     </div>
                   </div>
                   
@@ -1701,6 +1701,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
             
+            <>
             {/* OLD METRICS DISPLAY */}
             {metricsAnalysis && metricsAnalysis.metrics && (
               <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
@@ -1875,7 +1876,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               </div>
               )}
-              
+            </div>
+            
+            <div>
               {/* SECTION 3: CLINICAL ANALYSIS */}
               {metricsAnalysis && metricsAnalysis.clinicalAnalysis && (
                 <div className="mb-6 border rounded-lg bg-gradient-to-r from-red-50 to-orange-50 p-1">
@@ -1964,7 +1967,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               </div>
               )}
-            </div>
+            </>
             
             {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */}
             <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
@@ -2265,7 +2268,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           title: "Downloading Text File",
                           description: "Your analysis is being downloaded as TXT"
                         });
-                        downloadAnalysis(analysisId, 'txt');
+                        if (analysisId) downloadAnalysis(analysisId, 'txt');
                       }}
                     >
                       <FileText className="h-4 w-4" />
