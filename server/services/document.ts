@@ -47,10 +47,7 @@ export function generateAnalysisTxt(analysis: Analysis): string {
     txtContent += 'COMPREHENSIVE PSYCHOANALYTIC ASSESSMENT:\n';
     txtContent += '='.repeat(60) + '\n\n';
     // Clean up analysis text by removing markdown formatting
-    const analysisText = typeof personalityInsights.comprehensiveAnalysis === 'string' 
-      ? personalityInsights.comprehensiveAnalysis 
-      : JSON.stringify(personalityInsights.comprehensiveAnalysis);
-    const cleanAnalysisText = analysisText
+    const cleanAnalysisText = personalityInsights.comprehensiveAnalysis
       .replace(/#{1,6}\s*/g, '') // Remove headers
       .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
       .replace(/\*(.*?)\*/g, '$1') // Remove italic
@@ -639,10 +636,7 @@ export function generateAnalysisHtml(analysis: Analysis): string {
   // Check for image analysis data (legacy format)
   else if (personalityInsights.comprehensiveAnalysis && typeof personalityInsights.comprehensiveAnalysis === 'string') {
     // Clean up analysis text by removing markdown formatting
-    const analysisText = typeof personalityInsights.comprehensiveAnalysis === 'string' 
-      ? personalityInsights.comprehensiveAnalysis 
-      : JSON.stringify(personalityInsights.comprehensiveAnalysis);
-    const cleanAnalysisText = analysisText
+    const cleanAnalysisText = personalityInsights.comprehensiveAnalysis
       .replace(/#{1,6}\s*/g, '') // Remove headers
       .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
       .replace(/\*(.*?)\*/g, '$1') // Remove italic

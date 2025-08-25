@@ -75,8 +75,6 @@ export class MemStorage implements IStorage {
       sessionId: insertAnalysis.sessionId,
       title: title,
       mediaUrl: insertAnalysis.mediaUrl,
-      fileName: insertAnalysis.fileName || null,
-      fileType: insertAnalysis.fileType || null,
       mediaType: insertAnalysis.mediaType,
       faceAnalysis: insertAnalysis.faceAnalysis || null,
       videoAnalysis: insertAnalysis.videoAnalysis || null,
