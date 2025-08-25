@@ -512,18 +512,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Analyzing ${selectedChunks.length} chunks with ${selectedModel}`);
       
-      // Create comprehensive AI-powered analysis prompt for 25 metrics
-      const documentAnalysisPrompt = `You are a psychological analyst. Analyze the following text using 25 psychological metrics. 
+      // Create comprehensive AI-powered analysis prompt for both 25 metrics AND clinical analysis
+      const documentAnalysisPrompt = `You are a clinical psychologist conducting a comprehensive psychological evaluation. Analyze the following text using both 25 psychological metrics AND comprehensive clinical assessment.
 
 TEXT: "${selectedText}"
 
-INSTRUCTIONS:
-- Provide a JSON response only 
-- Each metric needs: name, score (1-100), explanation, detailedAnalysis, quotes array
-- Use EXACT quotes from the text above
-- If text is short, acknowledge limitations but still provide analysis
+PART 1: 25 PSYCHOLOGICAL METRICS
+Analyze using: Content Quality, Communication Style, Analytical Depth, Professional Competence, Clarity of Expression, Logical Organization, Attention to Detail, Conceptual Understanding, Critical Thinking, Creativity, Emotional Intelligence, Persuasiveness, Adaptability, Leadership Potential, Team Collaboration, Innovation, Risk Assessment, Strategic Thinking, Decision Making, Problem Solving, Learning Orientation, Resilience, Ethical Reasoning, Cultural Awareness, Future Orientation
 
-METRICS: Content Quality, Communication Style, Analytical Depth, Professional Competence, Clarity of Expression, Logical Organization, Attention to Detail, Conceptual Understanding, Critical Thinking, Creativity, Emotional Intelligence, Persuasiveness, Adaptability, Leadership Potential, Team Collaboration, Innovation, Risk Assessment, Strategic Thinking, Decision Making, Problem Solving, Learning Orientation, Resilience, Ethical Reasoning, Cultural Awareness, Future Orientation
+PART 2: COMPREHENSIVE CLINICAL ANALYSIS
+Assess these 10 clinical psychological markers with detailed evidence:
+- Affect in Language: Emotional tone, mood indicators, affective quality
+- Attention Patterns: Focus, distractibility, attention deficits in writing
+- Expression Style: Verbal fluency, organization, coherence
+- Content Analysis: Themes, preoccupations, thought content
+- Relational Language: How relationships and interpersonal dynamics are described
+- Defenses: Psychological defense mechanisms (denial, projection, rationalization)
+- Cognitive Organization: Logic, reality testing, abstract thinking
+- Psychomotor Equivalents: Energy level, activity patterns in language
+- Global Integration: Overall coherence and integration
+- Psychotic Markers: Any signs of thought disorder or reality distortion
 
 Respond with valid JSON only:
 {
@@ -536,7 +544,20 @@ Respond with valid JSON only:
       "detailedAnalysis": "Detailed paragraph explanation", 
       "quotes": ["exact quote from text"]
     }
-  ]
+  ],
+  "clinicalAnalysis": {
+    "affectInLanguage": {"assessment": "detailed analysis", "evidence": "specific evidence", "quotes": ["exact quotes"]},
+    "attentionPatterns": {"assessment": "detailed analysis", "patterns": ["key patterns"], "quotes": ["exact quotes"]},
+    "expressionStyle": {"assessment": "detailed analysis", "characteristics": ["style characteristics"], "quotes": ["exact quotes"]},
+    "contentAnalysis": {"assessment": "detailed analysis", "themes": ["major themes"], "quotes": ["exact quotes"]},
+    "relationalLanguage": {"assessment": "detailed analysis", "patterns": ["relationship patterns"], "quotes": ["exact quotes"]},
+    "defenses": {"assessment": "detailed analysis", "mechanisms": ["defense mechanisms"], "quotes": ["exact quotes"]},
+    "cognitiveOrganization": {"assessment": "detailed analysis", "strengths": ["cognitive strengths"], "quotes": ["exact quotes"]},
+    "psychomotorEquivalents": {"assessment": "detailed analysis", "patterns": ["energy patterns"], "quotes": ["exact quotes"]},
+    "globalIntegration": {"assessment": "detailed analysis", "integration": "assessment", "quotes": ["exact quotes"]},
+    "psychoticMarkers": {"assessment": "detailed analysis", "markers": ["any markers present"], "quotes": ["exact quotes"]}
+  },
+  "overallSummary": "Comprehensive clinical summary integrating all findings"
 }`;
 
       let metricsAnalysis = null;
