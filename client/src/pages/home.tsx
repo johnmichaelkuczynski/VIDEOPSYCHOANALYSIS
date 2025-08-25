@@ -284,7 +284,17 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setDocumentFileName(response.fileName || "Direct Text Input");
           setDocumentFileType(response.fileType || "text/plain");
           setSelectedChunks(response.chunks.map((chunk: any) => chunk.id)); // Select all chunks by default
-          setShowChunkSelection(true); // Show the chunk selection UI
+          setShowChunkSelection(response.chunks.length > 1); // Only show chunk selection UI if multiple chunks
+          
+          // Auto-analyze if single chunk
+          if (response.chunks.length === 1) {
+            setTimeout(() => {
+              handleChunkAnalysis.mutate({ 
+                analysisId: response.analysisId, 
+                selectedChunks: response.chunks.map((chunk: any) => chunk.id) 
+              });
+            }, 500);
+          }
         }
         
         setEmailServiceAvailable(response.emailServiceAvailable || false);
@@ -745,8 +755,18 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               setSelectedChunks((response.chunks || []).map((chunk: any) => chunk.id));
               setDocumentFileName(file.name);
               setDocumentFileType(file.type);
-              setShowChunkSelection(true);
+              setShowChunkSelection((response.chunks || []).length > 1);
               setAnalysisProgress(100);
+              
+              // Auto-analyze if single chunk
+              if ((response.chunks || []).length === 1) {
+                setTimeout(() => {
+                  handleChunkAnalysis.mutate({ 
+                    analysisId: response.analysisId, 
+                    selectedChunks: (response.chunks || []).map((chunk: any) => chunk.id) 
+                  });
+                }, 500);
+              }
             }
             
             resolve(response);
@@ -783,38 +803,50 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       setIsAnalyzing(true);
       setAnalysisProgress(10);
       
-      const response = await analyzeDocumentChunks(
-        analysisId,
-        selectedChunks,
-        selectedModel
-      );
+      // Show progress during analysis
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => Math.min(prev + 8, 85));
+      }, 3000);
       
-      setAnalysisProgress(90);
-      
-      if (response && response.metricsAnalysis) {
-        setMetricsAnalysis(response.metricsAnalysis);
+      try {
+        const response = await analyzeDocumentChunks(
+          analysisId,
+          selectedChunks,
+          selectedModel
+        );
         
-        // Add message to chat
-        if (response.message) {
-          setMessages(prev => [...prev, response.message]);
-        } else {
-          // Fallback - create a display message if none provided
-          const summaryMessage = {
-            role: "assistant" as const,
-            content: `Document Analysis Complete\n\n25 psychological metrics have been analyzed across ${selectedChunks.length} text chunks. The analysis includes detailed scoring, explanations, and direct quotations from your document.`
-          };
-          setMessages(prev => [...prev, summaryMessage]);
+        clearInterval(progressInterval);
+        setAnalysisProgress(100);
+        
+        if (response && response.metricsAnalysis) {
+          setMetricsAnalysis(response.metricsAnalysis);
+          
+          // Generate comprehensive report for chat
+          const protocolResponses = response.metricsAnalysis.protocolResponses || [];
+          const fullReport = `# Complete Psychological Protocol Analysis\n\n**${protocolResponses.length} Protocol Questions Analyzed**\n\n## Summary\n${response.metricsAnalysis.summary || 'Analysis completed'}\n\n## Detailed Protocol Responses\n\n${protocolResponses.map((resp: any, index: number) => {
+            const category = index < 18 ? 'PSYCHOLOGICAL' : 'INTELLIGENCE';
+            const qNum = (index % 18) + 1;
+            return `### ${category} Q${qNum}: ${resp.question}\n\n**Score:** ${resp.score || 'N/A'}/100\n\n**Analysis:** ${resp.answer || 'Analysis completed'}\n\n**Evidence:** ${resp.evidence || 'Supporting evidence provided'}\n\n**Key Quotes:** ${(resp.quotes || []).map((q: string) => `"${q}"`).join(', ')}\n\n---\n`;
+          }).join('\n')}\n\n## Overall Assessment\n${response.metricsAnalysis.overallSummary || 'Complete protocol analysis with all questions answered'}\n\n*This is the complete protocol analysis. You can ask me questions about any specific aspects or request clarifications.*`;
+          
+          // Add full report to chat
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            content: fullReport,
+            timestamp: new Date().toISOString()
+          }]);
         }
         
-        setAnalysisProgress(100);
+        return response;
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
       }
-      
-      return response;
     },
     onSuccess: (data) => {
       toast({
-        title: "Analysis Complete",
-        description: "65 comprehensive metrics have been analyzed.",
+        title: "Protocol Analysis Complete",
+        description: `${data?.metricsAnalysis?.protocolResponses?.length || 0} protocol questions analyzed. Full report added to chat.`,
       });
       setIsAnalyzing(false);
       setAnalysisProgress(0);
@@ -1553,26 +1585,54 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
 
-            {/* 65 COMPREHENSIVE METRICS DISPLAY */}
-            {metricsAnalysis && metricsAnalysis.metrics && (
-              <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
-                <div className="bg-white rounded-md p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">65 Comprehensive Metrics</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (analysisId && selectedChunks.length > 0) {
-                          handleChunkAnalysis.mutate({ analysisId, selectedChunks });
-                        }
-                      }}
-                      disabled={isAnalyzing || !analysisId || selectedChunks.length === 0}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Regenerate
-                    </Button>
-                  </div>
+            {/* ANALYSIS RESULTS SECTION */}
+            <>
+              {/* PROTOCOL ANALYSIS DISPLAY */}
+              {metricsAnalysis && metricsAnalysis.protocolResponses && (
+                <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
+                  <div className="bg-white rounded-md p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Protocol Analysis Complete</h3>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setShowFullAnalysisPopup(true)}
+                          size="sm"
+                          className="flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Full Analysis
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (analysisId && selectedChunks.length > 0) {
+                              handleChunkAnalysis.mutate({ analysisId, selectedChunks });
+                            }
+                          }}
+                          disabled={isAnalyzing || !analysisId || selectedChunks.length === 0}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Regenerate
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    {isAnalyzing && (
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm text-gray-600 mb-2">
+                          <span>Analyzing protocol questions...</span>
+                          <span>{analysisProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${analysisProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   
                   {/* SECTION 1: 25 PSYCHOLOGICAL METRICS */}
                   <div className="mb-6">
@@ -1627,17 +1687,32 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     </div>
                   </div>
                   
-                  {/* SECTION 2: 40 COMPREHENSIVE PARAMETERS */}
+                  {/* PROTOCOL SUMMARY */}
                   <div className="mb-6">
-                    <h4 className="text-md font-semibold mb-3 text-purple-700">40 Comprehensive Parameters</h4>
-                    <Tabs defaultValue="cognitive" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="cognitive">Cognitive Analysis (20)</TabsTrigger>
-                        <TabsTrigger value="psychological">Psychological Analysis (20)</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="cognitive" className="space-y-3 max-h-80 overflow-y-auto mt-4">
-                        {cognitiveParameters.map((param) => {
+                    <h4 className="text-md font-semibold mb-3 text-purple-700">Protocol Summary</h4>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-700">
+                        {metricsAnalysis?.protocolResponses?.length || 0} protocol questions analyzed. 
+                        View the complete analysis above or open the full analysis popup for detailed responses.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* OLD METRICS DISPLAY */}
+            {metricsAnalysis && metricsAnalysis.metrics && (
+              <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
+                <div className="bg-white rounded-md p-4">
+                  <h3 className="text-lg font-semibold mb-4">Analysis Complete</h3>
+                  <Tabs defaultValue="cognitive" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="cognitive">Cognitive Analysis (20)</TabsTrigger>
+                      <TabsTrigger value="psychological">Psychological Analysis (20)</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="cognitive" className="space-y-3 max-h-80 overflow-y-auto mt-4">
+                      {cognitiveParameters.map((param) => {
                           const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
                           if (!analysis) return null;
                           
@@ -1781,12 +1856,31 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           );
                         })}
                       </TabsContent>
+                      
+                      <TabsContent value="psychological" className="space-y-3 max-h-80 overflow-y-auto mt-4">
+                        {psychologicalParameters.map((param) => {
+                          const analysis = metricsAnalysis?.comprehensiveParameters?.[param.id];
+                          if (!analysis) return null;
+                          
+                          return (
+                            <div key={param.id} className="border rounded-lg p-3">
+                              <h5 className="font-semibold text-sm">{param.name}</h5>
+                              <p className="text-sm mt-2">{analysis.analysis || 'Analysis complete'}</p>
+                            </div>
+                          );
+                        })}
+                      </TabsContent>
                     </Tabs>
                   </div>
-                  
-                  {/* SECTION 3: CLINICAL ANALYSIS */}
-                  {metricsAnalysis.clinicalAnalysis && (
-                    <div className="mb-6">
+                </div>
+              </div>
+              )}
+              
+              {/* SECTION 3: CLINICAL ANALYSIS */}
+              {metricsAnalysis && metricsAnalysis.clinicalAnalysis && (
+              <div className="mb-6 border rounded-lg bg-gradient-to-r from-red-50 to-orange-50 p-1">
+                <div className="bg-white rounded-md p-4">
+                  <div className="mb-6">
                       <h4 className="text-md font-semibold mb-3 text-red-700">Clinical Psychological Markers</h4>
                       <div className="space-y-3 max-h-80 overflow-y-auto">
                         {Object.entries(metricsAnalysis.clinicalAnalysis).map(([key, analysis]: [string, any], index: number) => (
@@ -1864,12 +1958,13 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-xs text-gray-500 text-center">
-                      Complete 65-metric comprehensive psychological analysis
+                      Complete protocol analysis complete
                     </p>
                   </div>
                 </div>
               </div>
-            )}
+              )}
+            </>
             
             {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */}
             <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
