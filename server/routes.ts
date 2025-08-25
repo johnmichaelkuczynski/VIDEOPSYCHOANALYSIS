@@ -655,10 +655,27 @@ CRITICAL INSTRUCTIONS:
         return res.status(400).json({ error: "Document data and session ID are required" });
       }
       
-      // Extract base64 content
-      const base64Data = fileData.split(',')[1];
+      // Extract base64 content - more robust handling
+      console.log("File data format check:", fileData.substring(0, 100) + "...");
+      
+      let base64Data;
+      if (fileData.startsWith('data:')) {
+        // Standard data URL format: data:mime/type;base64,content
+        const parts = fileData.split(',');
+        if (parts.length >= 2) {
+          base64Data = parts[1];
+        } else {
+          console.error("Invalid data URL format - no comma separator");
+          return res.status(400).json({ error: "Invalid document data format - no base64 content found" });
+        }
+      } else {
+        // Direct base64 content (fallback)
+        base64Data = fileData;
+      }
+      
       if (!base64Data) {
-        return res.status(400).json({ error: "Invalid document data format" });
+        console.error("No base64 data extracted from:", fileData.substring(0, 100));
+        return res.status(400).json({ error: "Invalid document data format - empty base64 content" });
       }
       
       const fileBuffer = Buffer.from(base64Data, 'base64');

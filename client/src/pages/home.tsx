@@ -280,10 +280,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setMessages(response.messages);
         }
         
-        // Store comprehensive analysis data if available
+        // Store comprehensive analysis data if available but don't switch to tabs view
+        // Text analysis should display in main ANALYSIS box like image/video
         if (response.comprehensiveAnalysis) {
           setComprehensiveAnalysis(response.comprehensiveAnalysis);
-          setShowComprehensiveAnalysis(true);
+          // setShowComprehensiveAnalysis(true); // Commented out - show in main analysis box instead
         }
         
         if (response.cognitiveParameters) {
@@ -310,20 +311,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       }
     },
     onSuccess: (data) => {
-      // Get all messages for the session to be sure we have the latest
-      if (data?.analysisId) {
-        // If we received an analysis ID, fetch any messages related to it
-        fetch(`/api/messages?sessionId=${sessionId}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && Array.isArray(data) && data.length > 0) {
-              console.log("Fetched messages after text analysis:", data);
-              setMessages(data);
-            }
-          })
-          .catch(err => console.error("Error fetching messages after text analysis:", err));
-      }
-      
       toast({
         title: "Comprehensive Analysis Complete",
         description: "Your text has been analyzed across 40 psychological and cognitive parameters.",
