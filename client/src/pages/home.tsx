@@ -1671,7 +1671,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="mb-6">
                     <h4 className="text-md font-semibold mb-3 text-blue-700">25 Psychological Metrics</h4>
                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {metricsAnalysis.metrics && metricsAnalysis.metrics.map((metric: any, index: number) => (
+                      {metricsAnalysis.metrics && Array.isArray(metricsAnalysis.metrics) && metricsAnalysis.metrics.map((metric: any, index: number) => (
                         <div
                           key={index}
                           className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
