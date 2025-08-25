@@ -2065,6 +2065,28 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                             </div>
                           </div>
                         </Card>
+                        
+                        {/* Discussion Section - INSIDE THE POPUP */}
+                        <Card className="p-6">
+                          <h3 className="text-lg font-semibold mb-4">Discuss Your Analysis</h3>
+                          <div className="space-y-4">
+                            <Textarea
+                              placeholder="Share your thoughts, provide additional context, or ask questions about the analysis..."
+                              className="min-h-[100px] resize-y text-sm"
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm">
+                                Refine Analysis
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                Generate Report
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                Export Discussion
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -2449,24 +2471,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       </div>
                     )}
                     
-                    {/* Post-Analysis Dialogue Interface */}
-                    <div className="mt-4 p-4 border-t">
-                      <h4 className="font-semibold text-sm mb-3">Discuss Your Analysis</h4>
-                      <div className="space-y-3">
-                        <Textarea
-                          placeholder="Share your thoughts, provide additional context, or ask questions about the analysis..."
-                          className="min-h-[80px] resize-none text-sm"
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm">
-                            Refine Analysis
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Generate Report
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+{/* Removed overlapping "Discuss Your Analysis" section - now only in popup */}
                   </div>
                 </div>
               )}
