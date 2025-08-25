@@ -902,6 +902,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     );
   };
 
+  // Select all chunks
+  const selectAllChunks = () => {
+    setSelectedChunks(documentChunks.map(chunk => chunk.id));
+  };
+
+  // Deselect all chunks
+  const deselectAllChunks = () => {
+    setSelectedChunks([]);
+  };
+
   // Toggle metric expansion
   const toggleMetricExpansion = (metricIndex: number) => {
     setExpandedMetrics(prev => {
@@ -1531,6 +1541,29 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <p className="text-sm text-gray-600 mb-4">
                   File: {documentFileName} | {documentChunks.length} chunks | Select chunks to analyze
                 </p>
+                
+                {/* Bulk selection buttons */}
+                <div className="flex gap-2 mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={selectAllChunks}
+                    disabled={isAnalyzing}
+                  >
+                    Select All
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={deselectAllChunks}
+                    disabled={isAnalyzing}
+                  >
+                    Deselect All
+                  </Button>
+                  <span className="text-sm text-gray-500 self-center ml-2">
+                    {selectedChunks.length} of {documentChunks.length} selected
+                  </span>
+                </div>
 
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {documentChunks.map((chunk) => (
@@ -1638,7 +1671,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="mb-6">
                     <h4 className="text-md font-semibold mb-3 text-blue-700">25 Psychological Metrics</h4>
                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {metricsAnalysis.metrics.map((metric: any, index: number) => (
+                      {metricsAnalysis.metrics && metricsAnalysis.metrics.map((metric: any, index: number) => (
                         <div
                           key={index}
                           className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
