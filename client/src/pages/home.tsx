@@ -1701,7 +1701,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
             )}
             
-            <div>
+            <>
               {/* OLD METRICS DISPLAY */}
             {metricsAnalysis && metricsAnalysis.metrics && (
               <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
@@ -2139,6 +2139,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </DialogContent>
             </Dialog>
             
+            <div>
             {!uploadedMedia && (
               <div className="space-y-4">
                 <form onSubmit={handleTextSubmit} className="space-y-4">
@@ -2668,6 +2669,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   </Button>
                 </div>
               </form>
+            </div>
             </div>
           </Card>
         </div>
