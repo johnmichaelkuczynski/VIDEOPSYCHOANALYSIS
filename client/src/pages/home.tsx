@@ -1586,7 +1586,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             )}
 
             {/* ANALYSIS RESULTS SECTION */}
-            <>
+            <div>
               {/* PROTOCOL ANALYSIS DISPLAY */}
               {metricsAnalysis && metricsAnalysis.protocolResponses && (
                 <div className="mb-6 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-1">
@@ -1878,9 +1878,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               
               {/* SECTION 3: CLINICAL ANALYSIS */}
               {metricsAnalysis && metricsAnalysis.clinicalAnalysis && (
-              <div className="mb-6 border rounded-lg bg-gradient-to-r from-red-50 to-orange-50 p-1">
-                <div className="bg-white rounded-md p-4">
-                  <div className="mb-6">
+                <div className="mb-6 border rounded-lg bg-gradient-to-r from-red-50 to-orange-50 p-1">
+                  <div className="bg-white rounded-md p-4">
+                    <div className="mb-6">
                       <h4 className="text-md font-semibold mb-3 text-red-700">Clinical Psychological Markers</h4>
                       <div className="space-y-3 max-h-80 overflow-y-auto">
                         {Object.entries(metricsAnalysis.clinicalAnalysis).map(([key, analysis]: [string, any], index: number) => (
@@ -1964,7 +1964,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </div>
               </div>
               )}
-            </>
+            </div>
             
             {/* GIANT POPUP WITH ALL PROTOCOL QUESTIONS - EXPANDABLE FORMAT */}
             <Dialog open={showFullAnalysisPopup} onOpenChange={setShowFullAnalysisPopup}>
