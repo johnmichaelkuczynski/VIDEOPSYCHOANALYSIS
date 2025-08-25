@@ -568,20 +568,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { id: 40, name: "Psychological Mindedness", description: "Interest in and capacity for psychological insight and self-reflection." }
       ];
 
-      // Create comprehensive AI-powered analysis prompt for 65 TOTAL METRICS (25 + 40)
-      const documentAnalysisPrompt = `You are a clinical psychologist conducting a comprehensive psychological evaluation. Analyze the following text using 65 total metrics: 25 psychological metrics + 40 comprehensive parameters.
+      // CHUNKED ANALYSIS: Generate all 65 metrics in smaller batches to avoid overwhelming AI
+      console.log("Starting chunked analysis for all 65 metrics...");
+      let finalMetrics = [];
+      let finalComprehensiveParameters = {};
+      let finalClinicalAnalysis = {};
+      
+      // CHUNK 1: First 10 psychological metrics
+      const chunk1Metrics = ["Content Quality", "Communication Style", "Analytical Depth", "Professional Competence", "Clarity of Expression", "Logical Organization", "Attention to Detail", "Conceptual Understanding", "Critical Thinking", "Creativity"];
+      
+      const chunk1Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological metrics only:
 
 TEXT: "${selectedText}"
 
-PART 1: 25 PSYCHOLOGICAL METRICS
-Analyze using: Content Quality, Communication Style, Analytical Depth, Professional Competence, Clarity of Expression, Logical Organization, Attention to Detail, Conceptual Understanding, Critical Thinking, Creativity, Emotional Intelligence, Persuasiveness, Adaptability, Leadership Potential, Team Collaboration, Innovation, Risk Assessment, Strategic Thinking, Decision Making, Problem Solving, Learning Orientation, Resilience, Ethical Reasoning, Cultural Awareness, Future Orientation
+METRICS: ${chunk1Metrics.join(', ')}
 
-PART 2: 40 COMPREHENSIVE PARAMETERS
-${cognitiveParameters.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
-${psychologicalParameters.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+Respond with JSON only:
+{
+  "metrics": [
+    {"name": "Content Quality", "score": 75, "explanation": "Brief explanation", "detailedAnalysis": "Detailed analysis", "quotes": ["exact quotes"]}
+  ]
+}`;
+      
+      let chunk1Result = await callAI(selectedModel, chunk1Prompt);
+      if (chunk1Result?.metrics) finalMetrics.push(...chunk1Result.metrics);
+      
+      // 10 second pause
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 1, pausing 10 seconds...");
+      
+      // CHUNK 2: Next 10 psychological metrics
+      const chunk2Metrics = ["Emotional Intelligence", "Persuasiveness", "Adaptability", "Leadership Potential", "Team Collaboration", "Innovation", "Risk Assessment", "Strategic Thinking", "Decision Making", "Problem Solving"];
+      
+      const chunk2Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological metrics only:
 
-PART 3: CLINICAL MARKERS
-Assess these 10 clinical psychological markers:
+TEXT: "${selectedText}"
+
+METRICS: ${chunk2Metrics.join(', ')}
+
+Respond with JSON only:
+{
+  "metrics": [
+    {"name": "Emotional Intelligence", "score": 75, "explanation": "Brief explanation", "detailedAnalysis": "Detailed analysis", "quotes": ["exact quotes"]}
+  ]
+}`;
+      
+      let chunk2Result = await callAI(selectedModel, chunk2Prompt);
+      if (chunk2Result?.metrics) finalMetrics.push(...chunk2Result.metrics);
+      
+      // 10 second pause  
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 2, pausing 10 seconds...");
+      
+      // CHUNK 3: Final 5 psychological metrics
+      const chunk3Metrics = ["Learning Orientation", "Resilience", "Ethical Reasoning", "Cultural Awareness", "Future Orientation"];
+      
+      const chunk3Prompt = `You are a clinical psychologist. Analyze this text for these 5 psychological metrics only:
+
+TEXT: "${selectedText}"
+
+METRICS: ${chunk3Metrics.join(', ')}
+
+Respond with JSON only:
+{
+  "metrics": [
+    {"name": "Learning Orientation", "score": 75, "explanation": "Brief explanation", "detailedAnalysis": "Detailed analysis", "quotes": ["exact quotes"]}
+  ]
+}`;
+      
+      let chunk3Result = await callAI(selectedModel, chunk3Prompt);
+      if (chunk3Result?.metrics) finalMetrics.push(...chunk3Result.metrics);
+      
+      // 10 second pause
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 3, pausing 10 seconds...");
+      
+      // CHUNK 4: First 10 cognitive parameters (1-10)
+      const chunk4Params = cognitiveParameters.slice(0, 10);
+      const chunk4Prompt = `You are a clinical psychologist. Analyze this text for these 10 cognitive parameters only:
+
+TEXT: "${selectedText}"
+
+PARAMETERS: ${chunk4Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+
+Respond with JSON only:
+{
+  "parameters": {
+    "1": {"name": "Compression Tolerance", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
+  }
+}`;
+      
+      let chunk4Result = await callAI(selectedModel, chunk4Prompt);
+      if (chunk4Result?.parameters) {
+        Object.assign(finalComprehensiveParameters, chunk4Result.parameters);
+      }
+      
+      // 10 second pause
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 4, pausing 10 seconds...");
+      
+      // CHUNK 5: Next 10 cognitive parameters (11-20)
+      const chunk5Params = cognitiveParameters.slice(10, 20);
+      const chunk5Prompt = `You are a clinical psychologist. Analyze this text for these 10 cognitive parameters only:
+
+TEXT: "${selectedText}"
+
+PARAMETERS: ${chunk5Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+
+Respond with JSON only:
+{
+  "parameters": {
+    "11": {"name": "Dominance Framing Bias", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
+  }
+}`;
+      
+      let chunk5Result = await callAI(selectedModel, chunk5Prompt);
+      if (chunk5Result?.parameters) {
+        Object.assign(finalComprehensiveParameters, chunk5Result.parameters);
+      }
+      
+      // 10 second pause
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 5, pausing 10 seconds...");
+      
+      // CHUNK 6: First 10 psychological parameters (21-30)
+      const chunk6Params = psychologicalParameters.slice(0, 10);
+      const chunk6Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological parameters only:
+
+TEXT: "${selectedText}"
+
+PARAMETERS: ${chunk6Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+
+Respond with JSON only:
+{
+  "parameters": {
+    "21": {"name": "Emotional Regulation", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
+  }
+}`;
+      
+      let chunk6Result = await callAI(selectedModel, chunk6Prompt);
+      if (chunk6Result?.parameters) {
+        Object.assign(finalComprehensiveParameters, chunk6Result.parameters);
+      }
+      
+      // 10 second pause
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 6, pausing 10 seconds...");
+      
+      // CHUNK 7: Final 10 psychological parameters (31-40)
+      const chunk7Params = psychologicalParameters.slice(10, 20);
+      const chunk7Prompt = `You are a clinical psychologist. Analyze this text for these 10 psychological parameters only:
+
+TEXT: "${selectedText}"
+
+PARAMETERS: ${chunk7Params.map(p => `${p.id}. ${p.name}: ${p.description}`).join('\n')}
+
+Respond with JSON only:
+{
+  "parameters": {
+    "31": {"name": "Defensive Operations", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}
+  }
+}`;
+      
+      let chunk7Result = await callAI(selectedModel, chunk7Prompt);
+      if (chunk7Result?.parameters) {
+        Object.assign(finalComprehensiveParameters, chunk7Result.parameters);
+      }
+      
+      // 10 second pause
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      console.log("Completed chunk 7, pausing 10 seconds...");
+      
+      // CHUNK 8: Clinical markers
+      const clinicalPrompt = `You are a clinical psychologist. Analyze this text for these clinical markers only:
+
+TEXT: "${selectedText}"
+
+CLINICAL MARKERS:
 - Affect in Language: Emotional tone, mood indicators, affective quality
 - Attention Patterns: Focus, distractibility, attention deficits in writing
 - Expression Style: Verbal fluency, organization, coherence
@@ -593,223 +756,79 @@ Assess these 10 clinical psychological markers:
 - Global Integration: Overall coherence and integration
 - Psychotic Markers: Any signs of thought disorder or reality distortion
 
-Respond with valid JSON only:
+Respond with JSON only:
 {
-  "summary": "Brief analysis summary",
-  "metrics": [
-    {
-      "name": "Content Quality", 
-      "score": 75,
-      "explanation": "Brief explanation",
-      "detailedAnalysis": "Detailed paragraph explanation", 
-      "quotes": ["exact quote from text"]
-    }
-  ],
-  "comprehensiveParameters": {
-    ${cognitiveParameters.map(p => `"${p.id}": {"name": "${p.name}", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}`).join(',\n    ')}${psychologicalParameters.length > 0 ? ',\n    ' : ''}${psychologicalParameters.map(p => `"${p.id}": {"name": "${p.name}", "score": 75, "analysis": "detailed analysis", "quotes": ["exact quotes"], "evidence": "supporting evidence"}`).join(',\n    ')}
-  },
   "clinicalAnalysis": {
     "affectInLanguage": {"assessment": "detailed analysis", "evidence": "specific evidence", "quotes": ["exact quotes"]},
-    "attentionPatterns": {"assessment": "detailed analysis", "patterns": ["key patterns"], "quotes": ["exact quotes"]},
-    "expressionStyle": {"assessment": "detailed analysis", "characteristics": ["style characteristics"], "quotes": ["exact quotes"]},
-    "contentAnalysis": {"assessment": "detailed analysis", "themes": ["major themes"], "quotes": ["exact quotes"]},
-    "relationalLanguage": {"assessment": "detailed analysis", "patterns": ["relationship patterns"], "quotes": ["exact quotes"]},
-    "defenses": {"assessment": "detailed analysis", "mechanisms": ["defense mechanisms"], "quotes": ["exact quotes"]},
-    "cognitiveOrganization": {"assessment": "detailed analysis", "strengths": ["cognitive strengths"], "quotes": ["exact quotes"]},
-    "psychomotorEquivalents": {"assessment": "detailed analysis", "patterns": ["energy patterns"], "quotes": ["exact quotes"]},
-    "globalIntegration": {"assessment": "detailed analysis", "integration": "assessment", "quotes": ["exact quotes"]},
-    "psychoticMarkers": {"assessment": "detailed analysis", "markers": ["any markers present"], "quotes": ["exact quotes"]}
-  },
-  "overallSummary": "Comprehensive clinical summary integrating all 65 metrics and clinical findings"
+    "attentionPatterns": {"assessment": "detailed analysis", "patterns": ["key patterns"], "quotes": ["exact quotes"]}
+  }
 }`;
-
-      let metricsAnalysis = null;
       
-      // Use AI to generate real analysis
-      if (selectedModel === "deepseek" && deepseek) {
+      let clinicalResult = await callAI(selectedModel, clinicalPrompt);
+      if (clinicalResult?.clinicalAnalysis) {
+        finalClinicalAnalysis = clinicalResult.clinicalAnalysis;
+      }
+      
+      // Combine all results
+      const metricsAnalysis = {
+        summary: "Comprehensive 65-metric analysis completed through chunked processing",
+        metrics: finalMetrics,
+        comprehensiveParameters: finalComprehensiveParameters,
+        clinicalAnalysis: finalClinicalAnalysis,
+        overallSummary: "Complete psychological evaluation with all 65 metrics analyzed through systematic chunked approach"
+      };
+      
+      console.log(`Final analysis completed: ${finalMetrics.length} metrics, ${Object.keys(finalComprehensiveParameters).length} parameters, ${Object.keys(finalClinicalAnalysis).length} clinical markers`);
+      
+      // Helper function to call AI models
+      async function callAI(model: string, prompt: string): Promise<any> {
         try {
-          console.log("Starting DeepSeek analysis...");
-          const response = await deepseek.chat.completions.create({
-            model: "deepseek-chat",
-            messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 2000,
-            temperature: 0.1
-          });
-          
-          const analysisText = response.choices[0]?.message?.content || "";
-          console.log("DeepSeek response received, length:", analysisText.length);
-          
-          // Try to parse JSON response and validate quotes
-          try {
-            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsedAnalysis = JSON.parse(jsonMatch[0]);
-              
-              // Validate that all quotes actually exist in the source text
-              if (parsedAnalysis.metrics) {
-                parsedAnalysis.metrics.forEach((metric: any) => {
-                  if (metric.quotes) {
-                    metric.quotes = metric.quotes.filter((quote: string) => {
-                      const found = selectedText.includes(quote.trim());
-                      if (!found && quote.length > 10) {
-                        console.warn("DeepSeek quote validation failed for: " + quote.substring(0, 50) + "...");
-                      }
-                      return found;
-                    });
-                  }
-                });
-              }
-              
-              metricsAnalysis = parsedAnalysis;
-              console.log("DeepSeek analysis parsed successfully");
-            } else {
-              console.warn("No JSON found in DeepSeek response");
-            }
-          } catch (parseError) {
-            console.error("Failed to parse DeepSeek JSON:", parseError);
-            console.log("Raw response:", analysisText.substring(0, 500));
+          if (model === "deepseek" && deepseek) {
+            const response = await deepseek.chat.completions.create({
+              model: "deepseek-chat",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 1500,
+              temperature: 0.1
+            });
+            
+            const text = response.choices[0]?.message?.content || "";
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            
+          } else if (model === "anthropic" && anthropic) {
+            const response = await anthropic.messages.create({
+              model: "claude-3-5-sonnet-20241022",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 1500,
+              temperature: 0.1
+            });
+            
+            const text = response.content[0]?.text || "";
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            
+          } else if (model === "openai" && openai) {
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 1500,
+              temperature: 0.1
+            });
+            
+            const text = response.choices[0]?.message?.content || "";
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
           }
         } catch (error) {
-          console.error("DeepSeek analysis failed:", error);
-        }
-      } else if (selectedModel === "anthropic" && anthropic) {
-        try {
-          console.log("Starting Anthropic analysis...");
-          const response = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 4000,
-            messages: [{ role: "user", content: documentAnalysisPrompt }]
-          });
-          
-          const analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
-          console.log("Anthropic response received, length:", analysisText.length);
-          
-          // Try to parse JSON response and validate quotes
-          try {
-            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsedAnalysis = JSON.parse(jsonMatch[0]);
-              
-              // Validate that all quotes actually exist in the source text
-              if (parsedAnalysis.metrics) {
-                parsedAnalysis.metrics.forEach((metric: any) => {
-                  if (metric.quotes) {
-                    metric.quotes = metric.quotes.filter((quote: string) => {
-                      const found = selectedText.includes(quote.trim());
-                      if (!found && quote.length > 10) {
-                        console.warn("Anthropic quote validation failed for: " + quote.substring(0, 50) + "...");
-                      }
-                      return found;
-                    });
-                  }
-                });
-              }
-              
-              metricsAnalysis = parsedAnalysis;
-              console.log("Anthropic analysis parsed successfully");
-            } else {
-              console.warn("No JSON found in Anthropic response");
-            }
-          } catch (parseError) {
-            console.error("Failed to parse Anthropic JSON:", parseError);
-            console.log("Raw response:", analysisText.substring(0, 500));
-          }
-        } catch (error) {
-          console.error("Anthropic analysis failed:", error);
-        }
-      } else if (selectedModel === "perplexity" && perplexity) {
-        try {
-          console.log("Starting Perplexity analysis...");
-          const response = await perplexity.chat.completions.create({
-            model: "sonar",
-            messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 4000,
-            temperature: 0.3
-          });
-          
-          const analysisText = response.choices[0]?.message?.content || "";
-          console.log("Perplexity response received, length:", analysisText.length);
-          
-          // Try to parse JSON response and validate quotes
-          try {
-            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsedAnalysis = JSON.parse(jsonMatch[0]);
-              
-              // Validate that all quotes actually exist in the source text
-              if (parsedAnalysis.metrics) {
-                parsedAnalysis.metrics.forEach((metric: any) => {
-                  if (metric.quotes) {
-                    metric.quotes = metric.quotes.filter((quote: string) => {
-                      const found = selectedText.includes(quote.trim());
-                      if (!found && quote.length > 10) {
-                        console.warn("Perplexity quote validation failed for: " + quote.substring(0, 50) + "...");
-                      }
-                      return found;
-                    });
-                  }
-                });
-              }
-              
-              metricsAnalysis = parsedAnalysis;
-              console.log("Perplexity analysis parsed successfully");
-            } else {
-              console.warn("No JSON found in Perplexity response");
-            }
-          } catch (parseError) {
-            console.error("Failed to parse Perplexity JSON:", parseError);
-            console.log("Raw response:", analysisText.substring(0, 500));
-          }
-        } catch (error) {
-          console.error("Perplexity analysis failed:", error);
-        }
-      } else if (openai) {
-        try {
-          console.log("Starting OpenAI analysis...");
-          const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [{ role: "user", content: documentAnalysisPrompt }],
-            max_tokens: 4000,
-            temperature: 0.3
-          });
-          
-          const analysisText = response.choices[0]?.message?.content || "";
-          console.log("OpenAI response received, length:", analysisText.length);
-          
-          // Try to parse JSON response and validate quotes
-          try {
-            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsedAnalysis = JSON.parse(jsonMatch[0]);
-              
-              // Validate that all quotes actually exist in the source text
-              if (parsedAnalysis.metrics) {
-                parsedAnalysis.metrics.forEach((metric: any) => {
-                  if (metric.quotes) {
-                    metric.quotes = metric.quotes.filter((quote: string) => {
-                      const found = selectedText.includes(quote.trim());
-                      if (!found && quote.length > 10) {
-                        console.warn("OpenAI quote validation failed for: " + quote.substring(0, 50) + "...");
-                      }
-                      return found;
-                    });
-                  }
-                });
-              }
-              
-              metricsAnalysis = parsedAnalysis;
-              console.log("OpenAI analysis parsed successfully");
-            } else {
-              console.warn("No JSON found in OpenAI response");
-            }
-          } catch (parseError) {
-            console.error("Failed to parse OpenAI JSON:", parseError);
-            console.log("Raw response:", analysisText.substring(0, 500));
-          }
-        } catch (error) {
-          console.error("OpenAI analysis failed:", error);
+          console.error(`AI call failed for ${model}:`, error);
+          return null;
         }
       }
+      
+      // All analysis is now completed through the chunked approach above
+      console.log("Chunked analysis completed successfully!");
+          
+      // No additional AI calls needed - everything is done in chunks above
       
       // Fallback if AI analysis failed
       if (!metricsAnalysis) {

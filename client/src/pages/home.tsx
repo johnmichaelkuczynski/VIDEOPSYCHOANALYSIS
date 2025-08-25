@@ -1889,7 +1889,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           "Risk Assessment", "Strategic Thinking", "Decision Making", "Problem Solving", 
                           "Learning Orientation", "Resilience", "Ethical Reasoning", "Cultural Awareness", "Future Orientation"
                         ].map((metricName, index) => {
-                          const metric = metricsAnalysis?.metrics?.find(m => m.name === metricName) || {
+                          const metric = metricsAnalysis?.metrics?.find((m: any) => m.name === metricName) || {
                             name: metricName,
                             score: Math.floor(Math.random() * 40) + 60,
                             explanation: `Analysis of ${metricName.toLowerCase()} based on text content`,
@@ -1932,7 +1932,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                     {metric.quotes && metric.quotes.length > 0 && (
                                       <div className="bg-blue-50 p-3 rounded text-xs">
                                         <h6 className="font-medium mb-1">Key Quotes</h6>
-                                        {metric.quotes.map((quote, qIndex) => (
+                                        {metric.quotes.map((quote: string, qIndex: number) => (
                                           <p key={qIndex} className="italic border-l-2 border-blue-300 pl-2 mt-1">
                                             {quote}
                                           </p>
@@ -2001,7 +2001,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                     {analysis.quotes && analysis.quotes.length > 0 && (
                                       <div className="bg-indigo-50 p-3 rounded text-xs">
                                         <h6 className="font-medium mb-1">Supporting Quotes</h6>
-                                        {analysis.quotes.map((quote, qIndex) => (
+                                        {analysis.quotes.map((quote: string, qIndex: number) => (
                                           <p key={qIndex} className="italic border-l-2 border-purple-300 pl-2 mt-1">
                                             {quote}
                                           </p>
@@ -2070,7 +2070,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                                     {analysis.quotes && analysis.quotes.length > 0 && (
                                       <div className="bg-emerald-50 p-3 rounded text-xs">
                                         <h6 className="font-medium mb-1">Supporting Quotes</h6>
-                                        {analysis.quotes.map((quote, qIndex) => (
+                                        {analysis.quotes.map((quote: string, qIndex: number) => (
                                           <p key={qIndex} className="italic border-l-2 border-green-300 pl-2 mt-1">
                                             {quote}
                                           </p>
