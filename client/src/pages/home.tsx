@@ -2114,23 +2114,57 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
               {messages.length > 0 && (
                 <div className="flex gap-2">
-                  {/* Download button */}
+                  {/* Download buttons */}
                   {analysisId && (
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
-                      onClick={() => {
-                        toast({
-                          title: "Downloading Text File",
-                          description: "Your analysis is being downloaded as TXT"
-                        });
-                        if (analysisId) downloadAnalysis(analysisId, 'txt');
-                      }}
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>Download TXT</span>
-                    </Button>
+                    <>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading PDF Report",
+                            description: "Your complete analysis is being downloaded as PDF"
+                          });
+                          downloadAnalysis(analysisId, 'pdf');
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>PDF</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading Word Document",
+                            description: "Your complete analysis is being downloaded as DOCX"
+                          });
+                          downloadAnalysis(analysisId, 'docx');
+                        }}
+                      >
+                        <File className="h-4 w-4" />
+                        <span>Word</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => {
+                          toast({
+                            title: "Downloading Text File",
+                            description: "Your complete analysis is being downloaded as TXT"
+                          });
+                          downloadAnalysis(analysisId, 'txt');
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>TXT</span>
+                      </Button>
+                    </>
                   )}
 
                   {/* Share button */}
@@ -2689,9 +2723,60 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <Button variant="outline" size="lg" onClick={() => setShowFullAnalysisPopup(false)}>
                   Close Analysis
                 </Button>
-                <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
-                  Download Report
-                </Button>
+                
+                {/* Download Report Options */}
+                <div className="flex gap-2">
+                  <Button 
+                    size="lg" 
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={() => {
+                      if (analysisId) {
+                        toast({
+                          title: "Downloading PDF Report",
+                          description: "Your complete analysis is being downloaded as PDF"
+                        });
+                        downloadAnalysis(analysisId, 'pdf');
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </Button>
+                  
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    onClick={() => {
+                      if (analysisId) {
+                        toast({
+                          title: "Downloading Word Document",
+                          description: "Your complete analysis is being downloaded as DOCX"
+                        });
+                        downloadAnalysis(analysisId, 'docx');
+                      }
+                    }}
+                  >
+                    <File className="h-4 w-4 mr-2" />
+                    Word
+                  </Button>
+                  
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    onClick={() => {
+                      if (analysisId) {
+                        toast({
+                          title: "Downloading Text File",
+                          description: "Your complete analysis is being downloaded as TXT"
+                        });
+                        downloadAnalysis(analysisId, 'txt');
+                      }
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Text
+                  </Button>
+                </div>
               </div>
             </DialogFooter>
           </div>
