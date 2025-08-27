@@ -11,7 +11,7 @@ import {
   GetFaceDetectionCommand 
 } from "@aws-sdk/client-rekognition";
 import { sendAnalysisEmail } from "./services/email";
-import { generateAnalysisTxt } from './services/document';
+import { generateAnalysisTxt, generateConsolidatedAnalysisTxt } from './services/document';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -1794,6 +1794,39 @@ This analysis focuses on the selected segment to provide targeted personality in
     } catch (error) {
       console.error("Download error:", error);
       res.status(500).json({ error: "Failed to download analysis" });
+    }
+  });
+
+  // New consolidated download endpoint
+  app.get("/api/download-consolidated/:id", async (req, res) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      
+      const analysis = await storage.getAnalysisById(analysisId);
+      if (!analysis) {
+        return res.status(404).json({ error: "Analysis not found" });
+      }
+      
+      // Get messages for this analysis
+      const messages = await storage.getMessagesByAnalysisId(analysisId);
+      
+      // Include messages in analysis for export
+      const enrichedAnalysis = {
+        ...analysis,
+        messages: messages || []
+      };
+      
+      // Generate consolidated comprehensive analysis
+      const consolidatedContent = generateConsolidatedAnalysisTxt(enrichedAnalysis);
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="consolidated_analysis_${analysisId}.txt"`);
+      res.send(consolidatedContent);
+      
+      await storage.updateAnalysisDownloadStatus(analysisId, true);
+      
+    } catch (error) {
+      console.error("Consolidated download error:", error);
+      res.status(500).json({ error: "Failed to download consolidated analysis" });
     }
   });
   

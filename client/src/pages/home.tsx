@@ -13,7 +13,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, analyzeDocumentChunks, analyzeVideoSegment, downloadAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
+import { uploadMedia, sendMessage, shareAnalysis, getSharedAnalysis, analyzeText, analyzeDocument, analyzeDocumentChunks, analyzeVideoSegment, downloadAnalysis, downloadConsolidatedAnalysis, clearSession, ModelType, MediaType } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -2117,10 +2117,28 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   {/* Download buttons */}
                   {analysisId && (
                     <>
+                      {/* Consolidated Download Button - Most prominent */}
                       <Button 
                         variant="default" 
                         size="sm" 
-                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 font-semibold"
+                        onClick={() => {
+                          toast({
+                            title: "Consolidating & Downloading Complete Analysis",
+                            description: "All analysis modules are being consolidated into one comprehensive document"
+                          });
+                          downloadConsolidatedAnalysis(analysisId);
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Consolidate & Download</span>
+                      </Button>
+                      
+                      {/* Individual format downloads */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
                         onClick={() => {
                           toast({
                             title: "Downloading PDF Report",
@@ -2725,10 +2743,29 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 </Button>
                 
                 {/* Download Report Options */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  {/* Consolidated Download - Most prominent and main option */}
                   <Button 
                     size="lg" 
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-green-600 hover:bg-green-700 font-semibold flex-1 min-w-[200px]"
+                    onClick={() => {
+                      if (analysisId) {
+                        toast({
+                          title: "Consolidating Complete Analysis",
+                          description: "All psychological modules, protocol responses, and clinical markers are being consolidated into one comprehensive document"
+                        });
+                        downloadConsolidatedAnalysis(analysisId);
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Consolidate & Download All
+                  </Button>
+                  
+                  {/* Individual format downloads */}
+                  <Button 
+                    size="lg" 
+                    variant="outline"
                     onClick={() => {
                       if (analysisId) {
                         toast({
@@ -2739,8 +2776,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                       }
                     }}
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PDF
+                    <File className="h-4 w-4 mr-2" />
+                    PDF
                   </Button>
                   
                   <Button 

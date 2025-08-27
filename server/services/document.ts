@@ -441,6 +441,194 @@ export function generateAnalysisTxt(analysis: Analysis): string {
   return txtContent;
 }
 
+// Function to generate consolidated comprehensive analysis text
+export function generateConsolidatedAnalysisTxt(analysis: Analysis): string {
+  const personalityInsights = analysis.personalityInsights as any || {};
+  let txtContent = '';
+  
+  // Header
+  txtContent += '='.repeat(100) + '\n';
+  txtContent += 'CONSOLIDATED COMPREHENSIVE PSYCHOLOGICAL ANALYSIS REPORT\n';
+  txtContent += '='.repeat(100) + '\n\n';
+  
+  txtContent += `Analysis ID: ${analysis.id}\n`;
+  txtContent += `Created: ${analysis.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Unknown'}\n`;
+  txtContent += `Media Type: ${analysis.mediaType}\n`;
+  txtContent += `Analysis Generated: ${new Date().toLocaleString()}\n\n`;
+  
+  // SECTION 1: EXECUTIVE SUMMARY
+  if (personalityInsights.metricsAnalysis?.summary) {
+    txtContent += 'EXECUTIVE SUMMARY\n';
+    txtContent += '='.repeat(50) + '\n\n';
+    txtContent += personalityInsights.metricsAnalysis.summary + '\n\n';
+  }
+  
+  // SECTION 2: PROTOCOL-BASED PSYCHOLOGICAL ANALYSIS
+  if (personalityInsights.metricsAnalysis?.protocolResponses) {
+    txtContent += 'COMPREHENSIVE PROTOCOL-BASED PSYCHOLOGICAL ANALYSIS\n';
+    txtContent += '='.repeat(60) + '\n\n';
+    
+    // Group responses by psychological vs intelligence
+    const psychologicalResponses = personalityInsights.metricsAnalysis.protocolResponses.filter((_: any, index: number) => index < 18);
+    const intelligenceResponses = personalityInsights.metricsAnalysis.protocolResponses.filter((_: any, index: number) => index >= 18);
+    
+    // Psychological Questions (Q1-Q18)
+    txtContent += 'A. PSYCHOLOGICAL MARKERS (Questions 1-18)\n';
+    txtContent += '-'.repeat(50) + '\n\n';
+    
+    psychologicalResponses.forEach((response: any, index: number) => {
+      txtContent += `PSYCHOLOGICAL Q${index + 1}: ${response.question}\n`;
+      txtContent += `SCORE: ${response.score}/100\n`;
+      txtContent += `ANALYSIS: ${response.answer}\n`;
+      if (response.evidence) {
+        txtContent += `EVIDENCE: ${response.evidence}\n`;
+      }
+      if (response.quotes && response.quotes.length > 0) {
+        txtContent += `SUPPORTING QUOTES:\n`;
+        response.quotes.forEach((quote: string) => {
+          txtContent += `  • "${quote}"\n`;
+        });
+      }
+      txtContent += '\n' + '-'.repeat(80) + '\n\n';
+    });
+    
+    // Intelligence Questions (Q19-Q36)
+    txtContent += 'B. INTELLIGENCE & COGNITIVE MARKERS (Questions 19-36)\n';
+    txtContent += '-'.repeat(50) + '\n\n';
+    
+    intelligenceResponses.forEach((response: any, index: number) => {
+      txtContent += `INTELLIGENCE Q${index + 19}: ${response.question}\n`;
+      txtContent += `SCORE: ${response.score}/100\n`;
+      txtContent += `ANALYSIS: ${response.answer}\n`;
+      if (response.evidence) {
+        txtContent += `EVIDENCE: ${response.evidence}\n`;
+      }
+      if (response.quotes && response.quotes.length > 0) {
+        txtContent += `SUPPORTING QUOTES:\n`;
+        response.quotes.forEach((quote: string) => {
+          txtContent += `  • "${quote}"\n`;
+        });
+      }
+      txtContent += '\n' + '-'.repeat(80) + '\n\n';
+    });
+  }
+  
+  // SECTION 3: COMPREHENSIVE 40-PARAMETER ANALYSIS
+  if (personalityInsights.comprehensiveParameters) {
+    txtContent += 'COMPREHENSIVE 40-PARAMETER COGNITIVE & PSYCHOLOGICAL PROFILING\n';
+    txtContent += '='.repeat(70) + '\n\n';
+    
+    // Cognitive Parameters (1-20)
+    txtContent += 'A. COGNITIVE PARAMETERS (1-20)\n';
+    txtContent += '-'.repeat(40) + '\n\n';
+    
+    if (personalityInsights.cognitiveParameters) {
+      personalityInsights.cognitiveParameters.forEach((param: any) => {
+        const analysis = personalityInsights.comprehensiveParameters[param.id];
+        if (analysis) {
+          txtContent += `PARAMETER ${param.id}: ${param.name}\n`;
+          txtContent += `DESCRIPTION: ${param.description}\n`;
+          txtContent += `SCORE: ${analysis.score || 'N/A'}/100\n`;
+          txtContent += `ANALYSIS: ${analysis.analysis || 'No detailed analysis available'}\n`;
+          if (analysis.evidence) {
+            txtContent += `EVIDENCE: ${analysis.evidence}\n`;
+          }
+          if (analysis.quotes && analysis.quotes.length > 0) {
+            txtContent += `KEY QUOTES:\n`;
+            analysis.quotes.forEach((quote: string) => {
+              txtContent += `  • "${quote}"\n`;
+            });
+          }
+          txtContent += '\n' + '-'.repeat(60) + '\n\n';
+        }
+      });
+    }
+    
+    // Psychological Parameters (21-40)
+    txtContent += 'B. PSYCHOLOGICAL PARAMETERS (21-40)\n';
+    txtContent += '-'.repeat(40) + '\n\n';
+    
+    if (personalityInsights.psychologicalParameters) {
+      personalityInsights.psychologicalParameters.forEach((param: any) => {
+        const analysis = personalityInsights.comprehensiveParameters[param.id];
+        if (analysis) {
+          txtContent += `PARAMETER ${param.id}: ${param.name}\n`;
+          txtContent += `DESCRIPTION: ${param.description}\n`;
+          txtContent += `SCORE: ${analysis.score || 'N/A'}/100\n`;
+          txtContent += `ANALYSIS: ${analysis.analysis || 'No detailed analysis available'}\n`;
+          if (analysis.evidence) {
+            txtContent += `EVIDENCE: ${analysis.evidence}\n`;
+          }
+          if (analysis.quotes && analysis.quotes.length > 0) {
+            txtContent += `KEY QUOTES:\n`;
+            analysis.quotes.forEach((quote: string) => {
+              txtContent += `  • "${quote}"\n`;
+            });
+          }
+          txtContent += '\n' + '-'.repeat(60) + '\n\n';
+        }
+      });
+    }
+  }
+  
+  // SECTION 4: CLINICAL PSYCHOLOGICAL MARKERS
+  if (personalityInsights.metricsAnalysis?.clinicalAnalysis) {
+    txtContent += 'CLINICAL PSYCHOLOGICAL MARKERS\n';
+    txtContent += '='.repeat(40) + '\n\n';
+    
+    Object.entries(personalityInsights.metricsAnalysis.clinicalAnalysis).forEach(([key, analysis]: [string, any]) => {
+      const clinicalName = key.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+      txtContent += `CLINICAL MARKER: ${clinicalName}\n`;
+      txtContent += `ASSESSMENT: ${analysis.assessment || 'No assessment available'}\n`;
+      if (analysis.evidence) {
+        txtContent += `CLINICAL EVIDENCE: ${analysis.evidence}\n`;
+      }
+      if (analysis.quotes && analysis.quotes.length > 0) {
+        txtContent += `SUPPORTING QUOTES:\n`;
+        analysis.quotes.forEach((quote: string) => {
+          txtContent += `  • "${quote}"\n`;
+        });
+      }
+      txtContent += '\n' + '-'.repeat(60) + '\n\n';
+    });
+  }
+  
+  // SECTION 5: OVERALL CLINICAL SUMMARY
+  if (personalityInsights.metricsAnalysis?.overallSummary) {
+    txtContent += 'OVERALL CLINICAL SUMMARY\n';
+    txtContent += '='.repeat(40) + '\n\n';
+    txtContent += personalityInsights.metricsAnalysis.overallSummary + '\n\n';
+  }
+  
+  // SECTION 6: STATISTICAL SUMMARY
+  txtContent += 'STATISTICAL SUMMARY\n';
+  txtContent += '='.repeat(30) + '\n\n';
+  
+  let totalQuestions = 0;
+  let avgScore = 0;
+  
+  if (personalityInsights.metricsAnalysis?.protocolResponses) {
+    totalQuestions = personalityInsights.metricsAnalysis.protocolResponses.length;
+    const totalScore = personalityInsights.metricsAnalysis.protocolResponses.reduce((sum: number, response: any) => {
+      return sum + (response.score || 0);
+    }, 0);
+    avgScore = totalScore / totalQuestions;
+  }
+  
+  txtContent += `Total Protocol Questions Analyzed: ${totalQuestions}\n`;
+  txtContent += `Average Score Across All Metrics: ${avgScore.toFixed(1)}/100\n`;
+  txtContent += `Total Parameters Assessed: 40 comprehensive cognitive & psychological parameters\n`;
+  txtContent += `Clinical Markers Evaluated: ${personalityInsights.metricsAnalysis?.clinicalAnalysis ? Object.keys(personalityInsights.metricsAnalysis.clinicalAnalysis).length : 0}\n\n`;
+  
+  // Footer
+  txtContent += '='.repeat(100) + '\n';
+  txtContent += 'END OF CONSOLIDATED COMPREHENSIVE ANALYSIS REPORT\n';
+  txtContent += `Generated by AI-Powered Personality Insights Platform • ${new Date().toLocaleString()}\n`;
+  txtContent += '='.repeat(100) + '\n';
+  
+  return txtContent;
+}
+
 // Function to generate HTML for PDF
 export function generateAnalysisHtml(analysis: Analysis): string {
   // Extract the personality insights

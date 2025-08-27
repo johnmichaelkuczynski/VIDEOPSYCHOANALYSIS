@@ -257,6 +257,12 @@ export async function downloadAnalysis(analysisId: number, format: "pdf" | "docx
   return true;
 }
 
+export async function downloadConsolidatedAnalysis(analysisId: number) {
+  // Direct download approach using window.open for consolidated comprehensive analysis
+  window.open(`/api/download-consolidated/${analysisId}`, '_blank');
+  return true;
+}
+
 export async function updateAnalysisTitle(analysisId: number, title: string) {
   const res = await apiRequest("PATCH", `/api/analysis/${analysisId}/title`, { title });
   return res.json();
