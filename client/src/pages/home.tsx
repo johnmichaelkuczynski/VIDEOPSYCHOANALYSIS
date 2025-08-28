@@ -226,8 +226,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
 
         // Set default selected model based on availability
-        // Anthropic (ZHI 1) is the default
-        setSelectedModel("anthropic");
+        // DeepSeek (ZHI 3) is now the default since ZHI 1 is excluded
+        setSelectedModel("deepseek");
       } catch (error) {
         console.error("Error checking API status:", error);
       }
@@ -1070,18 +1070,15 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                {/* Exclude ZHI 1 (Anthropic) for video analysis */}
-                {(mediaType !== "video" && availableServices.anthropic) && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
+                {/* Only show ZHI 1 for text/image analysis, never for video */}
                 {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
-                <SelectItem value="deepseek">ZHI 3</SelectItem>
+                <SelectItem value="deepseek">ZHI 3 (Recommended)</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
-            {mediaType === "video" && (
-              <p className="text-xs text-orange-600 mt-2">
-                ⚠️ ZHI 1 (Anthropic) excluded for video analysis - optimized models only
-              </p>
-            )}
+            <p className="text-xs text-orange-600 mt-2">
+              ⚠️ ZHI 1 (Anthropic) removed from all workflows - using optimized models only
+            </p>
 
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
