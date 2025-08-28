@@ -1072,7 +1072,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               <SelectContent>
                 {/* Only show ZHI 1 for text/image analysis, never for video */}
                 {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
-                <SelectItem value="deepseek">ZHI 3 (Recommended)</SelectItem>
+                <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
