@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertAnalysisSchema, insertMessageSchema, insertShareSchema, uploadMediaSchema } from "@shared/schema";
@@ -633,8 +634,175 @@ async function getAudioTranscription(videoPath: string): Promise<any> {
   }
 }
 
+// WebSocket server for real-time streaming
+const wss = new WebSocketServer({ noServer: true });
+const clients = new Map<string, WebSocket>();
+
+function broadcastToSession(sessionId: string, data: any) {
+  const client = clients.get(sessionId);
+  if (client && client.readyState === WebSocket.OPEN) {
+    client.send(JSON.stringify(data));
+  }
+}
+
+// Real-time streaming analysis function
+async function streamAnalysis(provider: string, content: string, aiClient: any, sessionId: string): Promise<any> {
+  const promptTemplate = buildPrompt(provider, content);
+  
+  broadcastToSession(sessionId, {
+    type: 'analysis_start',
+    message: `Starting comprehensive analysis with ${provider.toUpperCase()}...`,
+    provider: provider.toUpperCase()
+  });
+
+  let responseText = "";
+  
+  try {
+    if (provider === "anthropic") {
+      broadcastToSession(sessionId, {
+        type: 'progress',
+        message: 'ZHI 1 (Anthropic) processing all 60 questions + markers...'
+      });
+      
+      const response = await aiClient.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 4000,
+        messages: [{ role: "user", content: promptTemplate }]
+      });
+      responseText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+    } else if (provider === "openai") {
+      broadcastToSession(sessionId, {
+        type: 'progress',
+        message: 'ZHI 2 (OpenAI) processing all 60 questions + markers...'
+      });
+      
+      const response = await aiClient.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: promptTemplate }],
+        max_tokens: 4000,
+        temperature: 0.3
+      });
+      responseText = response.choices[0]?.message?.content || "";
+    } else if (provider === "deepseek") {
+      broadcastToSession(sessionId, {
+        type: 'progress',
+        message: 'ZHI 3 (DeepSeek) processing all 60 questions + markers...'
+      });
+      
+      const response = await aiClient.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: promptTemplate }],
+        max_tokens: 4000,
+        temperature: 0.3
+      });
+      responseText = response.choices[0]?.message?.content || "";
+    } else if (provider === "perplexity") {
+      broadcastToSession(sessionId, {
+        type: 'progress',
+        message: 'ZHI 4 (Perplexity) processing all 60 questions + markers...'
+      });
+      
+      const response = await aiClient.chat.completions.create({
+        model: "sonar-pro",
+        messages: [{ role: "user", content: promptTemplate }],
+        max_tokens: 4000,
+        temperature: 0.3
+      });
+      responseText = response.choices[0]?.message?.content || "";
+    }
+    
+    const result = normalizeResult(responseText);
+    
+    // Stream individual sections as they're processed
+    broadcastToSession(sessionId, {
+      type: 'section_complete',
+      section: 'core_questions',
+      data: result.core_questions,
+      message: 'Core personality questions (1-20) ✓'
+    });
+    
+    broadcastToSession(sessionId, {
+      type: 'section_complete',
+      section: 'personality_40_60',
+      data: result.personality_40_60,
+      message: 'Extended personality analysis (21-60) ✓'
+    });
+    
+    broadcastToSession(sessionId, {
+      type: 'section_complete',
+      section: 'visual_markers',
+      data: result.visual_markers,
+      message: 'Visual markers analysis ✓'
+    });
+    
+    broadcastToSession(sessionId, {
+      type: 'section_complete',
+      section: 'textual_markers',
+      data: result.textual_markers,
+      message: 'Textual markers analysis ✓'
+    });
+    
+    broadcastToSession(sessionId, {
+      type: 'analysis_complete',
+      message: `${provider.toUpperCase()} analysis complete - All 60 questions answered`,
+      totalQuestions: 60,
+      sections: 4
+    });
+    
+    return result;
+    
+  } catch (error) {
+    console.warn(`Streaming analysis failed for ${provider}:`, error);
+    broadcastToSession(sessionId, {
+      type: 'error',
+      message: `${provider.toUpperCase()} analysis failed: ${error.message}`
+    });
+    return normalizeResult("{}");
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
+  
+  // WebSocket upgrade handling
+  server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url!, `http://${request.headers.host}`).pathname;
+    
+    if (pathname === '/ws') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+
+  wss.on('connection', (ws, request) => {
+    const url = new URL(request.url!, `http://${request.headers.host}`);
+    const sessionId = url.searchParams.get('sessionId');
+    
+    if (sessionId) {
+      clients.set(sessionId, ws);
+      console.log(`WebSocket client connected for session: ${sessionId}`);
+      
+      ws.send(JSON.stringify({
+        type: 'connected',
+        message: 'Real-time analysis streaming enabled',
+        sessionId
+      }));
+    }
+    
+    ws.on('close', () => {
+      if (sessionId) {
+        clients.delete(sessionId);
+        console.log(`WebSocket client disconnected for session: ${sessionId}`);
+      }
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
   
   // Configure multer for file uploads
   const upload = multer({ storage: multer.memoryStorage() });
@@ -1880,19 +2048,19 @@ Provide the deepest possible level of psychoanalytic insight based on observable
               analysisText = response.choices[0]?.message?.content || "";
             }
 
-            // Extract demographics using provider-specific prompts
-            let demographics = {};
+            // Extract comprehensive structured analysis using provider-specific prompts
+            let structuredAnalysis = {};
             try {
               const aiClient = selectedModel === "deepseek" ? deepseek : 
                               (selectedModel === "anthropic" ? anthropic : 
                               (selectedModel === "perplexity" ? perplexity : openai));
               
               if (aiClient) {
-                const contentForDemographics = faceAnalysis ? JSON.stringify(faceAnalysis) : "Image analysis data";
-                demographics = await extractDemographics(selectedModel, contentForDemographics, aiClient);
+                const contentForAnalysis = faceAnalysis ? JSON.stringify(faceAnalysis) : "Image analysis data";
+                structuredAnalysis = await streamAnalysis(selectedModel, contentForAnalysis, aiClient, sessionId);
               }
-            } catch (demoError) {
-              console.warn("Demographics extraction failed:", demoError);
+            } catch (analysisError) {
+              console.warn("Structured analysis extraction failed:", analysisError);
             }
 
           } catch (error) {
@@ -1915,7 +2083,7 @@ Provide the deepest possible level of psychoanalytic insight based on observable
               imageAnalysisComplete: true,
               faceAnalysis,
               comprehensiveAnalysis: analysisText,
-              structuredAnalysis: demographics,
+              structuredAnalysis,
               model: selectedModel,
               timestamp: new Date().toISOString(),
               summary: "Comprehensive psychoanalytic assessment completed for image analysis"
@@ -2249,20 +2417,20 @@ This is a ${selectedSegment.duration}-second segment from ${selectedSegment.star
           analysisText = response.choices[0]?.message?.content || "";
         }
 
-        // Extract demographics using provider-specific prompts for video
-        let demographics = {};
+        // Extract comprehensive structured analysis using provider-specific prompts for video
+        let structuredAnalysis = {};
         try {
           const aiClient = selectedModel === "deepseek" ? deepseek : 
                           (selectedModel === "anthropic" ? anthropic : 
                           (selectedModel === "perplexity" ? perplexity : openai));
           
           if (aiClient) {
-            const contentForDemographics = audioTranscription?.transcription || 
-                                         (faceAnalysis ? JSON.stringify(faceAnalysis) : "Video analysis data");
-            demographics = await extractDemographics(selectedModel, contentForDemographics, aiClient);
+            const contentForAnalysis = audioTranscription?.transcription || 
+                                     (faceAnalysis ? JSON.stringify(faceAnalysis) : "Video analysis data");
+            structuredAnalysis = await streamAnalysis(selectedModel, contentForAnalysis, aiClient, sessionId);
           }
-        } catch (demoError) {
-          console.warn("Video demographics extraction failed:", demoError);
+        } catch (analysisError) {
+          console.warn("Video structured analysis extraction failed:", analysisError);
         }
         
         videoAnalysis = {
@@ -2271,7 +2439,7 @@ This is a ${selectedSegment.duration}-second segment from ${selectedSegment.star
           segmentInfo: selectedSegment,
           faceAnalysis,
           audioTranscription,
-          structuredAnalysis: demographics,
+          structuredAnalysis,
           processingTime: `${selectedSegment.duration} seconds analyzed`,
           model: selectedModel,
           timestamp: new Date().toISOString(),

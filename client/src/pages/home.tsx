@@ -28,6 +28,44 @@ const shareSchema = z.object({
   recipientEmail: z.string().email("Please enter a valid email"),
 });
 
+// WebSocket connection for real-time streaming
+let wsConnection: WebSocket | null = null;
+
+function connectWebSocket(sessionId: string, onMessage: (data: any) => void) {
+  if (wsConnection?.readyState === WebSocket.OPEN) {
+    return wsConnection;
+  }
+  
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/ws?sessionId=${sessionId}`;
+  
+  wsConnection = new WebSocket(wsUrl);
+  
+  wsConnection.onopen = () => {
+    console.log('WebSocket connected for real-time streaming');
+  };
+  
+  wsConnection.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onMessage(data);
+    } catch (error) {
+      console.error('WebSocket message parse error:', error);
+    }
+  };
+  
+  wsConnection.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+  
+  wsConnection.onclose = () => {
+    console.log('WebSocket disconnected');
+    wsConnection = null;
+  };
+  
+  return wsConnection;
+}
+
 // Helper function to resize images
 async function resizeImage(file: File, maxWidth: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -131,6 +169,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
+  
+  // Real-time streaming states
+  const [streamingMessages, setStreamingMessages] = useState<string[]>([]);
+  const [streamingProgress, setStreamingProgress] = useState<{[key: string]: boolean}>({});
+  const [currentAnalysisProvider, setCurrentAnalysisProvider] = useState<string>("");
 
   // Document analysis states
   const [documentChunks, setDocumentChunks] = useState<any[]>([]);
@@ -199,8 +242,41 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     azure_video_indexer: false
   });
 
-  // Check API status on component mount
+  // Initialize WebSocket connection and check API status
   useEffect(() => {
+    // Connect WebSocket for real-time streaming
+    const handleStreamingMessage = (data: any) => {
+      switch (data.type) {
+        case 'connected':
+          console.log('Real-time streaming connected');
+          break;
+        case 'analysis_start':
+          setCurrentAnalysisProvider(data.provider);
+          setStreamingMessages(prev => [...prev, data.message]);
+          setIsAnalyzing(true);
+          break;
+        case 'progress':
+          setStreamingMessages(prev => [...prev, data.message]);
+          break;
+        case 'section_complete':
+          setStreamingProgress(prev => ({...prev, [data.section]: true}));
+          setStreamingMessages(prev => [...prev, data.message]);
+          break;
+        case 'analysis_complete':
+          setStreamingMessages(prev => [...prev, data.message]);
+          setIsAnalyzing(false);
+          // Refresh analysis data
+          window.location.reload();
+          break;
+        case 'error':
+          setStreamingMessages(prev => [...prev, `❌ ${data.message}`]);
+          toast({ title: "Analysis Error", description: data.message, variant: "destructive" });
+          break;
+      }
+    };
+
+    connectWebSocket(sessionId, handleStreamingMessage);
+
     const checkStatus = async () => {
       try {
         const res = await fetch('/api/status');
@@ -1724,6 +1800,49 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     <Eye className="w-4 h-4" />
                     <span>{documentChunks.length === 1 ? 'Analyze Document' : 'Analyze Selected'}</span>
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* REAL-TIME STREAMING PROGRESS */}
+            {(isAnalyzing || streamingMessages.length > 0) && (
+              <div className="mb-6 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 p-1">
+                <div className="bg-white rounded-md p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-green-700">
+                      🔴 LIVE: Real-Time Analysis Stream
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <div className="animate-pulse w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-sm font-medium">{currentAnalysisProvider}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Progress checklist */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                    <div className={`p-2 rounded text-sm ${streamingProgress['core_questions'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {streamingProgress['core_questions'] ? '✓' : '⏳'} Questions 1-20
+                    </div>
+                    <div className={`p-2 rounded text-sm ${streamingProgress['personality_40_60'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {streamingProgress['personality_40_60'] ? '✓' : '⏳'} Questions 21-60
+                    </div>
+                    <div className={`p-2 rounded text-sm ${streamingProgress['visual_markers'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {streamingProgress['visual_markers'] ? '✓' : '⏳'} Visual Markers
+                    </div>
+                    <div className={`p-2 rounded text-sm ${streamingProgress['textual_markers'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {streamingProgress['textual_markers'] ? '✓' : '⏳'} Text Markers
+                    </div>
+                  </div>
+                  
+                  {/* Streaming messages */}
+                  <div className="bg-gray-50 rounded p-3 max-h-40 overflow-y-auto">
+                    <h4 className="text-sm font-semibold mb-2">Live Updates:</h4>
+                    {streamingMessages.map((message, index) => (
+                      <div key={index} className="text-sm text-gray-700 mb-1 font-mono">
+                        {message}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
