@@ -2493,17 +2493,51 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         key={index}
                         className="flex flex-col p-4 rounded-lg bg-white border border-gray-200 shadow-sm"
                       >
-                        <div 
-                          className="whitespace-pre-wrap text-md"
-                          dangerouslySetInnerHTML={{ 
-                            __html: message.content
-                              .replace(/\n/g, '<br/>')
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/^(#+)\s+(.*?)$/gm, (_: string, hashes: string, text: string) => 
-                                `<h${hashes.length} class="font-bold text-lg mt-3 mb-1">${text}</h${hashes.length}>`)
-                              .replace(/- (.*?)$/gm, '<li class="ml-4">• $1</li>')
-                          }} 
-                        />
+                        <div className="whitespace-pre-wrap text-md">
+                          {message.content.split('\n').map((line, lineIndex) => {
+                            // Handle markdown headers
+                            if (line.match(/^#+\s+/)) {
+                              const headerMatch = line.match(/^(#+)\s+(.*)$/);
+                              if (headerMatch) {
+                                const level = headerMatch[1].length;
+                                const text = headerMatch[2];
+                                const HeaderTag = `h${Math.min(level, 6)}` as keyof JSX.IntrinsicElements;
+                                return (
+                                  <HeaderTag key={lineIndex} className="font-bold text-lg mt-3 mb-1">
+                                    {text}
+                                  </HeaderTag>
+                                );
+                              }
+                            }
+                            
+                            // Handle bold text
+                            if (line.includes('**')) {
+                              const parts = line.split(/(\*\*.*?\*\*)/);
+                              return (
+                                <div key={lineIndex}>
+                                  {parts.map((part, partIndex) => {
+                                    if (part.startsWith('**') && part.endsWith('**')) {
+                                      return <strong key={partIndex}>{part.slice(2, -2)}</strong>;
+                                    }
+                                    return part;
+                                  })}
+                                </div>
+                              );
+                            }
+                            
+                            // Handle list items
+                            if (line.startsWith('- ')) {
+                              return (
+                                <div key={lineIndex} className="ml-4">
+                                  • {line.slice(2)}
+                                </div>
+                              );
+                            }
+                            
+                            // Regular line
+                            return line ? <div key={lineIndex}>{line}</div> : <br key={lineIndex} />;
+                          })}
+                        </div>
 
                         {/* Download buttons at bottom of each analysis */}
                         {analysisId && index === messages.filter(m => m.role === "assistant").length - 1 && (
