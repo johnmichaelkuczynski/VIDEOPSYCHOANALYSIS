@@ -135,20 +135,20 @@ const getModelDisplayName = (model: string) => {
   }
 };
 
-// Helper function to get available models for video analysis
+// Helper function to get available models for video analysis (ordered by speed)
 const getVideoAnalysisModels = () => [
-  { value: "anthropic", label: "ZHI 1 (Anthropic)" },
-  { value: "openai", label: "ZHI 2 (OpenAI)" },
-  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
-  { value: "perplexity", label: "ZHI 4 (Perplexity)" }
+  { value: "deepseek", label: "ZHI 3 (DeepSeek) - FASTEST" },
+  { value: "perplexity", label: "ZHI 4 (Perplexity) - FAST" },
+  { value: "anthropic", label: "ZHI 1 (Anthropic) - MEDIUM" },
+  { value: "openai", label: "ZHI 2 (OpenAI) - SLOW" }
 ];
 
-// Helper function to get all models for text/image analysis
+// Helper function to get all models for text/image analysis (ordered by speed)
 const getAllModels = () => [
-  { value: "anthropic", label: "ZHI 1 (Anthropic)" },
-  { value: "openai", label: "ZHI 2 (OpenAI)" },
-  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
-  { value: "perplexity", label: "ZHI 4 (Perplexity)" }
+  { value: "deepseek", label: "ZHI 3 (DeepSeek) - FASTEST" },
+  { value: "perplexity", label: "ZHI 4 (Perplexity) - FAST" },
+  { value: "anthropic", label: "ZHI 1 (Anthropic) - MEDIUM" },
+  { value: "openai", label: "ZHI 2 (OpenAI) - SLOW" }
 ];
 
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
@@ -302,8 +302,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           azure_video_indexer: status.azure_video_indexer || false
         });
 
-        // Set default selected model based on availability
-        // DeepSeek (ZHI 3) is now the default since ZHI 1 is excluded
+        // Set default selected model to DeepSeek (ZHI 3) - fastest option
         setSelectedModel("deepseek");
       } catch (error) {
         console.error("Error checking API status:", error);
