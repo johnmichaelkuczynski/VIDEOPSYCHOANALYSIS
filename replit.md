@@ -9,6 +9,7 @@ This project is an advanced AI-powered personality insights platform designed fo
 - Evidence Requirement: All assessments must be supported by observable evidence
 - Download Formats: PDF, Word, and TXT support required
 - Service Reliability: Fallback chains preferred for all external services
+- Download Functionality: Consolidated comprehensive analysis download preferred over individual module downloads
 
 ## System Architecture
 
@@ -38,6 +39,7 @@ The platform utilizes a robust technical stack:
     -   **Clinical Psychological Evaluation**: Integrates 10 clinical psychological markers for text and 10 for visual analysis, ensuring systematic assessment with observable evidence and direct quotations.
     -   **Demographic & Environmental Anchoring**: All image and video analyses start with mandatory demographic and environmental observations to ground psychological insights.
     -   **Speech/Text Content Integration**: Enhanced analysis prompts prioritize and analyze speech/text content, focusing on vocabulary, reasoning patterns, and content themes.
+    -   **Consolidated Download System**: Comprehensive download functionality that consolidates all analysis modules (psychological Q1-Q36, 40 cognitive parameters, clinical markers) into a single comprehensive document, addressing user need for unified reporting over fragmented module downloads.
 
 ### System Design Choices
 - **Modularity**: Separation of frontend and backend components allows for independent development and scaling.
