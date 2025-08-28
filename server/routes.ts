@@ -59,6 +59,85 @@ const unlinkAsync = promisify(fs.unlink);
 const tempDir = os.tmpdir();
 const isEmailServiceConfigured = !!(process.env.SENDGRID_API_KEY && process.env.SENDGRID_VERIFIED_SENDER);
 
+// Demographic extraction function with provider-specific prompts
+async function extractDemographics(provider: string, content: string, aiClient: any): Promise<any> {
+  let promptTemplate: string;
+  
+  if (provider === "anthropic") {
+    promptTemplate = `
+You are provided a transcript and context notes. 
+Infer likely demographic traits: gender, age, build, posture, scenery, and salient characteristics. 
+Always give detailed answers for each category. 
+Do not qualify or disclaim. 
+Output strictly in JSON with keys: gender, age, build, posture, scenery, salient_characteristics.
+
+Content: ${content}`;
+  } else {
+    promptTemplate = `
+Analyze the uploaded image or video. 
+Provide detailed demographic information: gender, age, build, posture, scenery, and salient characteristics. 
+No omissions, no exceptions, no qualifications. 
+Output strictly in JSON with keys: gender, age, build, posture, scenery, salient_characteristics.
+
+Content: ${content}`;
+  }
+
+  let result: any = {};
+  
+  try {
+    if (provider === "anthropic") {
+      const response = await aiClient.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: promptTemplate }]
+      });
+      const responseText = response.content[0]?.type === 'text' ? response.content[0].text : "";
+      result = JSON.parse(responseText);
+    } else if (provider === "openai") {
+      const response = await aiClient.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: promptTemplate }],
+        max_tokens: 1000,
+        temperature: 0.3
+      });
+      const responseText = response.choices[0]?.message?.content || "";
+      result = JSON.parse(responseText);
+    } else if (provider === "deepseek") {
+      const response = await aiClient.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: promptTemplate }],
+        max_tokens: 1000,
+        temperature: 0.3
+      });
+      const responseText = response.choices[0]?.message?.content || "";
+      result = JSON.parse(responseText);
+    } else if (provider === "perplexity") {
+      const response = await aiClient.chat.completions.create({
+        model: "sonar-pro",
+        messages: [{ role: "user", content: promptTemplate }],
+        max_tokens: 1000,
+        temperature: 0.3
+      });
+      const responseText = response.choices[0]?.message?.content || "";
+      result = JSON.parse(responseText);
+    }
+  } catch (error) {
+    console.warn(`Demographic extraction failed for ${provider}:`, error);
+    result = {};
+  }
+
+  // Normalize all outputs to the same schema
+  const requiredKeys = ["gender", "age", "build", "posture", "scenery", "salient_characteristics"];
+  
+  for (const key of requiredKeys) {
+    if (!result[key]) {
+      result[key] = "N/A";
+    }
+  }
+
+  return result;
+}
+
 /**
  * Helper function to create document chunks (~800 words each)
  */
@@ -1590,6 +1669,22 @@ Provide the deepest possible level of psychoanalytic insight based on observable
               });
               analysisText = response.choices[0]?.message?.content || "";
             }
+
+            // Extract demographics using provider-specific prompts
+            let demographics = {};
+            try {
+              const aiClient = selectedModel === "deepseek" ? deepseek : 
+                              (selectedModel === "anthropic" ? anthropic : 
+                              (selectedModel === "perplexity" ? perplexity : openai));
+              
+              if (aiClient) {
+                const contentForDemographics = faceAnalysis ? JSON.stringify(faceAnalysis) : "Image analysis data";
+                demographics = await extractDemographics(selectedModel, contentForDemographics, aiClient);
+              }
+            } catch (demoError) {
+              console.warn("Demographics extraction failed:", demoError);
+            }
+
           } catch (error) {
             console.warn("AI analysis failed:", error);
             analysisText = "Image analysis completed. Facial analysis data collected and processed for psychological insights.";
@@ -1610,6 +1705,7 @@ Provide the deepest possible level of psychoanalytic insight based on observable
               imageAnalysisComplete: true,
               faceAnalysis,
               comprehensiveAnalysis: analysisText,
+              demographics,
               model: selectedModel,
               timestamp: new Date().toISOString(),
               summary: "Comprehensive psychoanalytic assessment completed for image analysis"
@@ -1942,6 +2038,22 @@ This is a ${selectedSegment.duration}-second segment from ${selectedSegment.star
           });
           analysisText = response.choices[0]?.message?.content || "";
         }
+
+        // Extract demographics using provider-specific prompts for video
+        let demographics = {};
+        try {
+          const aiClient = selectedModel === "deepseek" ? deepseek : 
+                          (selectedModel === "anthropic" ? anthropic : 
+                          (selectedModel === "perplexity" ? perplexity : openai));
+          
+          if (aiClient) {
+            const contentForDemographics = audioTranscription?.transcription || 
+                                         (faceAnalysis ? JSON.stringify(faceAnalysis) : "Video analysis data");
+            demographics = await extractDemographics(selectedModel, contentForDemographics, aiClient);
+          }
+        } catch (demoError) {
+          console.warn("Video demographics extraction failed:", demoError);
+        }
         
         videoAnalysis = {
           summary: `Comprehensive psychoanalytic assessment completed for ${selectedSegment.label}`,
@@ -1949,6 +2061,7 @@ This is a ${selectedSegment.duration}-second segment from ${selectedSegment.star
           segmentInfo: selectedSegment,
           faceAnalysis,
           audioTranscription,
+          demographics,
           processingTime: `${selectedSegment.duration} seconds analyzed`,
           model: selectedModel,
           timestamp: new Date().toISOString(),
