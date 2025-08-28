@@ -258,6 +258,22 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         case 'progress':
           setStreamingMessages(prev => [...prev, data.message]);
           break;
+        case 'streaming_content':
+          // Update the last message with streaming content
+          setStreamingMessages(prev => {
+            const newMessages = [...prev];
+            const lastIndex = newMessages.length - 1;
+            if (lastIndex >= 0 && newMessages[lastIndex].includes('generating...')) {
+              newMessages[lastIndex] = `${data.message}: ${data.accumulated}`;
+            } else {
+              newMessages.push(`${data.message}: ${data.content}`);
+            }
+            return newMessages;
+          });
+          break;
+        case 'line_complete':
+          setStreamingMessages(prev => [...prev, `✓ ${data.line}`]);
+          break;
         case 'section_complete':
           setStreamingProgress(prev => ({...prev, [data.section]: true}));
           setStreamingMessages(prev => [...prev, data.message]);

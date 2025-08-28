@@ -645,106 +645,204 @@ function broadcastToSession(sessionId: string, data: any) {
   }
 }
 
-// Real-time streaming analysis function
+// Get ZHI model name for display
+function getZHIModelName(provider: string): string {
+  switch(provider) {
+    case 'openai': return 'ZHI 1';
+    case 'anthropic': return 'ZHI 2';
+    case 'deepseek': return 'ZHI 3';
+    case 'perplexity': return 'ZHI 4';
+    default: return provider.toUpperCase();
+  }
+}
+
+// Real-time streaming analysis function with individual question streaming
 async function streamAnalysis(provider: string, content: string, aiClient: any, sessionId: string): Promise<any> {
+  const zhiName = getZHIModelName(provider);
   const promptTemplate = buildPrompt(provider, content);
   
   broadcastToSession(sessionId, {
     type: 'analysis_start',
-    message: `Starting comprehensive analysis with ${provider.toUpperCase()}...`,
-    provider: provider.toUpperCase()
+    message: `Starting comprehensive analysis with ${zhiName}...`,
+    provider: zhiName
   });
 
   let responseText = "";
   
   try {
+    broadcastToSession(sessionId, {
+      type: 'progress',
+      message: `${zhiName} processing all 60 questions + markers...`
+    });
+    
+    // Create streaming request based on provider with word-by-word streaming
     if (provider === "anthropic") {
-      broadcastToSession(sessionId, {
-        type: 'progress',
-        message: 'ZHI 2 processing all 60 questions + markers...'
-      });
-      
-      const response = await aiClient.messages.create({
+      const stream = await aiClient.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 4000,
-        messages: [{ role: "user", content: promptTemplate }]
-      });
-      responseText = response.content[0]?.type === 'text' ? response.content[0].text : "";
-    } else if (provider === "openai") {
-      broadcastToSession(sessionId, {
-        type: 'progress',
-        message: 'ZHI 1 processing all 60 questions + markers...'
+        messages: [{ role: "user", content: promptTemplate }],
+        stream: true
       });
       
-      const response = await aiClient.chat.completions.create({
+      let buffer = "";
+      let currentLine = "";
+      
+      for await (const chunk of stream) {
+        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text') {
+          const content = chunk.delta.text;
+          buffer += content;
+          responseText += content;
+          currentLine += content;
+          
+          // Stream every single character/word immediately
+          broadcastToSession(sessionId, {
+            type: 'streaming_content',
+            content: content,
+            accumulated: buffer,
+            message: `${zhiName} generating...`
+          });
+          
+          // Check for line breaks to stream complete thoughts
+          if (content.includes('\n')) {
+            if (currentLine.trim()) {
+              broadcastToSession(sessionId, {
+                type: 'line_complete',
+                line: currentLine.trim(),
+                message: `${zhiName} completed thought`
+              });
+            }
+            currentLine = "";
+          }
+        }
+      }
+    } else if (provider === "openai") {
+      const stream = await aiClient.chat.completions.create({
         model: "gpt-4o",
         messages: [{ role: "user", content: promptTemplate }],
         max_tokens: 4000,
-        temperature: 0.3
-      });
-      responseText = response.choices[0]?.message?.content || "";
-    } else if (provider === "deepseek") {
-      broadcastToSession(sessionId, {
-        type: 'progress',
-        message: 'ZHI 3 processing all 60 questions + markers...'
+        temperature: 0.3,
+        stream: true
       });
       
-      const response = await aiClient.chat.completions.create({
+      let buffer = "";
+      let currentLine = "";
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          buffer += content;
+          responseText += content;
+          currentLine += content;
+          
+          // Stream every single character/word immediately
+          broadcastToSession(sessionId, {
+            type: 'streaming_content',
+            content: content,
+            accumulated: buffer,
+            message: `${zhiName} generating...`
+          });
+          
+          // Check for line breaks to stream complete thoughts
+          if (content.includes('\n')) {
+            if (currentLine.trim()) {
+              broadcastToSession(sessionId, {
+                type: 'line_complete',
+                line: currentLine.trim(),
+                message: `${zhiName} completed thought`
+              });
+            }
+            currentLine = "";
+          }
+        }
+      }
+    } else if (provider === "deepseek") {
+      const stream = await aiClient.chat.completions.create({
         model: "deepseek-chat",
         messages: [{ role: "user", content: promptTemplate }],
         max_tokens: 4000,
-        temperature: 0.3
-      });
-      responseText = response.choices[0]?.message?.content || "";
-    } else if (provider === "perplexity") {
-      broadcastToSession(sessionId, {
-        type: 'progress',
-        message: 'ZHI 4 processing all 60 questions + markers...'
+        temperature: 0.3,
+        stream: true
       });
       
-      const response = await aiClient.chat.completions.create({
+      let buffer = "";
+      let currentLine = "";
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          buffer += content;
+          responseText += content;
+          currentLine += content;
+          
+          // Stream every single character/word immediately
+          broadcastToSession(sessionId, {
+            type: 'streaming_content',
+            content: content,
+            accumulated: buffer,
+            message: `${zhiName} generating...`
+          });
+          
+          // Check for line breaks to stream complete thoughts
+          if (content.includes('\n')) {
+            if (currentLine.trim()) {
+              broadcastToSession(sessionId, {
+                type: 'line_complete',
+                line: currentLine.trim(),
+                message: `${zhiName} completed thought`
+              });
+            }
+            currentLine = "";
+          }
+        }
+      }
+    } else if (provider === "perplexity") {
+      const stream = await aiClient.chat.completions.create({
         model: "sonar-pro",
         messages: [{ role: "user", content: promptTemplate }],
         max_tokens: 4000,
-        temperature: 0.3
+        temperature: 0.3,
+        stream: true
       });
-      responseText = response.choices[0]?.message?.content || "";
+      
+      let buffer = "";
+      let currentLine = "";
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          buffer += content;
+          responseText += content;
+          currentLine += content;
+          
+          // Stream every single character/word immediately
+          broadcastToSession(sessionId, {
+            type: 'streaming_content',
+            content: content,
+            accumulated: buffer,
+            message: `${zhiName} generating...`
+          });
+          
+          // Check for line breaks to stream complete thoughts
+          if (content.includes('\n')) {
+            if (currentLine.trim()) {
+              broadcastToSession(sessionId, {
+                type: 'line_complete',
+                line: currentLine.trim(),
+                message: `${zhiName} completed thought`
+              });
+            }
+            currentLine = "";
+          }
+        }
+      }
     }
     
     const result = normalizeResult(responseText);
     
-    // Stream individual sections as they're processed
-    broadcastToSession(sessionId, {
-      type: 'section_complete',
-      section: 'core_questions',
-      data: result.core_questions,
-      message: 'Core personality questions (1-20) ✓'
-    });
-    
-    broadcastToSession(sessionId, {
-      type: 'section_complete',
-      section: 'personality_40_60',
-      data: result.personality_40_60,
-      message: 'Extended personality analysis (21-60) ✓'
-    });
-    
-    broadcastToSession(sessionId, {
-      type: 'section_complete',
-      section: 'visual_markers',
-      data: result.visual_markers,
-      message: 'Visual markers analysis ✓'
-    });
-    
-    broadcastToSession(sessionId, {
-      type: 'section_complete',
-      section: 'textual_markers',
-      data: result.textual_markers,
-      message: 'Textual markers analysis ✓'
-    });
-    
+    // Final completion message
     broadcastToSession(sessionId, {
       type: 'analysis_complete',
-      message: `${provider.toUpperCase()} analysis complete - All 60 questions answered`,
+      message: `${zhiName} analysis complete - All 60 questions answered`,
       totalQuestions: 60,
       sections: 4
     });
@@ -755,7 +853,7 @@ async function streamAnalysis(provider: string, content: string, aiClient: any, 
     console.warn(`Streaming analysis failed for ${provider}:`, error);
     broadcastToSession(sessionId, {
       type: 'error',
-      message: `${provider.toUpperCase()} analysis failed: ${error.message}`
+      message: `${zhiName} analysis failed: ${error.message}`
     });
     return normalizeResult("{}");
   }
