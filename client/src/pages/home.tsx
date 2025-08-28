@@ -97,18 +97,19 @@ const getModelDisplayName = (model: string) => {
   }
 };
 
-// Helper function to get available models for video analysis (excluding ZHI 1)
+// Helper function to get available models for video analysis
 const getVideoAnalysisModels = () => [
-  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
+  { value: "anthropic", label: "ZHI 1 (Anthropic)" },
   { value: "openai", label: "ZHI 2 (OpenAI)" },
+  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
   { value: "perplexity", label: "ZHI 4 (Perplexity)" }
 ];
 
 // Helper function to get all models for text/image analysis
 const getAllModels = () => [
-  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
-  { value: "openai", label: "ZHI 2 (OpenAI)" },
   { value: "anthropic", label: "ZHI 1 (Anthropic)" },
+  { value: "openai", label: "ZHI 2 (OpenAI)" },
+  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
   { value: "perplexity", label: "ZHI 4 (Perplexity)" }
 ];
 
@@ -1070,7 +1071,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                {/* Only show ZHI 1 for text/image analysis, never for video */}
+                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1</SelectItem>}
                 {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
                 <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}

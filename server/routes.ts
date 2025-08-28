@@ -1575,51 +1575,16 @@ Provide the deepest possible level of psychoanalytic insight based on observable
               analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
             } else if (selectedModel === "perplexity" && perplexity) {
               const response = await perplexity.chat.completions.create({
-                model: "llama-3.1-sonar-small-128k-online",
+                model: "sonar-pro",
                 messages: [{ role: "user", content: analysisPrompt }],
                 max_tokens: 4000,
                 temperature: 0.8
               });
               analysisText = response.choices[0]?.message?.content || "";
             } else if (openai) {
-              // Use simplified prompt for OpenAI to avoid safety filter issues
-              const openaiPrompt = `Analyze this person's personality and psychological traits based on their facial expressions, body language, and visual presentation.
-
-VISUAL DATA:
-${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this image'}
-
-Please provide a comprehensive personality analysis covering:
-
-1. Emotional expression and affect regulation
-2. Confidence and self-esteem indicators  
-3. Social interaction style and interpersonal approach
-4. Stress response and coping mechanisms
-5. Communication style and assertiveness
-6. Attention and focus patterns
-7. Leadership vs follower tendencies
-8. Openness to experience and curiosity
-9. Conscientiousness and organization
-10. Trust and authenticity markers
-
-For each area, provide specific observations based on what you can see in the image, including facial expressions, posture, eye contact, and overall presentation. 
-
-Answer these key personality questions based on your observations:
-1. What drives this person (their core motivation)?
-2. How confident are they really?
-3. How do they handle stress or setbacks?
-4. Are they trustworthy?
-5. How do they deal with criticism?
-6. Are they more optimistic or pessimistic?
-7. How do they treat people in different social situations?
-8. What are their main strengths and weaknesses?
-9. How self-aware do they seem?
-10. What do they most want others to think about them?
-
-Provide detailed, evidence-based insights in paragraph form without any formatting markup.`;
-
               const response = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [{ role: "user", content: openaiPrompt }],
+                messages: [{ role: "user", content: analysisPrompt }],
                 max_tokens: 4000,
                 temperature: 0.8
               });
@@ -1954,101 +1919,15 @@ This is a ${selectedSegment.duration}-second segment from ${selectedSegment.star
           });
           analysisText = response.choices[0]?.message?.content || "";
         } else if (selectedModel === "anthropic" && anthropic) {
-          // Special Anthropic prompt that avoids visual analysis language
-          const anthropicPrompt = `You are a psychological assessment expert analyzing processed behavioral data from a recorded communication segment.
-
-DATA PROVIDED:
-- Audio transcription: "${audioTranscription?.transcription || 'No clear speech detected'}"
-- Facial expression metrics: ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No facial data available'}
-- Segment duration: ${selectedSegment.duration} seconds
-- Time range: ${selectedSegment.startTime}s to ${selectedSegment.startTime + selectedSegment.duration}s
-
-ANALYSIS FRAMEWORK:
-Based on the processed behavioral data, provide a comprehensive psychological assessment covering:
-
-1. COMMUNICATION PATTERNS & SPEECH ANALYSIS
-2. EMOTIONAL REGULATION PATTERNS  
-3. COGNITIVE PROCESSING STYLE
-4. INTERPERSONAL DYNAMICS
-5. PERSONALITY STRUCTURE ASSESSMENT
-
-REQUIRED: Answer each of these 60 specific personality questions based on the data:
-
-CORE PERSONALITY QUESTIONS (1-20):
-1. What drives this person (their core motivation)?
-2. How confident are they really?
-3. Do they genuinely like themselves?
-4. How smart are they?
-5. How creative are they?
-6. How do they handle stress or setbacks?
-7. Are they trustworthy?
-8. Do they exaggerate or fake things about themselves?
-9. How ambitious are they?
-10. What are they insecure about?
-11. How much do they care what others think?
-12. Are they independent-minded, or do they follow the crowd?
-13. Do they tend to dominate conversations or listen more?
-14. How do they deal with criticism?
-15. Are they more optimistic or pessimistic?
-16. Do they have a strong sense of humor?
-17. How do they treat people "beneath" them?
-18. Are they consistent, or do they contradict themselves?
-19. What hidden strengths do they have?
-20. What hidden weaknesses do they have?
-
-DEEPER PSYCHOLOGICAL QUESTIONS (21-60):
-21. What do they crave most — attention, respect, control, affection, or freedom?
-22. Do they secretly feel superior or inferior to others?
-23. How emotionally stable are they?
-24. Do they take responsibility for mistakes or deflect blame?
-25. How competitive are they?
-26. Do they hold grudges or let things go?
-27. Are they more genuine in private or in public?
-28. How self-aware do they seem?
-29. Do they tend to exaggerate their successes or downplay them?
-30. Are they more driven by logic or by emotion?
-31. Do they thrive on routine or novelty?
-32. Are they better at starting things or finishing them?
-33. Do they inspire others, drain others, or blend into the background?
-34. Are they risk-takers or risk-avoiders?
-35. Do they tend to manipulate people, charm them, or stay straightforward?
-36. How consistent is their image of themselves compared to reality?
-37. Do they prefer to lead, to follow, or to go it alone?
-38. Are they generous with others, or more self-serving?
-39. Do they seek depth in relationships, or keep things shallow?
-40. What do they most want to hide from others?
-41. Do they adapt quickly, or resist change?
-42. How much do they exaggerate their life story?
-43. Are they more focused on short-term pleasure or long-term goals?
-44. Do they secretly feel underappreciated?
-45. How much control do they need in relationships?
-46. Do they have hidden anger or resentment?
-47. Are they better at giving advice or taking it?
-48. Do they come across as more authentic or performative?
-49. How curious are they about the world and other people?
-50. Do they stick to their principles, or bend them when convenient?
-51. How good are they at reading others?
-52. Do they act the same across different social groups, or change their persona?
-53. Do they seek excitement or avoid it?
-54. Do they like being the center of attention, or prefer staying in the background?
-55. Do they overshare, undershare, or strike a balance?
-56. Are they more forgiving or judgmental?
-57. Do they use humor as connection, or as defense?
-58. Are they decisive, or do they hesitate a lot?
-59. Do they need constant validation, or are they self-sustaining?
-60. What's the gap between how they want to be seen and how they actually appear?
-
-Provide specific answers to each question based on the processed behavioral data and communication patterns observed.`;
-          
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
             max_tokens: 4000,
-            messages: [{ role: "user", content: anthropicPrompt }]
+            messages: [{ role: "user", content: analysisPrompt }]
           });
           analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
         } else if (selectedModel === "perplexity" && perplexity) {
           const response = await perplexity.chat.completions.create({
-            model: "sonar",
+            model: "sonar-pro",
             messages: [{ role: "user", content: analysisPrompt }],
             max_tokens: 4000,
             temperature: 0.8
@@ -2119,7 +1998,7 @@ Focus on the psychological assessment methodology rather than specific content a
               fallbackAnalysis = response.content[0]?.type === 'text' ? response.content[0].text : "";
             } else if (selectedModel === "perplexity" && perplexity) {
               const response = await perplexity.chat.completions.create({
-                model: "sonar",
+                model: "sonar-pro",
                 messages: [{ role: "user", content: fallbackPrompt }],
                 max_tokens: 2000,
                 temperature: 0.7
