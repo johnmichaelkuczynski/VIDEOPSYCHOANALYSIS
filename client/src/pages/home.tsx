@@ -89,8 +89,8 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
 // Helper function to get model display name
 const getModelDisplayName = (model: string) => {
   switch (model) {
-    case "deepseek": return "ZHI 2";
-    case "openai": return "ZHI 3"; 
+    case "deepseek": return "ZHI 3";
+    case "openai": return "ZHI 2";
     case "anthropic": return "ZHI 1";
     case "perplexity": return "ZHI 4";
     default: return model;
@@ -114,7 +114,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("anthropic");
 
   // Document analysis states
   const [documentChunks, setDocumentChunks] = useState<any[]>([]);
@@ -211,8 +211,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
 
         // Set default selected model based on availability
-        // DeepSeek (ZHI 2) is the default recommended model
-        setSelectedModel("deepseek");
+        // Anthropic (ZHI 1) is the default
+        setSelectedModel("anthropic");
       } catch (error) {
         console.error("Error checking API status:", error);
       }
@@ -1042,10 +1042,10 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="deepseek">ZHI 2 (Recommended)</SelectItem>
-                {availableServices.openai && <SelectItem value="openai">ZHI 3</SelectItem>}
+                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
+                {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
+                <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
-                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1</SelectItem>}
               </SelectContent>
             </Select>
 
@@ -1064,20 +1064,20 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
               <div className="text-xs space-y-1 text-muted-foreground">
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.deepseek ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span>ZHI 2 (Recommended)</span>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>ZHI 1</span>
                 </div>
                 <div className="flex items-center">
                   <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span>ZHI 2</span>
+                </div>
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.deepseek ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 3</span>
                 </div>
                 <div className="flex items-center">
                   <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.perplexity ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 4</span>
-                </div>
-                <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span>ZHI 1</span>
                 </div>
 
                 {showAdvancedServices && (

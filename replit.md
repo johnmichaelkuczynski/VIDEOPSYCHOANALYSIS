@@ -7,8 +7,6 @@ This project is an advanced AI-powered personality insights platform designed fo
 - **Video Analysis Enhancement**: Updated video segment duration from 5 to 10 seconds and corrected upload limits to 30 seconds maximum
 - **Comprehensive Question Integration**: Enhanced both image and video analysis to answer 60 specific personality questions (1-20 core, 21-60 deeper psychological insights) in addition to existing comprehensive analysis
 - **Visual Analysis Accuracy**: Added critical color precision instructions to prevent clothing description errors and improve observational accuracy
-- **Default Model Change**: Updated default recommendation from ZHI 1 (Anthropic) to ZHI 2 (DeepSeek) due to superior video analysis performance
-- **Anthropic Prompt Fix**: Created specialized speech-only analysis prompt for Anthropic Claude to prevent video analysis refusals
 - **Video Upload Stability**: Fixed video upload crashes for files >30 seconds with comprehensive error handling, timeout protection (30s), file size limits (500MB), and automatic cleanup
 - **Consolidated Downloads**: Added comprehensive download functionality that combines all analysis modules (psychological Q1-Q18, intelligence Q19-Q36, 40 parameters, clinical assessments) into single documents
 - **Bulk Text Operations**: Implemented bulk select/deselect for document text chunks to handle large documents efficiently (tested with 72+ chunks)
@@ -16,12 +14,11 @@ This project is an advanced AI-powered personality insights platform designed fo
 - **JSON Error Handling**: Robust JSON parsing error handling prevents app crashes during video processing
 
 ## User Preferences
-- Default AI Model: DeepSeek (ZHI 2) - Recommended for best video analysis performance
-- Analysis Focus: Comprehensive cognitive and psychological profiling with 60 specific personality questions
+- Default AI Model: DeepSeek (OpenAI-compatible API)
+- Analysis Focus: Comprehensive cognitive and psychological profiling
 - Evidence Requirement: All assessments must be supported by observable evidence
 - Download Formats: PDF, Word, and TXT support required
 - Service Reliability: Fallback chains preferred for all external services
-- Model Performance Notes: Anthropic Claude (ZHI 1) has refusal issues with video analysis
 
 ## System Architecture
 
