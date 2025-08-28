@@ -580,7 +580,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           analysisId,
           segmentId: selectedVideoSegment,
           selectedModel,
-          sessionId
+          sessionId,
+          customDuration: videoSegmentDuration
         }),
       });
 
@@ -1302,8 +1303,29 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                     <h3 className="font-medium text-blue-900">Select Video Segment</h3>
                     <p className="text-sm text-blue-700">
-                      Your video is large, so please select a 5-second segment to analyze for optimal performance:
+                      Your video is large, so please select a segment to analyze for optimal performance:
                     </p>
+                    
+                    {/* Custom Duration Selector */}
+                    <div className="bg-white p-3 rounded-md border">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Analysis Duration: {videoSegmentDuration} seconds (1-10 seconds)
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={videoSegmentDuration}
+                        onChange={(e) => setVideoSegmentDuration(parseInt(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>1s</span>
+                        <span>5s</span>
+                        <span>10s</span>
+                      </div>
+                    </div>
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Analysis focuses on facial expressions, body language, and speech patterns in the selected segment.
                     </div>
@@ -1320,7 +1342,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           }`}
                         >
                           <div className="font-medium">{segment.label}</div>
-                          <div className="text-xs text-gray-600">{segment.duration}s duration</div>
+                          <div className="text-xs text-gray-600">Analyzing {videoSegmentDuration}s of {segment.duration}s</div>
                         </button>
                       ))}
                     </div>
@@ -1348,8 +1370,29 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                     <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
                     <p className="text-sm text-blue-700">
-                      For optimal performance, videos are processed in 5-second segments. Select which segment to analyze:
+                      For optimal performance, select which segment to analyze. You can choose any duration from 1-10 seconds:
                     </p>
+                    
+                    {/* Custom Duration Selector for Small Videos */}
+                    <div className="bg-white p-3 rounded-md border">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Analysis Duration: {videoSegmentDuration} seconds (1-10 seconds)
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={videoSegmentDuration}
+                        onChange={(e) => setVideoSegmentDuration(parseInt(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>1s</span>
+                        <span>5s</span>
+                        <span>10s</span>
+                      </div>
+                    </div>
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
                       audio transcription, and emotional insights from your selected segment.
@@ -1373,17 +1416,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
                       <div>
                         <label className="block text-sm font-medium text-blue-900 mb-1">
-                          Duration (max 5s)
+                          Custom Duration ({videoSegmentDuration}s)
                         </label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={5}
-                          step={1}
-                          value={videoSegmentDuration}
-                          onChange={(e) => setVideoSegmentDuration(Math.min(5, Math.max(1, parseInt(e.target.value) || 5)))}
-                          className="w-full"
-                        />
+                        <div className="text-xs text-gray-600">
+                          Selected: {videoSegmentDuration} seconds (1-10s range)
+                        </div>
                       </div>
                     </div>
 

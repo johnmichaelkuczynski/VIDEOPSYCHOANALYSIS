@@ -578,6 +578,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { id: 40, name: "Psychological Mindedness", description: "Interest in and capacity for psychological insight and self-reflection." }
       ];
 
+      // Helper function to call AI models - moved to top to avoid hoisting issues
+      const callAI = async (model: string, prompt: string): Promise<any> => {
+        try {
+          if (model === "deepseek" && deepseek) {
+            const response = await deepseek.chat.completions.create({
+              model: "deepseek-chat",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 1500,
+              temperature: 0.1
+            });
+            
+            const text = response.choices[0]?.message?.content || "";
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                return JSON.parse(jsonMatch[0]);
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
+                return null;
+              }
+            }
+            return null;
+            
+          } else if (model === "anthropic" && anthropic) {
+            const response = await anthropic.messages.create({
+              model: "claude-3-5-sonnet-20241022",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 1500,
+              temperature: 0.1
+            });
+            
+            const text = (response.content[0] as any)?.text || "";
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                return JSON.parse(jsonMatch[0]);
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
+                return null;
+              }
+            }
+            return null;
+            
+          } else if (model === "openai" && openai) {
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 1500,
+              temperature: 0.1
+            });
+            
+            const text = response.choices[0]?.message?.content || "";
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                return JSON.parse(jsonMatch[0]);
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
+                return null;
+              }
+            }
+            return null;
+          }
+        } catch (error) {
+          console.error(`AI call failed for ${model}:`, error);
+          return null;
+        }
+      };
+
       // PROTOCOL-BASED ANALYSIS: Using the actual psychological protocol questions
       console.log("Starting protocol-based psychological analysis...");
       let protocolResponses = [];
@@ -791,74 +860,7 @@ Respond with JSON only:
       
       console.log(`Protocol analysis completed: ${protocolResponses.length} questions answered`);
       
-      // Helper function to call AI models moved outside to avoid strict mode error
-      const callAI = async (model: string, prompt: string): Promise<any> => {
-        try {
-          if (model === "deepseek" && deepseek) {
-            const response = await deepseek.chat.completions.create({
-              model: "deepseek-chat",
-              messages: [{ role: "user", content: prompt }],
-              max_tokens: 1500,
-              temperature: 0.1
-            });
-            
-            const text = response.choices[0]?.message?.content || "";
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              try {
-                return JSON.parse(jsonMatch[0]);
-              } catch (e) {
-                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
-                return null;
-              }
-            }
-            return null;
-            
-          } else if (model === "anthropic" && anthropic) {
-            const response = await anthropic.messages.create({
-              model: "claude-3-5-sonnet-20241022",
-              messages: [{ role: "user", content: prompt }],
-              max_tokens: 1500,
-              temperature: 0.1
-            });
-            
-            const text = (response.content[0] as any)?.text || "";
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              try {
-                return JSON.parse(jsonMatch[0]);
-              } catch (e) {
-                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
-                return null;
-              }
-            }
-            return null;
-            
-          } else if (model === "openai" && openai) {
-            const response = await openai.chat.completions.create({
-              model: "gpt-4o",
-              messages: [{ role: "user", content: prompt }],
-              max_tokens: 1500,
-              temperature: 0.1
-            });
-            
-            const text = response.choices[0]?.message?.content || "";
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              try {
-                return JSON.parse(jsonMatch[0]);
-              } catch (e) {
-                console.error('JSON parse error:', e, 'Text:', jsonMatch[0]);
-                return null;
-              }
-            }
-            return null;
-          }
-        } catch (error) {
-          console.error(`AI call failed for ${model}:`, error);
-          return null;
-        }
-      };
+
       
       // All analysis is now completed through the chunked approach above
       console.log("Chunked analysis completed successfully!");
@@ -1640,7 +1642,7 @@ Provide the deepest possible level of psychoanalytic insight based on observable
   // Video segment analysis endpoint
   app.post("/api/analyze/video-segment", async (req, res) => {
     try {
-      const { analysisId, segmentId, selectedModel = "deepseek", sessionId } = req.body;
+      const { analysisId, segmentId, selectedModel = "deepseek", sessionId, customDuration = 10 } = req.body;
       
       if (!analysisId || !segmentId) {
         return res.status(400).json({ error: "Analysis ID and segment ID are required" });
@@ -1681,7 +1683,7 @@ Provide the deepest possible level of psychoanalytic insight based on observable
         if (hasOriginalFile && tempFilePath) {
           try {
             segmentFilePath = path.join(tempDir, `extracted_${Date.now()}.mp4`);
-            await extractVideoSegment(tempFilePath, selectedSegment.startTime, selectedSegment.duration, segmentFilePath);
+            await extractVideoSegment(tempFilePath, selectedSegment.startTime, customDuration, segmentFilePath);
             
             // Perform facial analysis and audio transcription
             faceAnalysis = await performVideoAnalysis(segmentFilePath, selectedModel, analysis.sessionId);
