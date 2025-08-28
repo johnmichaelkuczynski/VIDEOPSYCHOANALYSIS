@@ -5,9 +5,12 @@ This project is an advanced AI-powered personality insights platform designed fo
 
 ## Recent Changes (August 2025)
 - **ZHI 1 (Anthropic) Fully Restored**: Added ZHI 1 back to all analysis types including video analysis with comprehensive 60-question framework
+- **Comprehensive 60-Question Analysis**: Implemented complete structured analysis with all 60 personality questions (1-20 core + 40 deeper insights) plus visual/textual markers for all models
+- **Provider-Specific Analysis Prompts**: Anthropic uses transcript-based analysis, while other models use direct image/video analysis, with identical comprehensive question coverage
+- **Structured JSON Output**: All models return standardized JSON with core_questions, personality_40_60, visual_markers, and textual_markers sections
+- **ZHI 1 Service Status Integration**: Added ZHI 1 to all service status lists and model selection dropdowns with proper status indicators
 - **Custom Video Duration Selector**: Added user-selectable video segment duration (1-10 seconds) for both large and small video uploads with intuitive slider interface
 - **Video Analysis Enhancement**: Updated video segment duration from 5 to 10 seconds and corrected upload limits to 30 seconds maximum
-- **Comprehensive Question Integration**: Enhanced both image and video analysis to answer 60 specific personality questions (1-20 core, 21-60 deeper psychological insights) in addition to existing comprehensive analysis
 - **Visual Analysis Accuracy**: Added critical color precision instructions to prevent clothing description errors and improve observational accuracy
 - **Video Upload Stability**: Fixed video upload crashes for files >30 seconds with comprehensive error handling, timeout protection (30s), file size limits (500MB), and automatic cleanup
 - **Consolidated Downloads**: Added comprehensive download functionality that combines all analysis modules (psychological Q1-Q18, intelligence Q19-Q36, 40 parameters, clinical assessments) into single documents
