@@ -126,7 +126,7 @@ function getVideoDuration(videoPath: string): Promise<number> {
 /**
  * Helper function to create video time segments
  */
-function createVideoSegments(duration: number, segmentLength: number = 5): any[] {
+function createVideoSegments(duration: number, segmentLength: number = 10): any[] {
   const segments = [];
   const totalSegments = Math.ceil(duration / segmentLength);
   
@@ -996,7 +996,7 @@ Respond with JSON only:
           // Create segments with better error handling
           let segments = [];
           try {
-            segments = createVideoSegments(duration, 5);
+            segments = createVideoSegments(duration, 10);
           } catch (segmentError) {
             console.error("Failed to create video segments:", segmentError);
             // Clean up temp file
@@ -1058,7 +1058,7 @@ Respond with JSON only:
             duration,
             segments,
             requiresSegmentSelection: true,
-            message: `Video uploaded successfully! Duration: ${Math.round(duration)} seconds. Please select a 5-second segment to analyze.`,
+            message: `Video uploaded successfully! Duration: ${Math.round(duration)} seconds. Please select a 10-second segment to analyze.`,
             emailServiceAvailable: isEmailServiceConfigured,
             fileSize: fileSizeInMB,
             processingStatus: 'ready'
@@ -1197,10 +1197,10 @@ Respond with JSON only:
             });
           }
           
-          // Create 5-second segments for user selection
+          // Create 10-second segments for user selection
           let segments = [];
           try {
-            segments = createVideoSegments(duration, 5);
+            segments = createVideoSegments(duration, 10);
           } catch (segmentError) {
             console.error("Failed to create video segments:", segmentError);
             if (tempFilePath) {
@@ -1253,7 +1253,7 @@ Respond with JSON only:
             duration,
             segments,
             requiresSegmentSelection: true,
-            message: `Video uploaded successfully! Duration: ${Math.round(duration)} seconds. Please select a 5-second segment to analyze.`,
+            message: `Video uploaded successfully! Duration: ${Math.round(duration)} seconds. Please select a 10-second segment to analyze.`,
             emailServiceAvailable: isEmailServiceConfigured,
             fileSize: fileSizeInMB,
             processingStatus: 'ready'

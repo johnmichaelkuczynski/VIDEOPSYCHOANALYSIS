@@ -127,7 +127,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
-  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(5);
+  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(10);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [videoSegments, setVideoSegments] = useState<any[]>([]);
   const [selectedVideoSegment, setSelectedVideoSegment] = useState<number | null>(null);
@@ -1197,7 +1197,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 Supports JPG, PNG, MP4, MOV (max 500MB)
               </p>
               <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-                <span className="font-semibold">⚠️ Video Length Note:</span> Videos can be any length but only a 5-10 second segment will be analyzed. 
+                <span className="font-semibold">⚠️ Video Length Limit:</span> Maximum 30 seconds. Only a 10-second segment will be analyzed. 
                 Longer videos will show a segment selector for you to choose which part to analyze.
               </div>
             </div>
