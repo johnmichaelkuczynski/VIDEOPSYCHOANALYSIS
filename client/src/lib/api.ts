@@ -44,13 +44,7 @@ export async function uploadMedia(options: {
     videoSegmentDuration
   });
   
-  let data;
-  try {
-    data = await res.json();
-  } catch (jsonParseError) {
-    console.error('JSON parsing error in media upload response:', jsonParseError);
-    throw new Error('Media upload completed but response processing failed. The file may be too large or complex. Please try a smaller file.');
-  }
+  const data = await res.json();
   console.log("Media analysis response:", data);
   
   // Extract the analysis text into a proper message format if missing

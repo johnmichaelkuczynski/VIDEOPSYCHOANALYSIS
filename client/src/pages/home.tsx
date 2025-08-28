@@ -28,44 +28,6 @@ const shareSchema = z.object({
   recipientEmail: z.string().email("Please enter a valid email"),
 });
 
-// WebSocket connection for real-time streaming
-let wsConnection: WebSocket | null = null;
-
-function connectWebSocket(sessionId: string, onMessage: (data: any) => void) {
-  if (wsConnection?.readyState === WebSocket.OPEN) {
-    return wsConnection;
-  }
-  
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.host}/ws?sessionId=${sessionId}`;
-  
-  wsConnection = new WebSocket(wsUrl);
-  
-  wsConnection.onopen = () => {
-    console.log('WebSocket connected for real-time streaming');
-  };
-  
-  wsConnection.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      onMessage(data);
-    } catch (error) {
-      console.error('WebSocket message parse error:', error);
-    }
-  };
-  
-  wsConnection.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
-  
-  wsConnection.onclose = () => {
-    console.log('WebSocket disconnected');
-    wsConnection = null;
-  };
-  
-  return wsConnection;
-}
-
 // Helper function to resize images
 async function resizeImage(file: File, maxWidth: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -127,29 +89,13 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
 // Helper function to get model display name
 const getModelDisplayName = (model: string) => {
   switch (model) {
-    case "openai": return "ZHI 1";
-    case "anthropic": return "ZHI 2";
     case "deepseek": return "ZHI 3";
+    case "openai": return "ZHI 2";
+    case "anthropic": return "ZHI 1";
     case "perplexity": return "ZHI 4";
     default: return model;
   }
 };
-
-// Helper function to get available models for video analysis
-const getVideoAnalysisModels = () => [
-  { value: "openai", label: "ZHI 1" },
-  { value: "anthropic", label: "ZHI 2" },
-  { value: "deepseek", label: "ZHI 3" },
-  { value: "perplexity", label: "ZHI 4" }
-];
-
-// Helper function to get all models for text/image analysis
-const getAllModels = () => [
-  { value: "openai", label: "ZHI 1" },
-  { value: "anthropic", label: "ZHI 2" },
-  { value: "deepseek", label: "ZHI 3" },
-  { value: "perplexity", label: "ZHI 4" }
-];
 
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
   const { toast } = useToast();
@@ -168,12 +114,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
-  
-  // Real-time streaming states
-  const [streamingMessages, setStreamingMessages] = useState<string[]>([]);
-  const [streamingProgress, setStreamingProgress] = useState<{[key: string]: boolean}>({});
-  const [currentAnalysisProvider, setCurrentAnalysisProvider] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("anthropic");
 
   // Document analysis states
   const [documentChunks, setDocumentChunks] = useState<any[]>([]);
@@ -186,7 +127,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
-  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(10);
+  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(5);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [videoSegments, setVideoSegments] = useState<any[]>([]);
   const [selectedVideoSegment, setSelectedVideoSegment] = useState<number | null>(null);
@@ -228,8 +169,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     azure_video_indexer: boolean;
     deepseek: boolean;
   }>({
-    deepseek: false,
-    openai: true,
+    deepseek: true,
+    openai: false,
     anthropic: false,
     perplexity: false,
     azure_face: false,
@@ -242,60 +183,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     azure_video_indexer: false
   });
 
-  // Initialize WebSocket connection and check API status
+  // Check API status on component mount
   useEffect(() => {
-    // Connect WebSocket for real-time streaming
-    const handleStreamingMessage = (data: any) => {
-      switch (data.type) {
-        case 'connected':
-          console.log('Real-time streaming connected');
-          break;
-        case 'analysis_start':
-          setCurrentAnalysisProvider(data.provider);
-          setStreamingMessages(prev => [...prev, data.message]);
-          setIsAnalyzing(true);
-          break;
-        case 'progress':
-          setStreamingMessages(prev => [...prev, data.message]);
-          break;
-        case 'streaming_content':
-          // Show EVERY SINGLE CHARACTER as it comes in
-          setStreamingMessages(prev => {
-            const newMessages = [...prev];
-            const lastIndex = newMessages.length - 1;
-            
-            // If there's a generating message, replace it with accumulated content
-            if (lastIndex >= 0 && newMessages[lastIndex].includes('generating...')) {
-              newMessages[lastIndex] = data.accumulated;
-            } else {
-              // Add new streaming content
-              newMessages.push(data.accumulated);
-            }
-            return newMessages;
-          });
-          break;
-        case 'line_complete':
-          setStreamingMessages(prev => [...prev, `✓ ${data.line}`]);
-          break;
-        case 'section_complete':
-          setStreamingProgress(prev => ({...prev, [data.section]: true}));
-          setStreamingMessages(prev => [...prev, data.message]);
-          break;
-        case 'analysis_complete':
-          setStreamingMessages(prev => [...prev, data.message]);
-          setIsAnalyzing(false);
-          // Refresh analysis data
-          window.location.reload();
-          break;
-        case 'error':
-          setStreamingMessages(prev => [...prev, `❌ ${data.message}`]);
-          toast({ title: "Analysis Error", description: data.message, variant: "destructive" });
-          break;
-      }
-    };
-
-    connectWebSocket(sessionId, handleStreamingMessage);
-
     const checkStatus = async () => {
       try {
         const res = await fetch('/api/status');
@@ -307,7 +196,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
         // Set available services
         setAvailableServices({
-          deepseek: status.deepseek || false,
+          deepseek: true, // DeepSeek is always available as default
           openai: status.openai || false,
           anthropic: status.anthropic || false,
           perplexity: status.perplexity || false,
@@ -321,8 +210,9 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           azure_video_indexer: status.azure_video_indexer || false
         });
 
-        // Set default selected model to ZHI 1
-        setSelectedModel("openai");
+        // Set default selected model based on availability
+        // Anthropic (ZHI 1) is the default
+        setSelectedModel("anthropic");
       } catch (error) {
         console.error("Error checking API status:", error);
       }
@@ -369,18 +259,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
     }
   }, [shareId, toast]);
-
-  // Handle model selection when media type changes (exclude ZHI 1 for video)
-  useEffect(() => {
-    if (mediaType === "video" && selectedModel === "anthropic") {
-      // Switch away from ZHI 1 (Anthropic) for video analysis
-      setSelectedModel("deepseek");
-      toast({
-        title: "Model Switched",
-        description: "Switched to ZHI 3 (DeepSeek) - ZHI 1 excluded for video analysis",
-      });
-    }
-  }, [mediaType, selectedModel, toast]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -539,39 +417,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           });
 
           if (!uploadResponse.ok) {
-            let errorMessage = 'Upload failed';
-            let isJsonError = false;
-            
-            try {
-              const errorData = await uploadResponse.json();
-              errorMessage = errorData.error || 'Upload failed';
-              
-              // Provide more user-friendly messages for specific error types
-              if (errorData.maxSizeExceeded) {
-                errorMessage = `File too large (${errorData.fileSizeMB?.toFixed(1) || 'unknown'} MB). Maximum size is 500MB. Please use a smaller video file.`;
-              } else if (errorData.formatError) {
-                errorMessage = "Cannot process this video format. Please try MP4, MOV, or AVI files with standard encoding.";
-              } else if (errorData.processingFailed) {
-                errorMessage = "Video processing failed. The file may be corrupted or use an unsupported codec. Please try a different video.";
-              } else if (errorData.unsupportedType) {
-                errorMessage = "Only video files are supported for this upload method. For images, please use the regular upload.";
-              }
-            } catch (jsonParseError) {
-              // If we can't parse the error response as JSON, it might be the JSON parsing issue
-              isJsonError = true;
-              errorMessage = `Upload failed due to server processing error. The video file may be too large or corrupted. Please try a smaller MP4 file.`;
-              console.error('JSON parsing error in error response:', jsonParseError);
-            }
-            
-            throw new Error(errorMessage);
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.error || 'Upload failed');
           }
 
-          try {
-            response = await uploadResponse.json();
-          } catch (jsonParseError) {
-            console.error('JSON parsing error in successful response:', jsonParseError);
-            throw new Error('Video upload completed but response processing failed. The video may be too large or complex. Please try a shorter or smaller video file.');
-          }
+          response = await uploadResponse.json();
         } else {
           // Use regular JSON upload for smaller files
           response = await uploadMedia({
@@ -702,30 +552,16 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           analysisId,
           segmentId: selectedVideoSegment,
           selectedModel,
-          sessionId,
-          customDuration: videoSegmentDuration
+          sessionId
         }),
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to analyze video segment';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || 'Failed to analyze video segment';
-        } catch (jsonParseError) {
-          errorMessage = 'Video segment analysis failed due to processing error. The video segment may be too complex. Please try a different segment.';
-          console.error('JSON parsing error in video segment error response:', jsonParseError);
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze video segment');
       }
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (jsonParseError) {
-        console.error('JSON parsing error in video segment response:', jsonParseError);
-        throw new Error('Video segment analysis completed but response processing failed. Please try a different segment.');
-      }
+      const data = await response.json();
       setAnalysisProgress(90);
 
       // Add the analysis message to the chat, replacing any existing video analysis
@@ -792,11 +628,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const handleFileUpload = (file: File) => {
     const fileType = file.type.split('/')[0];
 
-    // Check file size early for videos (updated to match backend limits)
-    if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+    // Check file size early for videos
+    if (fileType === 'video' && file.size > 50 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Video files must be under 500MB. Please compress your video or use a shorter clip.",
+        description: "Video files must be under 50MB. Please compress your video or use a shorter clip.",
         variant: "destructive",
       });
       return;
@@ -1165,8 +1001,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                {availableServices.openai && <SelectItem value="openai">ZHI 1</SelectItem>}
-                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 2</SelectItem>}
+                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
+                {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
                 <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
@@ -1187,11 +1023,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
               <div className="text-xs space-y-1 text-muted-foreground">
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 1</span>
                 </div>
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 2</span>
                 </div>
                 <div className="flex items-center">
@@ -1317,12 +1153,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 Drag & drop files here to analyze
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports JPG, PNG, MP4, MOV (max 500MB)
+                Supports JPG, PNG, MP4, MOV (max 50MB)
               </p>
-              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-                <span className="font-semibold">⚠️ Video Length Limit:</span> Maximum 30 seconds. Only a 10-second segment will be analyzed. 
-                Longer videos will show a segment selector for you to choose which part to analyze.
-              </div>
             </div>
           </Card>
 
@@ -1425,29 +1257,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                     <h3 className="font-medium text-blue-900">Select Video Segment</h3>
                     <p className="text-sm text-blue-700">
-                      Your video is large, so please select a segment to analyze for optimal performance:
+                      Your video is large, so please select a 5-second segment to analyze for optimal performance:
                     </p>
-                    
-                    {/* Custom Duration Selector */}
-                    <div className="bg-white p-3 rounded-md border">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Analysis Duration: {videoSegmentDuration} seconds (1-10 seconds)
-                      </label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        value={videoSegmentDuration}
-                        onChange={(e) => setVideoSegmentDuration(parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>1s</span>
-                        <span>5s</span>
-                        <span>10s</span>
-                      </div>
-                    </div>
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Analysis focuses on facial expressions, body language, and speech patterns in the selected segment.
                     </div>
@@ -1464,7 +1275,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                           }`}
                         >
                           <div className="font-medium">{segment.label}</div>
-                          <div className="text-xs text-gray-600">Analyzing {videoSegmentDuration}s of {segment.duration}s</div>
+                          <div className="text-xs text-gray-600">{segment.duration}s duration</div>
                         </button>
                       ))}
                     </div>
@@ -1492,29 +1303,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                     <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
                     <p className="text-sm text-blue-700">
-                      For optimal performance, select which segment to analyze. You can choose any duration from 1-10 seconds:
+                      For optimal performance, videos are processed in 5-second segments. Select which segment to analyze:
                     </p>
-                    
-                    {/* Custom Duration Selector for Small Videos */}
-                    <div className="bg-white p-3 rounded-md border">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Analysis Duration: {videoSegmentDuration} seconds (1-10 seconds)
-                      </label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        value={videoSegmentDuration}
-                        onChange={(e) => setVideoSegmentDuration(parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>1s</span>
-                        <span>5s</span>
-                        <span>10s</span>
-                      </div>
-                    </div>
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
                       audio transcription, and emotional insights from your selected segment.
@@ -1538,11 +1328,17 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
                       <div>
                         <label className="block text-sm font-medium text-blue-900 mb-1">
-                          Custom Duration ({videoSegmentDuration}s)
+                          Duration (max 5s)
                         </label>
-                        <div className="text-xs text-gray-600">
-                          Selected: {videoSegmentDuration} seconds (1-10s range)
-                        </div>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={5}
+                          step={1}
+                          value={videoSegmentDuration}
+                          onChange={(e) => setVideoSegmentDuration(Math.min(5, Math.max(1, parseInt(e.target.value) || 5)))}
+                          className="w-full"
+                        />
                       </div>
                     </div>
 
@@ -1818,49 +1614,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                     <Eye className="w-4 h-4" />
                     <span>{documentChunks.length === 1 ? 'Analyze Document' : 'Analyze Selected'}</span>
                   </Button>
-                </div>
-              </div>
-            )}
-
-            {/* REAL-TIME STREAMING PROGRESS */}
-            {(isAnalyzing || streamingMessages.length > 0) && (
-              <div className="mb-6 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 p-1">
-                <div className="bg-white rounded-md p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-green-700">
-                      🔴 LIVE: Real-Time Analysis Stream
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <div className="animate-pulse w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span className="text-sm font-medium">{currentAnalysisProvider}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Progress checklist */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                    <div className={`p-2 rounded text-sm ${streamingProgress['core_questions'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {streamingProgress['core_questions'] ? '✓' : '⏳'} Questions 1-20
-                    </div>
-                    <div className={`p-2 rounded text-sm ${streamingProgress['personality_40_60'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {streamingProgress['personality_40_60'] ? '✓' : '⏳'} Questions 21-60
-                    </div>
-                    <div className={`p-2 rounded text-sm ${streamingProgress['visual_markers'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {streamingProgress['visual_markers'] ? '✓' : '⏳'} Visual Markers
-                    </div>
-                    <div className={`p-2 rounded text-sm ${streamingProgress['textual_markers'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {streamingProgress['textual_markers'] ? '✓' : '⏳'} Text Markers
-                    </div>
-                  </div>
-                  
-                  {/* Streaming messages */}
-                  <div className="bg-gray-50 rounded p-3 max-h-40 overflow-y-auto">
-                    <h4 className="text-sm font-semibold mb-2">Live Updates:</h4>
-                    {streamingMessages.map((message, index) => (
-                      <div key={index} className="text-sm text-gray-700 mb-1 font-mono">
-                        {message}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             )}
