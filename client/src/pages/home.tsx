@@ -259,14 +259,17 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           setStreamingMessages(prev => [...prev, data.message]);
           break;
         case 'streaming_content':
-          // Update the last message with streaming content
+          // Show EVERY SINGLE CHARACTER as it comes in
           setStreamingMessages(prev => {
             const newMessages = [...prev];
             const lastIndex = newMessages.length - 1;
+            
+            // If there's a generating message, replace it with accumulated content
             if (lastIndex >= 0 && newMessages[lastIndex].includes('generating...')) {
-              newMessages[lastIndex] = `${data.message}: ${data.accumulated}`;
+              newMessages[lastIndex] = data.accumulated;
             } else {
-              newMessages.push(`${data.message}: ${data.content}`);
+              // Add new streaming content
+              newMessages.push(data.accumulated);
             }
             return newMessages;
           });
@@ -1162,8 +1165,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1</SelectItem>}
-                {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
+                {availableServices.openai && <SelectItem value="openai">ZHI 1</SelectItem>}
+                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 2</SelectItem>}
                 <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
@@ -1184,11 +1187,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
               <div className="text-xs space-y-1 text-muted-foreground">
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 1</span>
                 </div>
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 2</span>
                 </div>
                 <div className="flex items-center">

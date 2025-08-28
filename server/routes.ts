@@ -976,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document analysis endpoint
   app.post("/api/analyze/document", async (req, res) => {
     try {
-      const { fileData, fileName, fileType, sessionId, selectedModel = "deepseek", title } = req.body;
+      const { fileData, fileName, fileType, sessionId, selectedModel = "openai", title } = req.body;
       
       console.log(`Processing document: ${fileName} (${fileType})`);
       
@@ -1477,7 +1477,7 @@ Respond with JSON only:
   app.post("/api/upload/media-multipart", upload.single('media'), async (req, res) => {
     try {
       const file = req.file;
-      const { sessionId, selectedModel = "deepseek", title } = req.body;
+      const { sessionId, selectedModel = "openai", title } = req.body;
       
       if (!file || !sessionId) {
         return res.status(400).json({ error: "File and session ID are required" });
@@ -1663,7 +1663,7 @@ Respond with JSON only:
   // Media upload endpoint - for images and videos with segment selection
   app.post("/api/upload/media", async (req, res) => {
     try {
-      const { fileData, fileName, fileType, sessionId, selectedModel = "deepseek", title } = req.body;
+      const { fileData, fileName, fileType, sessionId, selectedModel = "openai", title } = req.body;
       
       console.log(`Processing media upload: ${fileName} (${fileType})`);
       
@@ -2110,64 +2110,32 @@ FORMAT REQUIREMENTS:
 
 Provide the deepest possible level of psychoanalytic insight based on observable data. Format as clean, readable paragraphs without any markdown, bold, or header symbols.`;
 
+          // IMMEDIATE STREAMING ANALYSIS - No regular analysis, just streaming
           let analysisText = "";
           let structuredAnalysis = {};
           
           try {
-            if (selectedModel === "deepseek" && deepseek) {
-              const response = await deepseek.chat.completions.create({
-                model: "deepseek-chat",
-                messages: [{ role: "user", content: analysisPrompt }],
-                max_tokens: 4000,
-                temperature: 0.8
-              });
-              analysisText = response.choices[0]?.message?.content || "";
-            } else if (selectedModel === "anthropic" && anthropic) {
-              const response = await anthropic.messages.create({
-                model: "claude-3-5-sonnet-20241022",
-                max_tokens: 4000,
-                messages: [{ role: "user", content: analysisPrompt }]
-              });
-              analysisText = response.content[0]?.type === 'text' ? response.content[0].text : "";
-            } else if (selectedModel === "perplexity" && perplexity) {
-              const response = await perplexity.chat.completions.create({
-                model: "sonar-pro",
-                messages: [{ role: "user", content: analysisPrompt }],
-                max_tokens: 4000,
-                temperature: 0.8
-              });
-              analysisText = response.choices[0]?.message?.content || "";
-            } else if (openai) {
-              const response = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [{ role: "user", content: analysisPrompt }],
-                max_tokens: 4000,
-                temperature: 0.8
-              });
-              analysisText = response.choices[0]?.message?.content || "";
-            }
-
-            // Extract comprehensive structured analysis using provider-specific prompts
-            try {
-              const aiClient = selectedModel === "deepseek" ? deepseek : 
-                              (selectedModel === "anthropic" ? anthropic : 
-                              (selectedModel === "perplexity" ? perplexity : openai));
+            const aiClient = selectedModel === "deepseek" ? deepseek : 
+                            (selectedModel === "anthropic" ? anthropic : 
+                            (selectedModel === "perplexity" ? perplexity : openai));
+            
+            if (aiClient) {
+              // Use the same analysis prompt but with streaming
+              const contentForAnalysis = faceAnalysis ? JSON.stringify(faceAnalysis) : analysisPrompt;
               
-              if (aiClient) {
-                const contentForAnalysis = faceAnalysis ? JSON.stringify(faceAnalysis) : "Image analysis data";
-                structuredAnalysis = await streamAnalysis(selectedModel, contentForAnalysis, aiClient, sessionId);
-              }
-            } catch (analysisError) {
-              console.warn("Structured analysis extraction failed:", analysisError);
+              // THIS IS THE ONLY ANALYSIS - streaming word-by-word
+              structuredAnalysis = await streamAnalysis(selectedModel, contentForAnalysis, aiClient, sessionId);
+              
+              // Create summary text from structured analysis for storage
+              analysisText = structuredAnalysis ? 
+                "Comprehensive real-time streaming analysis completed with full psychological assessment." :
+                "Streaming analysis completed.";
+            } else {
+              analysisText = "No AI model available for analysis.";
             }
-
           } catch (error) {
-            console.warn("AI analysis failed:", error);
-            analysisText = "Image analysis completed. Facial analysis data collected and processed for psychological insights.";
-          }
-          
-          if (!analysisText) {
-            analysisText = "Image Analysis Complete\n\nComprehensive psychological assessment completed based on visual analysis of facial expressions, positioning, and emotional indicators.";
+            console.warn("Streaming analysis failed:", error);
+            analysisText = "Analysis failed. Please try again with a different model.";
           }
           
           // Create comprehensive image analysis after getting all data 
@@ -2222,7 +2190,7 @@ Provide the deepest possible level of psychoanalytic insight based on observable
   // Video segment analysis endpoint
   app.post("/api/analyze/video-segment", async (req, res) => {
     try {
-      const { analysisId, segmentId, selectedModel = "deepseek", sessionId, customDuration = 10 } = req.body;
+      const { analysisId, segmentId, selectedModel = "openai", sessionId, customDuration = 10 } = req.body;
       
       if (!analysisId || !segmentId) {
         return res.status(400).json({ error: "Analysis ID and segment ID are required" });
