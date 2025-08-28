@@ -127,9 +127,9 @@ async function resizeImage(file: File, maxWidth: number): Promise<string> {
 // Helper function to get model display name
 const getModelDisplayName = (model: string) => {
   switch (model) {
+    case "openai": return "ZHI 1";
+    case "anthropic": return "ZHI 2";
     case "deepseek": return "ZHI 3";
-    case "openai": return "ZHI 2";
-    case "anthropic": return "ZHI 1";
     case "perplexity": return "ZHI 4";
     default: return model;
   }
@@ -137,16 +137,16 @@ const getModelDisplayName = (model: string) => {
 
 // Helper function to get available models for video analysis
 const getVideoAnalysisModels = () => [
-  { value: "anthropic", label: "ZHI 1 (Anthropic)" },
-  { value: "openai", label: "ZHI 2 (OpenAI)" },
+  { value: "openai", label: "ZHI 1 (OpenAI)" },
+  { value: "anthropic", label: "ZHI 2 (Anthropic)" },
   { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
   { value: "perplexity", label: "ZHI 4 (Perplexity)" }
 ];
 
 // Helper function to get all models for text/image analysis
 const getAllModels = () => [
-  { value: "anthropic", label: "ZHI 1 (Anthropic)" },
-  { value: "openai", label: "ZHI 2 (OpenAI)" },
+  { value: "openai", label: "ZHI 1 (OpenAI)" },
+  { value: "anthropic", label: "ZHI 2 (Anthropic)" },
   { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
   { value: "perplexity", label: "ZHI 4 (Perplexity)" }
 ];
@@ -168,7 +168,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("anthropic");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("openai");
   
   // Real-time streaming states
   const [streamingMessages, setStreamingMessages] = useState<string[]>([]);
@@ -302,8 +302,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           azure_video_indexer: status.azure_video_indexer || false
         });
 
-        // Set default selected model to Anthropic (ZHI 1) - avoid slow DeepSeek
-        setSelectedModel("anthropic");
+        // Set default selected model to OpenAI (ZHI 1) - avoid slow DeepSeek
+        setSelectedModel("openai");
       } catch (error) {
         console.error("Error checking API status:", error);
       }
