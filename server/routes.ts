@@ -661,7 +661,7 @@ async function streamAnalysis(provider: string, content: string, aiClient: any, 
     if (provider === "anthropic") {
       broadcastToSession(sessionId, {
         type: 'progress',
-        message: 'ZHI 1 (Anthropic) processing all 60 questions + markers...'
+        message: 'ZHI 2 processing all 60 questions + markers...'
       });
       
       const response = await aiClient.messages.create({
@@ -673,7 +673,7 @@ async function streamAnalysis(provider: string, content: string, aiClient: any, 
     } else if (provider === "openai") {
       broadcastToSession(sessionId, {
         type: 'progress',
-        message: 'ZHI 2 (OpenAI) processing all 60 questions + markers...'
+        message: 'ZHI 1 processing all 60 questions + markers...'
       });
       
       const response = await aiClient.chat.completions.create({
@@ -686,7 +686,7 @@ async function streamAnalysis(provider: string, content: string, aiClient: any, 
     } else if (provider === "deepseek") {
       broadcastToSession(sessionId, {
         type: 'progress',
-        message: 'ZHI 3 (DeepSeek) processing all 60 questions + markers...'
+        message: 'ZHI 3 processing all 60 questions + markers...'
       });
       
       const response = await aiClient.chat.completions.create({
@@ -699,7 +699,7 @@ async function streamAnalysis(provider: string, content: string, aiClient: any, 
     } else if (provider === "perplexity") {
       broadcastToSession(sessionId, {
         type: 'progress',
-        message: 'ZHI 4 (Perplexity) processing all 60 questions + markers...'
+        message: 'ZHI 4 processing all 60 questions + markers...'
       });
       
       const response = await aiClient.chat.completions.create({

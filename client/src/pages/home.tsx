@@ -137,18 +137,18 @@ const getModelDisplayName = (model: string) => {
 
 // Helper function to get available models for video analysis
 const getVideoAnalysisModels = () => [
-  { value: "openai", label: "ZHI 1 (OpenAI)" },
-  { value: "anthropic", label: "ZHI 2 (Anthropic)" },
-  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
-  { value: "perplexity", label: "ZHI 4 (Perplexity)" }
+  { value: "openai", label: "ZHI 1" },
+  { value: "anthropic", label: "ZHI 2" },
+  { value: "deepseek", label: "ZHI 3" },
+  { value: "perplexity", label: "ZHI 4" }
 ];
 
 // Helper function to get all models for text/image analysis
 const getAllModels = () => [
-  { value: "openai", label: "ZHI 1 (OpenAI)" },
-  { value: "anthropic", label: "ZHI 2 (Anthropic)" },
-  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
-  { value: "perplexity", label: "ZHI 4 (Perplexity)" }
+  { value: "openai", label: "ZHI 1" },
+  { value: "anthropic", label: "ZHI 2" },
+  { value: "deepseek", label: "ZHI 3" },
+  { value: "perplexity", label: "ZHI 4" }
 ];
 
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
@@ -228,8 +228,8 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     azure_video_indexer: boolean;
     deepseek: boolean;
   }>({
-    deepseek: true,
-    openai: false,
+    deepseek: false,
+    openai: true,
     anthropic: false,
     perplexity: false,
     azure_face: false,
@@ -288,7 +288,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
         // Set available services
         setAvailableServices({
-          deepseek: true, // DeepSeek is always available as default
+          deepseek: status.deepseek || false,
           openai: status.openai || false,
           anthropic: status.anthropic || false,
           perplexity: status.perplexity || false,
@@ -302,7 +302,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           azure_video_indexer: status.azure_video_indexer || false
         });
 
-        // Set default selected model to OpenAI (ZHI 1) - avoid slow DeepSeek
+        // Set default selected model to ZHI 1
         setSelectedModel("openai");
       } catch (error) {
         console.error("Error checking API status:", error);
