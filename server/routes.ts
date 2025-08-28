@@ -1410,6 +1410,44 @@ ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in t
 
 YOU MUST PROVIDE SYSTEMATIC ANALYSIS FOR EACH CATEGORY WITH PRESENT/ABSENT DETERMINATIONS AND SPECIFIC EVIDENCE.
 
+CORE PERSONALITY ASSESSMENT - Answer each question with specific evidence from the image:
+
+**FUNDAMENTAL CHARACTER INSIGHTS:**
+1. What drives this person (their core motivation)? [Evidence from visible behavior/expression]
+2. How confident are they really? [Specific confidence indicators from posture/expression]
+3. Do they genuinely like themselves? [Evidence of self-regard from facial expression/body language]
+4. How smart are they? [Intellectual indicators from expression/presentation]
+5. How creative are they? [Evidence of original thinking from appearance/style choices]
+6. How do they handle stress or setbacks? [Visible stress indicators in expression]
+7. Are they trustworthy? [Consistency indicators in presentation]
+8. Do they exaggerate or fake things about themselves? [Authenticity markers in expression]
+9. How ambitious are they? [Drive/goal-orientation evidence from presentation]
+10. What are they insecure about? [Defensive behaviors/compensation visible]
+
+**SOCIAL DYNAMICS:**
+11. How much do they care what others think? [Approval-seeking behaviors visible]
+12. Are they independent-minded, or do they follow the crowd? [Conformity indicators]
+13. Do they tend to dominate conversations or listen more? [Communication style from expression]
+14. How do they deal with criticism? [Defensive/receptive patterns visible]
+15. Are they more optimistic or pessimistic? [Outlook indicators from expression]
+16. Do they have a strong sense of humor? [Humor indicators from facial expression]
+17. How do they treat people "beneath" them? [Status-related behavior indicators]
+18. Are they consistent, or do they contradict themselves? [Internal consistency visible]
+19. What hidden strengths do they have? [Subtle positive qualities visible]
+20. What hidden weaknesses do they have? [Subtle vulnerabilities visible]
+
+**DEEPER PSYCHOLOGICAL PATTERNS:**
+21. What do they crave most — attention, respect, control, affection, or freedom? [Primary need evidence]
+22. Do they secretly feel superior or inferior to others? [Unconscious status cues]
+23. How emotionally stable are they? [Emotional regulation evidence]
+24. Do they take responsibility for mistakes or deflect blame? [Accountability patterns visible]
+25. How competitive are they? [Competitive indicators from expression/posture]
+26. Do they hold grudges or let things go? [Forgiveness/resentment indicators]
+27. Are they more genuine in private or in public? [Authenticity indicators]
+28. How self-aware do they seem? [Meta-cognitive awareness visible]
+29. Do they tend to exaggerate their successes or downplay them? [Self-presentation style]
+30. Are they more driven by logic or by emotion? [Decision-making style indicators]
+
 REQUIRED ANALYSIS FRAMEWORK:
 
 1. AFFECT REGULATION & EMOTIONAL SIGNATURE
@@ -1741,6 +1779,44 @@ K. SPEECH/VERBAL ANALYSIS - Analyze transcription for each, state PRESENT/ABSENT
 7. Perseveration (repeating same phrase/idea) - PRESENT/ABSENT: [Repetitive speech]
 8. Concrete thinking (inability to handle metaphor/abstraction) - PRESENT/ABSENT: [Abstract thinking capacity]
 
+CORE PERSONALITY ASSESSMENT - Answer each question with specific evidence from the video:
+
+**FUNDAMENTAL CHARACTER INSIGHTS:**
+1. What drives this person (their core motivation)? [Evidence from behavior/speech with quotes]
+2. How confident are they really? [Specific confidence indicators with examples]
+3. Do they genuinely like themselves? [Evidence of self-regard/self-criticism with quotes]
+4. How smart are they? [Intellectual indicators from speech/behavior with examples]
+5. How creative are they? [Evidence of original thinking/expression with quotes]
+6. How do they handle stress or setbacks? [Visible stress responses with examples]
+7. Are they trustworthy? [Consistency indicators with specific evidence]
+8. Do they exaggerate or fake things about themselves? [Authenticity markers with examples]
+9. How ambitious are they? [Drive/goal-orientation evidence with quotes]
+10. What are they insecure about? [Defensive behaviors/compensation with examples]
+
+**SOCIAL DYNAMICS:**
+11. How much do they care what others think? [Approval-seeking behaviors with evidence]
+12. Are they independent-minded, or do they follow the crowd? [Conformity indicators with examples]
+13. Do they tend to dominate conversations or listen more? [Communication style evidence with quotes]
+14. How do they deal with criticism? [Defensive/receptive patterns with examples]
+15. Are they more optimistic or pessimistic? [Outlook indicators with quotes]
+16. Do they have a strong sense of humor? [Humor usage/timing with examples]
+17. How do they treat people "beneath" them? [Status-related behavior with evidence]
+18. Are they consistent, or do they contradict themselves? [Internal consistency with examples]
+19. What hidden strengths do they have? [Subtle positive qualities with evidence]
+20. What hidden weaknesses do they have? [Subtle vulnerabilities with examples]
+
+**DEEPER PSYCHOLOGICAL PATTERNS:**
+21. What do they crave most — attention, respect, control, affection, or freedom? [Primary need evidence with quotes]
+22. Do they secretly feel superior or inferior to others? [Unconscious status cues with examples]
+23. How emotionally stable are they? [Emotional regulation evidence with examples]
+24. Do they take responsibility for mistakes or deflect blame? [Accountability patterns with quotes]
+25. How competitive are they? [Competitive behaviors/references with evidence]
+26. Do they hold grudges or let things go? [Forgiveness/resentment indicators with examples]
+27. Are they more genuine in private or in public? [Authenticity variations with evidence]
+28. How self-aware do they seem? [Meta-cognitive awareness with quotes]
+29. Do they tend to exaggerate their successes or downplay them? [Self-presentation style with examples]
+30. Are they more driven by logic or by emotion? [Decision-making style with evidence]
+
 This is a ${selectedSegment.duration}-second video segment. You have full access to observe and analyze the visual content.
 
 VISUAL DATA:
@@ -1749,7 +1825,7 @@ ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in t
 AUDIO TRANSCRIPTION:
 ${audioTranscription?.transcription || 'No clear speech detected in this segment'}
 
-YOU MUST PROVIDE SYSTEMATIC ANALYSIS FOR EACH CATEGORY WITH PRESENT/ABSENT DETERMINATIONS AND SPECIFIC EVIDENCE.` :
+YOU MUST PROVIDE SYSTEMATIC ANALYSIS FOR EACH CATEGORY WITH PRESENT/ABSENT DETERMINATIONS AND SPECIFIC EVIDENCE. ANSWER ALL PERSONALITY QUESTIONS WITH DIRECT QUOTES AND BEHAVIORAL OBSERVATIONS FROM THE VIDEO.` :
           `ESTIMATED ANALYSIS: Based on typical video content patterns, provide detailed observations for this video segment:
 
 1. DEMOGRAPHIC PROFILE: Provide estimated gender, age range, and likely physical appearance for typical subjects

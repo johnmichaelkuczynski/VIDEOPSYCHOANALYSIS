@@ -2494,7 +2494,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                         className="flex flex-col p-4 rounded-lg bg-white border border-gray-200 shadow-sm"
                       >
                         <div className="whitespace-pre-wrap text-md">
-                          {message.content.split('\n').map((line, lineIndex) => {
+                          {message.content.split('\n').map((line: string, lineIndex: number) => {
                             // Handle markdown headers
                             if (line.match(/^#+\s+/)) {
                               const headerMatch = line.match(/^(#+)\s+(.*)$/);
@@ -2515,7 +2515,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                               const parts = line.split(/(\*\*.*?\*\*)/);
                               return (
                                 <div key={lineIndex}>
-                                  {parts.map((part, partIndex) => {
+                                  {parts.map((part: string, partIndex: number) => {
                                     if (part.startsWith('**') && part.endsWith('**')) {
                                       return <strong key={partIndex}>{part.slice(2, -2)}</strong>;
                                     }
