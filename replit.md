@@ -3,6 +3,13 @@
 ## Overview
 This project is an advanced AI-powered personality insights platform designed for comprehensive emotional, visual, and cognitive analysis. Its purpose is to provide highly detailed, evidence-based psychological evaluations from various media inputs (images, videos, text). The platform aims to deliver professional-grade insights, moving beyond basic personality assessments to offer clinical-level psychological evaluations with documented evidence and direct quotations. It supports multi-modal analysis, incorporates enhanced cognitive profiling, and offers robust reliability through multi-service fallback chains, with results exportable in multiple formats.
 
+## Recent Changes (August 2025)
+- **Video Upload Stability**: Fixed video upload crashes for files >30 seconds with comprehensive error handling, timeout protection (30s), file size limits (500MB), and automatic cleanup
+- **Consolidated Downloads**: Added comprehensive download functionality that combines all analysis modules (psychological Q1-Q18, intelligence Q19-Q36, 40 parameters, clinical assessments) into single documents
+- **Bulk Text Operations**: Implemented bulk select/deselect for document text chunks to handle large documents efficiently (tested with 72+ chunks)
+- **User Experience**: Added clear video length warnings in upload interface and improved error messages throughout upload pipeline
+- **JSON Error Handling**: Robust JSON parsing error handling prevents app crashes during video processing
+
 ## User Preferences
 - Default AI Model: DeepSeek (OpenAI-compatible API)
 - Analysis Focus: Comprehensive cognitive and psychological profiling

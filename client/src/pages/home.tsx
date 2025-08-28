@@ -1194,8 +1194,12 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 Drag & drop files here to analyze
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports JPG, PNG, MP4, MOV (max 50MB)
+                Supports JPG, PNG, MP4, MOV (max 500MB)
               </p>
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                <span className="font-semibold">⚠️ Video Length Note:</span> Videos can be any length but only a 5-10 second segment will be analyzed. 
+                Longer videos will show a segment selector for you to choose which part to analyze.
+              </div>
             </div>
           </Card>
 
