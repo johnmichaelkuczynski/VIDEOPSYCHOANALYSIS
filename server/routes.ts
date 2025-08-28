@@ -2013,6 +2013,7 @@ FORMAT REQUIREMENTS:
 Provide the deepest possible level of psychoanalytic insight based on observable data. Format as clean, readable paragraphs without any markdown, bold, or header symbols.`;
 
           let analysisText = "";
+          let structuredAnalysis = {};
           
           try {
             if (selectedModel === "deepseek" && deepseek) {
@@ -2049,7 +2050,6 @@ Provide the deepest possible level of psychoanalytic insight based on observable
             }
 
             // Extract comprehensive structured analysis using provider-specific prompts
-            let structuredAnalysis = {};
             try {
               const aiClient = selectedModel === "deepseek" ? deepseek : 
                               (selectedModel === "anthropic" ? anthropic : 
