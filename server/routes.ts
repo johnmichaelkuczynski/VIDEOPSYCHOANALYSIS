@@ -791,8 +791,8 @@ Respond with JSON only:
       
       console.log(`Protocol analysis completed: ${protocolResponses.length} questions answered`);
       
-      // Helper function to call AI models
-      async function callAI(model: string, prompt: string): Promise<any> {
+      // Helper function to call AI models moved outside to avoid strict mode error
+      const callAI = async (model: string, prompt: string): Promise<any> => {
         try {
           if (model === "deepseek" && deepseek) {
             const response = await deepseek.chat.completions.create({
@@ -822,7 +822,7 @@ Respond with JSON only:
               temperature: 0.1
             });
             
-            const text = response.content[0]?.text || "";
+            const text = (response.content[0] as any)?.text || "";
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               try {
@@ -858,7 +858,7 @@ Respond with JSON only:
           console.error(`AI call failed for ${model}:`, error);
           return null;
         }
-      }
+      };
       
       // All analysis is now completed through the chunked approach above
       console.log("Chunked analysis completed successfully!");
@@ -876,8 +876,8 @@ Respond with JSON only:
       const updatedPersonalityInsights = {
         ...(analysis.personalityInsights as any),
         metricsAnalysis,
-        comprehensiveParameters: metricsAnalysis?.comprehensiveParameters || {},
-        clinicalAnalysis: metricsAnalysis?.clinicalAnalysis || {},
+        comprehensiveParameters: (metricsAnalysis as any)?.comprehensiveParameters || {},
+        clinicalAnalysis: (metricsAnalysis as any)?.clinicalAnalysis || {},
         cognitiveParameters,
         psychologicalParameters,
         selectedChunks,
@@ -902,8 +902,8 @@ Respond with JSON only:
       res.json({
         analysisId,
         metricsAnalysis,
-        comprehensiveParameters: metricsAnalysis?.comprehensiveParameters || {},
-        clinicalAnalysis: metricsAnalysis?.clinicalAnalysis || {},
+        comprehensiveParameters: (metricsAnalysis as any)?.comprehensiveParameters || {},
+        clinicalAnalysis: (metricsAnalysis as any)?.clinicalAnalysis || {},
         cognitiveParameters,
         psychologicalParameters,
         message,
