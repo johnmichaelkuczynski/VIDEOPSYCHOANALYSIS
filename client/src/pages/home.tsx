@@ -1076,9 +1076,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
-            <p className="text-xs text-orange-600 mt-2">
-              ⚠️ ZHI 1 (Anthropic) removed from all workflows - using optimized models only
-            </p>
 
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
@@ -1094,10 +1091,6 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
               </div>
 
               <div className="text-xs space-y-1 text-muted-foreground">
-                <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.anthropic ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span>ZHI 1</span>
-                </div>
                 <div className="flex items-center">
                   <div className={`w-2 h-2 rounded-full mr-2 ${availableServices.openai ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span>ZHI 2</span>
