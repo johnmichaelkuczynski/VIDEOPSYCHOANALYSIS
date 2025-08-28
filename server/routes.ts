@@ -1331,75 +1331,70 @@ MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
 
 CLINICAL VISUAL PSYCHOLOGICAL MARKERS TO ASSESS:
 
-A. AFFECT & EMOTIONAL EXPRESSION:
-- Blunted affect (flat, minimal emotional display)
-- Inappropriate affect (smiling/laughing when incongruent)
-- Labile affect (rapid, unstable mood shifts)
-- Affective incongruity (expression doesn't match context)
-- Affective detachment (vacant, absent gaze)
+SYSTEMATIC CLINICAL ANALYSIS - YOU MUST ANSWER EACH ITEM WITH SPECIFIC EVIDENCE:
 
-B. GAZE & EYES:
-- Vacant stare (psychotic detachment)
-- Predatory stare (fixated, unblinking)
-- Rapid darting eyes (paranoia, hypervigilance)
-- Avoidant gaze (withdrawal, shame, social fear)
-- Odd eye movements (neurological or psychotic marker)
+A. AFFECT & EMOTIONAL EXPRESSION - For each, state PRESENT/ABSENT with evidence:
+1. Blunted affect (flat, minimal emotional display) - PRESENT/ABSENT: [Evidence from facial expression, energy level]
+2. Inappropriate affect (smiling/laughing when incongruent) - PRESENT/ABSENT: [Evidence of mismatch between expression and context]
+3. Affective incongruity (expression doesn't match context) - PRESENT/ABSENT: [Specific examples of mismatched affect]
+4. Affective detachment (vacant, absent gaze) - PRESENT/ABSENT: [Eye contact patterns, engagement level]
 
-C. FACIAL EXPRESSION & MICRO-EXPRESSION:
-- Micro-expression leakage (fleeting flashes of hidden emotion)
-- Incongruent smile (tense or inappropriate)
-- Asymmetrical facial activation (neurological/psychotic)
-- Expression rigidity (frozen, mask-like face)
-- Sudden twitching/tics (psychomotor agitation)
+B. GAZE & EYES - For each, state PRESENT/ABSENT with evidence:
+1. Vacant stare (psychotic detachment) - PRESENT/ABSENT: [Quality of eye contact and focus]
+2. Predatory stare (fixated, unblinking) - PRESENT/ABSENT: [Intensity and quality of gaze]
+3. Avoidant gaze (withdrawal, shame, social fear) - PRESENT/ABSENT: [Eye contact avoidance patterns]
+4. Odd eye movements (neurological or psychotic marker) - PRESENT/ABSENT: [Unusual eye behaviors visible in still image]
 
-D. SPEECH/MOUTH INDICATORS:
-- Tight lips (suppression)
-- Slack mouth (cognitive deficit, negative symptoms)
-- Overt smirk/contempt display
-- Muttering/subvocalization (lip movement without speech)
-- Chewing or jaw tension (impulse containment, anxiety)
+C. FACIAL EXPRESSION & MICRO-EXPRESSION - For each, state PRESENT/ABSENT with evidence:
+1. Micro-expression leakage (fleeting emotion captured) - PRESENT/ABSENT: [Brief emotional states visible]
+2. Incongruent smile (tense or inappropriate) - PRESENT/ABSENT: [Quality and appropriateness of smiling]
+3. Asymmetrical facial activation (neurological/psychotic) - PRESENT/ABSENT: [Facial symmetry patterns]
+4. Expression rigidity (frozen, mask-like face) - PRESENT/ABSENT: [Facial mobility and naturalness]
 
-E. POSTURE & PSYCHOMOTOR SIGNS:
-- Catatonic stillness
-- Excessive motor inhibition (frozen pose, rigidity)
-- Psychomotor agitation (restless shifting, jerky movement)
-- Odd body angles/postures (schizophrenia sign)
-- Tremors or fine shaking
+D. SPEECH/MOUTH INDICATORS - For each, state PRESENT/ABSENT with evidence:
+1. Tight lips (suppression) - PRESENT/ABSENT: [Lip tension and position]
+2. Slack mouth (cognitive deficit, negative symptoms) - PRESENT/ABSENT: [Mouth positioning and control]
+3. Overt smirk/contempt display - PRESENT/ABSENT: [Facial expressions of disdain]
+4. Jaw tension (impulse containment, anxiety) - PRESENT/ABSENT: [Jaw positioning and tension]
 
-F. ATTACHMENT/RELATIONAL CUES:
-- Dismissive-avoidant presentation (aloof, emotionally cut off)
-- Fearful-avoidant (mixed approach-avoidance cues)
-- Dependent/submissive signaling
-- Hostile/defiant signaling
-- Total relational absence (flat, non-engaged presence)
+E. POSTURE & PSYCHOMOTOR SIGNS - For each, state PRESENT/ABSENT with evidence:
+1. Excessive motor inhibition (frozen pose, rigidity) - PRESENT/ABSENT: [Restricted posture patterns]
+2. Odd body angles/postures (schizophrenia sign) - PRESENT/ABSENT: [Unusual positioning visible]
+3. Tension or rigidity in visible body parts - PRESENT/ABSENT: [Physical tension markers]
 
-G. DEFENSIVE OPERATIONS:
-- Projection (anger or suspicion outwardly implied)
-- Paranoid vigilance (readiness for threat)
-- Isolation of affect (emotion sealed off from thought)
-- Intellectualization (blank, analytic detachment)
-- Denial/disavowal (incongruence between look and situation)
+F. ATTACHMENT/RELATIONAL CUES - For each, state PRESENT/ABSENT with evidence:
+1. Dismissive-avoidant presentation (aloof, emotionally cut off) - PRESENT/ABSENT: [Emotional distance markers]
+2. Fearful-avoidant (approach-avoidance cues) - PRESENT/ABSENT: [Conflicted engagement signals]
+3. Dependent/submissive signaling - PRESENT/ABSENT: [Submissive body language]
+4. Hostile/defiant signaling - PRESENT/ABSENT: [Aggressive or defiant markers]
+5. Total relational absence (flat, non-engaged presence) - PRESENT/ABSENT: [Complete disengagement]
 
-H. COGNITIVE/NEUROLOGICAL STYLE:
-- Thought blocking (sudden mental emptiness visible in face)
-- Disorganized affect integration (chaotic shifts in facial/body cues)
-- Perseverative fixation (locked stare, repetitive micro-behavior)
-- Delusional intensity (eyes/gaze suggesting conviction detached from reality)
-- Hypofrontality signals (vacant passivity, disengagement)
+G. DEFENSIVE OPERATIONS - For each, state PRESENT/ABSENT with evidence:
+1. Projection (anger or suspicion outwardly implied) - PRESENT/ABSENT: [External blame posture]
+2. Paranoid vigilance (readiness for threat) - PRESENT/ABSENT: [Hypervigilant posture/gaze]
+3. Isolation of affect (emotion sealed off from thought) - PRESENT/ABSENT: [Emotional disconnection]
+4. Intellectualization (blank, analytic detachment) - PRESENT/ABSENT: [Overly clinical presentation]
+5. Denial/disavowal (incongruence between look and situation) - PRESENT/ABSENT: [Reality distortion markers]
 
-I. SEXUAL/BEHAVIORAL PATHOLOGY INDICATORS:
-- Exhibitionistic signals (gaze + posture implying compulsion to expose)
-- Incongruent eroticism (smile or look detached from social cues)
-- Hypersexual restlessness (subtle agitation, mouth tension)
-- Voyeuristic detachment (watching without emotional reciprocity)
-- Compulsive self-directed expression (facial/self-soothing consistent with masturbation compulsion)
+H. COGNITIVE/NEUROLOGICAL STYLE - For each, state PRESENT/ABSENT with evidence:
+1. Thought blocking (sudden mental emptiness visible in face) - PRESENT/ABSENT: [Mental interruption signs]
+2. Disorganized affect integration (chaotic facial cues) - PRESENT/ABSENT: [Incoherent emotional signals]
+3. Perseverative fixation (locked stare, repetitive positioning) - PRESENT/ABSENT: [Repetitive patterns]
+4. Delusional intensity (eyes/gaze suggesting detached conviction) - PRESENT/ABSENT: [Fixed beliefs markers]
+5. Hypofrontality signals (vacant passivity, disengagement) - PRESENT/ABSENT: [Executive dysfunction signs]
 
-J. GLOBAL INTEGRATION & BREAKDOWN:
-- Affect-cognition mismatch (face doesn't match thought content)
-- Fragmentation (facial/body cues pointing in different directions)
-- Defensive rigidity (every cue locked in one controlled position)
-- Dissociation indicators (blankness, spacing-out, absent gaze)
-- Psychotic flattening (total deadness of expression despite stimulation)
+I. SEXUAL/BEHAVIORAL PATHOLOGY INDICATORS - For each, state PRESENT/ABSENT with evidence:
+1. Exhibitionistic signals (gaze + posture implying exposure compulsion) - PRESENT/ABSENT: [Inappropriate exposure tendencies]
+2. Incongruent eroticism (smile or look detached from social cues) - PRESENT/ABSENT: [Inappropriate sexual undertones]
+3. Hypersexual restlessness (subtle agitation, mouth tension) - PRESENT/ABSENT: [Sexual tension markers]
+4. Voyeuristic detachment (watching without emotional reciprocity) - PRESENT/ABSENT: [Objectifying gaze patterns]
+
+J. GLOBAL INTEGRATION & BREAKDOWN - For each, state PRESENT/ABSENT with evidence:
+1. Affect-cognition mismatch (face doesn't match implied thought content) - PRESENT/ABSENT: [Disconnect between emotion and implied cognition]
+2. Fragmentation (facial cues pointing in different directions) - PRESENT/ABSENT: [Contradictory signals]
+3. Defensive rigidity (every cue locked in one controlled position) - PRESENT/ABSENT: [Over-controlled presentation]
+4. Dissociation indicators (blankness, spacing-out, absent gaze) - PRESENT/ABSENT: [Disconnection from reality]
+5. Psychotic flattening (total deadness of expression) - PRESENT/ABSENT: [Absence of emotional responsivity]
 
 FORBIDDEN PHRASES - DO NOT USE:
 - "visual data does not contain sufficient detail"
@@ -1412,6 +1407,8 @@ You have a clear image and detailed facial analysis data. Use this information t
 
 VISUAL DATA:
 ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in this image'}
+
+YOU MUST PROVIDE SYSTEMATIC ANALYSIS FOR EACH CATEGORY WITH PRESENT/ABSENT DETERMINATIONS AND SPECIFIC EVIDENCE.
 
 REQUIRED ANALYSIS FRAMEWORK:
 
@@ -1662,77 +1659,87 @@ MANDATORY VISUAL OBSERVATIONS - Describe exactly what you see in this video:
 7. SETTING & ENVIRONMENT: Detail the background, location, and surroundings shown
 8. ENVIRONMENTAL CONTEXT: Note lighting, atmosphere, and spatial context visible
 
-CLINICAL VISUAL PSYCHOLOGICAL MARKERS TO ASSESS:
+SYSTEMATIC CLINICAL ANALYSIS - YOU MUST ANSWER EACH ITEM WITH SPECIFIC EVIDENCE:
 
-A. AFFECT & EMOTIONAL EXPRESSION:
-- Blunted affect (flat, minimal emotional display)
-- Inappropriate affect (smiling/laughing when incongruent)
-- Labile affect (rapid, unstable mood shifts)
-- Affective incongruity (expression doesn't match context)
-- Affective detachment (vacant, absent gaze)
+A. AFFECT & EMOTIONAL EXPRESSION - For each, state PRESENT/ABSENT with evidence:
+1. Blunted affect (flat, minimal emotional display) - PRESENT/ABSENT: [Evidence from facial expression, tone, energy level]
+2. Inappropriate affect (smiling/laughing when incongruent) - PRESENT/ABSENT: [Evidence of mismatch between expression and context]
+3. Labile affect (rapid, unstable mood shifts) - PRESENT/ABSENT: [Evidence of emotional instability within segment]
+4. Affective incongruity (expression doesn't match context) - PRESENT/ABSENT: [Specific examples of mismatched affect]
+5. Affective detachment (vacant, absent gaze) - PRESENT/ABSENT: [Eye contact patterns, engagement level]
 
-B. GAZE & EYES:
-- Vacant stare (psychotic detachment)
-- Predatory stare (fixated, unblinking)
-- Rapid darting eyes (paranoia, hypervigilance)
-- Avoidant gaze (withdrawal, shame, social fear)
-- Odd eye movements (neurological or psychotic marker)
+B. GAZE & EYES - For each, state PRESENT/ABSENT with evidence:
+1. Vacant stare (psychotic detachment) - PRESENT/ABSENT: [Quality of eye contact and focus]
+2. Predatory stare (fixated, unblinking) - PRESENT/ABSENT: [Intensity and quality of gaze]
+3. Rapid darting eyes (paranoia, hypervigilance) - PRESENT/ABSENT: [Eye movement patterns]
+4. Avoidant gaze (withdrawal, shame, social fear) - PRESENT/ABSENT: [Eye contact avoidance patterns]
+5. Odd eye movements (neurological or psychotic marker) - PRESENT/ABSENT: [Unusual eye behaviors]
 
-C. FACIAL EXPRESSION & MICRO-EXPRESSION:
-- Micro-expression leakage (fleeting flashes of hidden emotion)
-- Incongruent smile (tense or inappropriate)
-- Asymmetrical facial activation (neurological/psychotic)
-- Expression rigidity (frozen, mask-like face)
-- Sudden twitching/tics (psychomotor agitation)
+C. FACIAL EXPRESSION & MICRO-EXPRESSION - For each, state PRESENT/ABSENT with evidence:
+1. Micro-expression leakage (fleeting flashes of hidden emotion) - PRESENT/ABSENT: [Brief emotional flashes]
+2. Incongruent smile (tense or inappropriate) - PRESENT/ABSENT: [Quality and appropriateness of smiling]
+3. Asymmetrical facial activation (neurological/psychotic) - PRESENT/ABSENT: [Facial symmetry patterns]
+4. Expression rigidity (frozen, mask-like face) - PRESENT/ABSENT: [Facial mobility and range]
+5. Sudden twitching/tics (psychomotor agitation) - PRESENT/ABSENT: [Involuntary movements]
 
-D. SPEECH/MOUTH INDICATORS:
-- Tight lips (suppression)
-- Slack mouth (cognitive deficit, negative symptoms)
-- Overt smirk/contempt display
-- Muttering/subvocalization (lip movement without speech)
-- Chewing or jaw tension (impulse containment, anxiety)
+D. SPEECH/MOUTH INDICATORS - For each, state PRESENT/ABSENT with evidence:
+1. Tight lips (suppression) - PRESENT/ABSENT: [Lip tension and position]
+2. Slack mouth (cognitive deficit, negative symptoms) - PRESENT/ABSENT: [Mouth positioning and control]
+3. Overt smirk/contempt display - PRESENT/ABSENT: [Facial expressions of disdain]
+4. Muttering/subvocalization (lip movement without speech) - PRESENT/ABSENT: [Silent lip movements]
+5. Chewing or jaw tension (impulse containment, anxiety) - PRESENT/ABSENT: [Jaw movement patterns]
 
-E. POSTURE & PSYCHOMOTOR SIGNS:
-- Catatonic stillness
-- Excessive motor inhibition (frozen pose, rigidity)
-- Psychomotor agitation (restless shifting, jerky movement)
-- Odd body angles/postures (schizophrenia sign)
-- Tremors or fine shaking
+E. POSTURE & PSYCHOMOTOR SIGNS - For each, state PRESENT/ABSENT with evidence:
+1. Catatonic stillness - PRESENT/ABSENT: [Abnormal lack of movement]
+2. Excessive motor inhibition (frozen pose, rigidity) - PRESENT/ABSENT: [Restricted movement patterns]
+3. Psychomotor agitation (restless shifting, jerky movement) - PRESENT/ABSENT: [Excessive or agitated movements]
+4. Odd body angles/postures (schizophrenia sign) - PRESENT/ABSENT: [Unusual positioning]
+5. Tremors or fine shaking - PRESENT/ABSENT: [Involuntary movements]
 
-F. ATTACHMENT/RELATIONAL CUES:
-- Dismissive-avoidant presentation (aloof, emotionally cut off)
-- Fearful-avoidant (mixed approach-avoidance cues)
-- Dependent/submissive signaling
-- Hostile/defiant signaling
-- Total relational absence (flat, non-engaged presence)
+F. ATTACHMENT/RELATIONAL CUES - For each, state PRESENT/ABSENT with evidence:
+1. Dismissive-avoidant presentation (aloof, emotionally cut off) - PRESENT/ABSENT: [Emotional distance markers]
+2. Fearful-avoidant (mixed approach-avoidance cues) - PRESENT/ABSENT: [Conflicted engagement signals]
+3. Dependent/submissive signaling - PRESENT/ABSENT: [Submissive body language]
+4. Hostile/defiant signaling - PRESENT/ABSENT: [Aggressive or defiant markers]
+5. Total relational absence (flat, non-engaged presence) - PRESENT/ABSENT: [Complete disengagement]
 
-G. DEFENSIVE OPERATIONS:
-- Projection (anger or suspicion outwardly implied)
-- Paranoid vigilance (readiness for threat)
-- Isolation of affect (emotion sealed off from thought)
-- Intellectualization (blank, analytic detachment)
-- Denial/disavowal (incongruence between look and situation)
+G. DEFENSIVE OPERATIONS - For each, state PRESENT/ABSENT with evidence:
+1. Projection (anger or suspicion outwardly implied) - PRESENT/ABSENT: [External blame patterns]
+2. Paranoid vigilance (readiness for threat) - PRESENT/ABSENT: [Hypervigilant posture/gaze]
+3. Isolation of affect (emotion sealed off from thought) - PRESENT/ABSENT: [Emotional disconnection]
+4. Intellectualization (blank, analytic detachment) - PRESENT/ABSENT: [Overly clinical presentation]
+5. Denial/disavowal (incongruence between look and situation) - PRESENT/ABSENT: [Reality distortion markers]
 
-H. COGNITIVE/NEUROLOGICAL STYLE:
-- Thought blocking (sudden mental emptiness visible in face)
-- Disorganized affect integration (chaotic shifts in facial/body cues)
-- Perseverative fixation (locked stare, repetitive micro-behavior)
-- Delusional intensity (eyes/gaze suggesting conviction detached from reality)
-- Hypofrontality signals (vacant passivity, disengagement)
+H. COGNITIVE/NEUROLOGICAL STYLE - For each, state PRESENT/ABSENT with evidence:
+1. Thought blocking (sudden mental emptiness visible in face) - PRESENT/ABSENT: [Mental interruption signs]
+2. Disorganized affect integration (chaotic shifts in facial/body cues) - PRESENT/ABSENT: [Incoherent emotional signals]
+3. Perseverative fixation (locked stare, repetitive micro-behavior) - PRESENT/ABSENT: [Repetitive patterns]
+4. Delusional intensity (eyes/gaze suggesting conviction detached from reality) - PRESENT/ABSENT: [Fixed beliefs markers]
+5. Hypofrontality signals (vacant passivity, disengagement) - PRESENT/ABSENT: [Executive dysfunction signs]
 
-I. SEXUAL/BEHAVIORAL PATHOLOGY INDICATORS:
-- Exhibitionistic signals (gaze + posture implying compulsion to expose)
-- Incongruent eroticism (smile or look detached from social cues)
-- Hypersexual restlessness (subtle agitation, mouth tension)
-- Voyeuristic detachment (watching without emotional reciprocity)
-- Compulsive self-directed expression (facial/self-soothing consistent with masturbation compulsion)
+I. SEXUAL/BEHAVIORAL PATHOLOGY INDICATORS - For each, state PRESENT/ABSENT with evidence:
+1. Exhibitionistic signals (gaze + posture implying compulsion to expose) - PRESENT/ABSENT: [Inappropriate exposure tendencies]
+2. Incongruent eroticism (smile or look detached from social cues) - PRESENT/ABSENT: [Inappropriate sexual undertones]
+3. Hypersexual restlessness (subtle agitation, mouth tension) - PRESENT/ABSENT: [Sexual tension markers]
+4. Voyeuristic detachment (watching without emotional reciprocity) - PRESENT/ABSENT: [Objectifying gaze patterns]
+5. Compulsive self-directed expression (facial/self-soothing consistent with masturbation compulsion) - PRESENT/ABSENT: [Self-stimulation indicators]
 
-J. GLOBAL INTEGRATION & BREAKDOWN:
-- Affect-cognition mismatch (face doesn't match thought content)
-- Fragmentation (facial/body cues pointing in different directions)
-- Defensive rigidity (every cue locked in one controlled position)
-- Dissociation indicators (blankness, spacing-out, absent gaze)
-- Psychotic flattening (total deadness of expression despite stimulation)
+J. GLOBAL INTEGRATION & BREAKDOWN - For each, state PRESENT/ABSENT with evidence:
+1. Affect-cognition mismatch (face doesn't match thought content) - PRESENT/ABSENT: [Disconnect between emotion and thought]
+2. Fragmentation (facial/body cues pointing in different directions) - PRESENT/ABSENT: [Contradictory signals]
+3. Defensive rigidity (every cue locked in one controlled position) - PRESENT/ABSENT: [Over-controlled presentation]
+4. Dissociation indicators (blankness, spacing-out, absent gaze) - PRESENT/ABSENT: [Disconnection from reality]
+5. Psychotic flattening (total deadness of expression despite stimulation) - PRESENT/ABSENT: [Absence of emotional responsivity]
+
+K. SPEECH/VERBAL ANALYSIS - Analyze transcription for each, state PRESENT/ABSENT with evidence:
+1. Blunted affect in language (emotionally flat, monotonous) - PRESENT/ABSENT: [Speech tone evidence]
+2. Inappropriate affect (jokes, eroticism, violence in irrelevant contexts) - PRESENT/ABSENT: [Contextual inappropriateness]
+3. Labile affect (sudden shifts from calm to angry, tender to hostile) - PRESENT/ABSENT: [Emotional instability in speech]
+4. Loose associations (ideas connected only by weak tangents) - PRESENT/ABSENT: [Thought connection quality]
+5. Derailment (topic shifts mid-sentence) - PRESENT/ABSENT: [Speech coherence breaks]
+6. Tangentiality (related but never on point) - PRESENT/ABSENT: [Off-topic patterns]
+7. Perseveration (repeating same phrase/idea) - PRESENT/ABSENT: [Repetitive speech]
+8. Concrete thinking (inability to handle metaphor/abstraction) - PRESENT/ABSENT: [Abstract thinking capacity]
 
 This is a ${selectedSegment.duration}-second video segment. You have full access to observe and analyze the visual content.
 
@@ -1742,7 +1749,7 @@ ${faceAnalysis ? JSON.stringify(faceAnalysis, null, 2) : 'No faces detected in t
 AUDIO TRANSCRIPTION:
 ${audioTranscription?.transcription || 'No clear speech detected in this segment'}
 
-Provide detailed psychological analysis based on your direct observations of the video content.` :
+YOU MUST PROVIDE SYSTEMATIC ANALYSIS FOR EACH CATEGORY WITH PRESENT/ABSENT DETERMINATIONS AND SPECIFIC EVIDENCE.` :
           `ESTIMATED ANALYSIS: Based on typical video content patterns, provide detailed observations for this video segment:
 
 1. DEMOGRAPHIC PROFILE: Provide estimated gender, age range, and likely physical appearance for typical subjects
