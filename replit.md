@@ -4,6 +4,7 @@
 This project is an advanced AI-powered personality insights platform designed for comprehensive emotional, visual, and cognitive analysis. Its purpose is to provide highly detailed, evidence-based psychological evaluations from various media inputs (images, videos, text). The platform aims to deliver professional-grade insights, moving beyond basic personality assessments to offer clinical-level psychological evaluations with documented evidence and direct quotations. It supports multi-modal analysis, incorporates enhanced cognitive profiling, and offers robust reliability through multi-service fallback chains, with results exportable in multiple formats.
 
 ## Recent Changes (August 2025)
+- **ZHI 1 (Anthropic) Exclusion for Video**: Removed ZHI 1 from video analysis options due to poor performance, automatically switches to ZHI 3 (DeepSeek) for video uploads
 - **Custom Video Duration Selector**: Added user-selectable video segment duration (1-10 seconds) for both large and small video uploads with intuitive slider interface
 - **Video Analysis Enhancement**: Updated video segment duration from 5 to 10 seconds and corrected upload limits to 30 seconds maximum
 - **Comprehensive Question Integration**: Enhanced both image and video analysis to answer 60 specific personality questions (1-20 core, 21-60 deeper psychological insights) in addition to existing comprehensive analysis

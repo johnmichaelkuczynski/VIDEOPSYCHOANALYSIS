@@ -97,6 +97,21 @@ const getModelDisplayName = (model: string) => {
   }
 };
 
+// Helper function to get available models for video analysis (excluding ZHI 1)
+const getVideoAnalysisModels = () => [
+  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
+  { value: "openai", label: "ZHI 2 (OpenAI)" },
+  { value: "perplexity", label: "ZHI 4 (Perplexity)" }
+];
+
+// Helper function to get all models for text/image analysis
+const getAllModels = () => [
+  { value: "deepseek", label: "ZHI 3 (DeepSeek)" },
+  { value: "openai", label: "ZHI 2 (OpenAI)" },
+  { value: "anthropic", label: "ZHI 1 (Anthropic)" },
+  { value: "perplexity", label: "ZHI 4 (Perplexity)" }
+];
+
 export default function Home({ isShareMode = false, shareId }: { isShareMode?: boolean, shareId?: string }) {
   const { toast } = useToast();
   const [sessionId] = useState(() => nanoid());
@@ -114,7 +129,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const [emailServiceAvailable, setEmailServiceAvailable] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("anthropic");
+  const [selectedModel, setSelectedModel] = useState<ModelType>("deepseek");
 
   // Document analysis states
   const [documentChunks, setDocumentChunks] = useState<any[]>([]);
@@ -259,6 +274,18 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
         });
     }
   }, [shareId, toast]);
+
+  // Handle model selection when media type changes (exclude ZHI 1 for video)
+  useEffect(() => {
+    if (mediaType === "video" && selectedModel === "anthropic") {
+      // Switch away from ZHI 1 (Anthropic) for video analysis
+      setSelectedModel("deepseek");
+      toast({
+        title: "Model Switched",
+        description: "Switched to ZHI 3 (DeepSeek) - ZHI 1 excluded for video analysis",
+      });
+    }
+  }, [mediaType, selectedModel, toast]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -1043,12 +1070,18 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                {availableServices.anthropic && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
+                {/* Exclude ZHI 1 (Anthropic) for video analysis */}
+                {(mediaType !== "video" && availableServices.anthropic) && <SelectItem value="anthropic">ZHI 1 (Recommended)</SelectItem>}
                 {availableServices.openai && <SelectItem value="openai">ZHI 2</SelectItem>}
                 <SelectItem value="deepseek">ZHI 3</SelectItem>
                 {availableServices.perplexity && <SelectItem value="perplexity">ZHI 4</SelectItem>}
               </SelectContent>
             </Select>
+            {mediaType === "video" && (
+              <p className="text-xs text-orange-600 mt-2">
+                ⚠️ ZHI 1 (Anthropic) excluded for video analysis - optimized models only
+              </p>
+            )}
 
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
