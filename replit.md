@@ -4,11 +4,11 @@
 This project is an advanced AI-powered personality insights platform designed for comprehensive emotional, visual, and cognitive analysis. Its purpose is to provide highly detailed, evidence-based psychological evaluations from various media inputs (images, videos, text). The platform aims to deliver professional-grade insights, moving beyond basic personality assessments to offer clinical-level psychological evaluations with documented evidence and direct quotations. It supports multi-modal analysis, incorporates enhanced cognitive profiling, and offers robust reliability through multi-service fallback chains, with results exportable in multiple formats.
 
 ## Recent Changes (August 2025)
-- **Enhanced Clinical Analysis**: Implemented systematic clinical psychological analysis framework requiring PRESENT/ABSENT determinations with specific evidence for each of 50+ psychological markers across visual and verbal domains
-- **Video Segment Analysis**: Updated from 5-second to 10-second video segments with accurate 30-second upload limits and improved visual analysis accuracy instructions
-- **Systematic Assessment Protocol**: Added comprehensive structured analysis covering affect regulation, gaze patterns, facial expressions, defensive operations, cognitive style, attachment cues, and pathology indicators
-- **Visual Accuracy Improvements**: Enhanced clothing color detection with critical precision instructions to prevent analysis errors (e.g., incorrectly describing white shirts as dark)
 - **Video Upload Stability**: Fixed video upload crashes for files >30 seconds with comprehensive error handling, timeout protection (30s), file size limits (500MB), and automatic cleanup
+- **Consolidated Downloads**: Added comprehensive download functionality that combines all analysis modules (psychological Q1-Q18, intelligence Q19-Q36, 40 parameters, clinical assessments) into single documents
+- **Bulk Text Operations**: Implemented bulk select/deselect for document text chunks to handle large documents efficiently (tested with 72+ chunks)
+- **User Experience**: Added clear video length warnings in upload interface and improved error messages throughout upload pipeline
+- **JSON Error Handling**: Robust JSON parsing error handling prevents app crashes during video processing
 
 ## User Preferences
 - Default AI Model: DeepSeek (OpenAI-compatible API)
