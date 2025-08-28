@@ -417,11 +417,39 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
           });
 
           if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json();
-            throw new Error(errorData.error || 'Upload failed');
+            let errorMessage = 'Upload failed';
+            let isJsonError = false;
+            
+            try {
+              const errorData = await uploadResponse.json();
+              errorMessage = errorData.error || 'Upload failed';
+              
+              // Provide more user-friendly messages for specific error types
+              if (errorData.maxSizeExceeded) {
+                errorMessage = `File too large (${errorData.fileSizeMB?.toFixed(1) || 'unknown'} MB). Maximum size is 500MB. Please use a smaller video file.`;
+              } else if (errorData.formatError) {
+                errorMessage = "Cannot process this video format. Please try MP4, MOV, or AVI files with standard encoding.";
+              } else if (errorData.processingFailed) {
+                errorMessage = "Video processing failed. The file may be corrupted or use an unsupported codec. Please try a different video.";
+              } else if (errorData.unsupportedType) {
+                errorMessage = "Only video files are supported for this upload method. For images, please use the regular upload.";
+              }
+            } catch (jsonParseError) {
+              // If we can't parse the error response as JSON, it might be the JSON parsing issue
+              isJsonError = true;
+              errorMessage = `Upload failed due to server processing error. The video file may be too large or corrupted. Please try a smaller MP4 file.`;
+              console.error('JSON parsing error in error response:', jsonParseError);
+            }
+            
+            throw new Error(errorMessage);
           }
 
-          response = await uploadResponse.json();
+          try {
+            response = await uploadResponse.json();
+          } catch (jsonParseError) {
+            console.error('JSON parsing error in successful response:', jsonParseError);
+            throw new Error('Video upload completed but response processing failed. The video may be too large or complex. Please try a shorter or smaller video file.');
+          }
         } else {
           // Use regular JSON upload for smaller files
           response = await uploadMedia({
@@ -557,11 +585,24 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze video segment');
+        let errorMessage = 'Failed to analyze video segment';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Failed to analyze video segment';
+        } catch (jsonParseError) {
+          errorMessage = 'Video segment analysis failed due to processing error. The video segment may be too complex. Please try a different segment.';
+          console.error('JSON parsing error in video segment error response:', jsonParseError);
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonParseError) {
+        console.error('JSON parsing error in video segment response:', jsonParseError);
+        throw new Error('Video segment analysis completed but response processing failed. Please try a different segment.');
+      }
       setAnalysisProgress(90);
 
       // Add the analysis message to the chat, replacing any existing video analysis
@@ -628,11 +669,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
   const handleFileUpload = (file: File) => {
     const fileType = file.type.split('/')[0];
 
-    // Check file size early for videos
-    if (fileType === 'video' && file.size > 50 * 1024 * 1024) {
+    // Check file size early for videos (updated to match backend limits)
+    if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Video files must be under 50MB. Please compress your video or use a shorter clip.",
+        description: "Video files must be under 500MB. Please compress your video or use a shorter clip.",
         variant: "destructive",
       });
       return;

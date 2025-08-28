@@ -930,59 +930,176 @@ Respond with JSON only:
       console.log(`File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
       
       const mediaType = file.mimetype.split('/')[0] as MediaType;
+      const fileSizeInMB = file.size / (1024 * 1024);
+      
+      // Add file size limits to prevent crashes
+      if (fileSizeInMB > 500) { // 500MB limit
+        return res.status(413).json({ 
+          error: "File too large. Maximum file size is 500MB. Please use a smaller file.",
+          maxSizeExceeded: true
+        });
+      }
       
       if (mediaType === "video") {
+        let tempVideoPath = null;
+        
         try {
-          // Save video temporarily to get duration and create segments
-          const tempVideoPath = path.join(tempDir, `temp_${Date.now()}.${file.originalname.split('.').pop()}`);
-          await fs.promises.writeFile(tempVideoPath, file.buffer);
+          // Create a unique temp path
+          const fileExtension = file.originalname.split('.').pop() || 'mp4';
+          tempVideoPath = path.join(tempDir, `temp_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`);
           
-          // Get video duration
-          const duration = await getVideoDuration(tempVideoPath);
-          console.log(`Video duration: ${duration} seconds`);
+          // Save video temporarily with error handling
+          try {
+            await fs.promises.writeFile(tempVideoPath, file.buffer);
+            console.log(`Video saved to: ${tempVideoPath}`);
+          } catch (writeError) {
+            console.error("Failed to write video file:", writeError);
+            return res.status(500).json({ 
+              error: "Failed to process video file. The file may be corrupted or too large for processing.",
+              processingFailed: true
+            });
+          }
           
-          // Create segments
-          const segments = createVideoSegments(duration, 5);
-          
-          // Create analysis record and store the video file for later segment processing
-          const analysis = await storage.createAnalysis({
-            sessionId,
-            mediaUrl: `video:${Date.now()}`,
-            mediaType,
-            fileName: file.originalname,
-            fileType: file.mimetype,
-            modelUsed: selectedModel as any,
-            personalityInsights: {
-              requiresSegmentSelection: true,
-              segments,
-              duration,
-              tempVideoPath, // Keep the file for segment analysis
-              fileSize: file.size
+          // Get video duration with timeout protection
+          let duration = 0;
+          try {
+            duration = await Promise.race([
+              getVideoDuration(tempVideoPath),
+              new Promise<number>((_, reject) => 
+                setTimeout(() => reject(new Error('Duration extraction timeout')), 30000) // 30 second timeout
+              )
+            ]);
+            console.log(`Video duration: ${duration} seconds`);
+            
+            // Check if video is too long for practical analysis
+            if (duration > 3600) { // 1 hour limit
+              throw new Error(`Video too long (${duration} seconds). Maximum duration is 1 hour.`);
             }
-          });
+            
+          } catch (durationError) {
+            console.error("Failed to get video duration:", durationError);
+            // Clean up temp file
+            try {
+              if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+                await fs.promises.unlink(tempVideoPath);
+              }
+            } catch (cleanupError) {
+              console.error("Cleanup error:", cleanupError);
+            }
+            
+            return res.status(422).json({ 
+              error: "Cannot process this video format or the video is corrupted. Please try a different video file (MP4, MOV, or AVI formats recommended).",
+              formatError: true
+            });
+          }
           
+          // Create segments with better error handling
+          let segments = [];
+          try {
+            segments = createVideoSegments(duration, 5);
+          } catch (segmentError) {
+            console.error("Failed to create video segments:", segmentError);
+            // Clean up temp file
+            try {
+              if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+                await fs.promises.unlink(tempVideoPath);
+              }
+            } catch (cleanupError) {
+              console.error("Cleanup error:", cleanupError);
+            }
+            
+            return res.status(500).json({ 
+              error: "Failed to create video segments for analysis.",
+              segmentError: true
+            });
+          }
+          
+          // Create analysis record with comprehensive error handling
+          let analysis;
+          try {
+            analysis = await storage.createAnalysis({
+              sessionId,
+              mediaUrl: `video:${Date.now()}`,
+              mediaType,
+              fileName: file.originalname,
+              fileType: file.mimetype,
+              modelUsed: selectedModel as any,
+              personalityInsights: {
+                requiresSegmentSelection: true,
+                segments,
+                duration,
+                tempVideoPath, // Keep the file for segment analysis
+                fileSize: file.size,
+                uploadTimestamp: new Date().toISOString(),
+                processingStatus: 'ready'
+              }
+            });
+          } catch (storageError) {
+            console.error("Failed to create analysis record:", storageError);
+            // Clean up temp file
+            try {
+              if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+                await fs.promises.unlink(tempVideoPath);
+              }
+            } catch (cleanupError) {
+              console.error("Cleanup error:", cleanupError);
+            }
+            
+            return res.status(500).json({ 
+              error: "Failed to save video analysis record.",
+              storageError: true
+            });
+          }
+          
+          // Success response
           return res.json({
             analysisId: analysis.id,
             mediaType,
             duration,
             segments,
             requiresSegmentSelection: true,
-            message: "Video uploaded successfully. Please select which 5-second segment to analyze.",
-            emailServiceAvailable: isEmailServiceConfigured
+            message: `Video uploaded successfully! Duration: ${Math.round(duration)} seconds. Please select a 5-second segment to analyze.`,
+            emailServiceAvailable: isEmailServiceConfigured,
+            fileSize: fileSizeInMB,
+            processingStatus: 'ready'
           });
           
         } catch (error) {
           console.error("Error processing video:", error);
-          return res.status(500).json({ error: "Failed to process video. Please try a smaller file." });
+          
+          // Clean up temp file if it exists
+          if (tempVideoPath) {
+            try {
+              if (fs.existsSync(tempVideoPath)) {
+                await fs.promises.unlink(tempVideoPath);
+                console.log(`Cleaned up temp file: ${tempVideoPath}`);
+              }
+            } catch (cleanupError) {
+              console.error("Cleanup error:", cleanupError);
+            }
+          }
+          
+          return res.status(500).json({ 
+            error: "Failed to process video. The file may be too large, corrupted, or in an unsupported format. Please try a smaller MP4 file.",
+            processingFailed: true,
+            errorDetails: error instanceof Error ? error.message : 'Unknown error'
+          });
         }
       } else {
         // Handle images or other media types
-        return res.status(400).json({ error: "Only video files are supported for multipart upload currently" });
+        return res.status(400).json({ 
+          error: "Only video files are supported for multipart upload. For images, please use the standard upload.",
+          unsupportedType: true
+        });
       }
       
     } catch (error) {
       console.error("Multipart upload error:", error);
-      res.status(500).json({ error: "Failed to upload media" });
+      return res.status(500).json({ 
+        error: "Failed to upload media. Please try again with a smaller file.",
+        uploadFailed: true,
+        errorDetails: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
   
@@ -1024,37 +1141,109 @@ Respond with JSON only:
         console.log(`Large video detected: ${fileSizeInMB.toFixed(2)}MB - will create segments for selection`);
       }
       
+      // Additional size check to prevent memory issues
+      if (fileSizeInMB > 200) { // 200MB limit for regular upload
+        return res.status(413).json({ 
+          error: "File too large for regular upload. Maximum size is 200MB. Please use a smaller file or try the multipart upload for larger videos.",
+          maxSizeExceeded: true,
+          fileSizeMB: fileSizeInMB
+        });
+      }
+      
       // Save file temporarily to analyze duration for videos
-      const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${fileName}`);
-      await writeFileAsync(tempFilePath, fileBuffer);
+      let tempFilePath = null;
+      try {
+        const fileExtension = fileName.split('.').pop() || 'mp4';
+        tempFilePath = path.join(tempDir, `temp_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`);
+        await writeFileAsync(tempFilePath, fileBuffer);
+      } catch (writeError) {
+        console.error("Failed to write temp file:", writeError);
+        return res.status(500).json({ 
+          error: "Failed to save uploaded file. The file may be corrupted or too large.",
+          processingFailed: true
+        });
+      }
       
       let mediaAnalysis: any = {};
       
       if (fileType.startsWith('video/')) {
         try {
-          // Get video duration
-          const duration = await getVideoDuration(tempFilePath);
-          console.log(`Video duration: ${duration} seconds`);
+          // Get video duration with timeout protection
+          let duration = 0;
+          try {
+            duration = await Promise.race([
+              getVideoDuration(tempFilePath),
+              new Promise<number>((_, reject) => 
+                setTimeout(() => reject(new Error('Duration extraction timeout')), 30000) // 30 second timeout
+              )
+            ]);
+            console.log(`Video duration: ${duration} seconds`);
+            
+            // Check if video is too long for practical analysis
+            if (duration > 3600) { // 1 hour limit
+              throw new Error(`Video too long (${duration} seconds). Maximum duration is 1 hour.`);
+            }
+            
+          } catch (durationError) {
+            console.error("Failed to get video duration:", durationError);
+            // Clean up temp file
+            if (tempFilePath) {
+              await unlinkAsync(tempFilePath).catch(() => {});
+            }
+            
+            return res.status(422).json({ 
+              error: "Cannot process this video format or the video is corrupted. Please try a different video file (MP4, MOV, or AVI formats recommended).",
+              formatError: true
+            });
+          }
           
           // Create 5-second segments for user selection
-          const segments = createVideoSegments(duration, 5);
+          let segments = [];
+          try {
+            segments = createVideoSegments(duration, 5);
+          } catch (segmentError) {
+            console.error("Failed to create video segments:", segmentError);
+            if (tempFilePath) {
+              await unlinkAsync(tempFilePath).catch(() => {});
+            }
+            
+            return res.status(500).json({ 
+              error: "Failed to create video segments for analysis.",
+              segmentError: true
+            });
+          }
           
           // Create analysis record with segments for selection and keep temp file for processing
-          const analysis = await storage.createAnalysis({
-            sessionId,
-            mediaUrl: `video:${Date.now()}`,
-            mediaType: "video",
-            personalityInsights: { 
-              segments,
-              originalFileName: fileName,
-              fileType,
-              duration,
-              requiresSegmentSelection: true,
-              tempVideoPath: tempFilePath, // Keep the file for segment analysis
-              fileSize: fileBuffer.length
-            },
-            title: title || fileName
-          });
+          let analysis;
+          try {
+            analysis = await storage.createAnalysis({
+              sessionId,
+              mediaUrl: `video:${Date.now()}`,
+              mediaType: "video",
+              personalityInsights: { 
+                segments,
+                originalFileName: fileName,
+                fileType,
+                duration,
+                requiresSegmentSelection: true,
+                tempVideoPath: tempFilePath, // Keep the file for segment analysis
+                fileSize: fileBuffer.length,
+                uploadTimestamp: new Date().toISOString(),
+                processingStatus: 'ready'
+              },
+              title: title || fileName
+            });
+          } catch (storageError) {
+            console.error("Failed to create analysis record:", storageError);
+            if (tempFilePath) {
+              await unlinkAsync(tempFilePath).catch(() => {});
+            }
+            
+            return res.status(500).json({ 
+              error: "Failed to save video analysis record.",
+              storageError: true
+            });
+          }
           
           // Don't delete temp file - it's needed for segment analysis
           
@@ -1064,14 +1253,22 @@ Respond with JSON only:
             duration,
             segments,
             requiresSegmentSelection: true,
-            message: "Video uploaded successfully. Please select which 5-second segment to analyze.",
-            emailServiceAvailable: isEmailServiceConfigured
+            message: `Video uploaded successfully! Duration: ${Math.round(duration)} seconds. Please select a 5-second segment to analyze.`,
+            emailServiceAvailable: isEmailServiceConfigured,
+            fileSize: fileSizeInMB,
+            processingStatus: 'ready'
           });
           
         } catch (error) {
           console.error("Video processing error:", error);
-          await unlinkAsync(tempFilePath).catch(() => {});
-          return res.status(500).json({ error: "Failed to process video" });
+          if (tempFilePath) {
+            await unlinkAsync(tempFilePath).catch(() => {});
+          }
+          return res.status(500).json({ 
+            error: "Failed to process video. The file may be too large, corrupted, or in an unsupported format. Please try a smaller MP4 file.",
+            processingFailed: true,
+            errorDetails: error instanceof Error ? error.message : 'Unknown error'
+          });
         }
       } else if (fileType.startsWith('image/')) {
         // For images, process immediately (they're typically smaller)
