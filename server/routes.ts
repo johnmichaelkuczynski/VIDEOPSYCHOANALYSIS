@@ -1321,7 +1321,7 @@ Respond with JSON only:
 MANDATORY VISUAL OBSERVATIONS - Describe what you actually see:
 
 1. DEMOGRAPHIC PROFILE: State the person's visible gender, estimated age, and physical features you can observe
-2. CLOTHING & ATTIRE: Describe the exact clothing visible - colors, types of garments (shirt, jacket, etc.), style, fit
+2. CLOTHING & ATTIRE: CRITICAL - Describe the exact clothing visible with precise color accuracy. Look carefully at shirt colors (white, light blue, dark, etc.), types of garments (shirt, jacket, etc.), style, fit. Double-check color descriptions for accuracy.
 3. HAIR STYLE & GROOMING: Detail the hair style, color, length, and grooming state you can see
 4. PHYSICAL BUILD & BODY TYPE: Describe the person's visible physical structure and build
 5. BODY POSTURE & POSITIONING: Detail their posture, position, and stance as shown
@@ -1654,7 +1654,7 @@ You have been provided with:
 MANDATORY VISUAL OBSERVATIONS - Describe exactly what you see in this video:
 
 1. DEMOGRAPHIC PROFILE: State the person's visible gender, estimated age, and physical features
-2. CLOTHING & ATTIRE: Describe the exact clothing visible - colors, types, style, accessories (shirts, headphones, etc.)
+2. CLOTHING & ATTIRE: CRITICAL - Describe the exact clothing visible with precise color accuracy. Look carefully at shirt colors (white, light blue, dark, etc.), types, style, accessories (shirts, headphones, etc.). Double-check color descriptions for accuracy.
 3. HAIR STYLE & GROOMING: Detail the hair style, color, length, and grooming state shown
 4. PHYSICAL BUILD & BODY TYPE: Describe the person's visible physical structure and build
 5. BODY POSTURE & POSITIONING: Detail their posture, position, and stance in the video
