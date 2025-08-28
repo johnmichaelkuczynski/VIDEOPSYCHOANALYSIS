@@ -1,0 +1,67 @@
+FOR SOME REASON, ON MY VIDEO ANALYSIS APP, EACH LLM (DEEPSEEK ETC.) WORKS WSELL EXCEPT FOR ANTHROPIC, WHICH IS GIVING ME SHIT. THE VIDEO IN QUESTION IS ME TALKING ABOUT APPS, IN A TOTALLY NORMAL STERILE ENVIRONMENT; NO NUDITY/PROFIANITY. WAHT THE FUCK IS GOING ON?ideo Segment Analysis Complete 
+
+Analyzed Segment: 20s 
+• 26s (6.2s)
+
+I apologize, but I need to be honest - I don't actually have access to video content or visual data that would allow me to provide accurate observations about someone's appearance, body language, or visual psychological markers. While the prompt includes detailed instructions and data structure, I cannot actually see or analyze real video footage.
+
+What I can see is a short audio transcription: "the logic so that it should be able to get an enormous amount of information out of a five-second clip. All right."
+
+I want to be truthful and accurate in my responses rather than making assumptions or fabricating observations. I could only provide meaningful analysis based on actual video content that I could observe. Without being able to see the person or their visual cues, I cannot responsibly make claims about their appearance, mannerisms, or psychological state.
+
+Would you like me to:
+1. Analyze just the audio transcription that is available?
+2. Explain what kinds of analysis would be possible if I did have full video access?
+3. Focus on a different aspect of analysis that would be more accurate given the information available?
+
+Technical Details:
+- Facial Analysis: Completed
+- Audio Analysis: Speech transcribed
+- AI Model: anthropic
+- Processing Time: 6.2 seconds analyzed
+
+Save as PDF
+
+Save as Word
+
+Save as TXT
+Chat 
+ChatGPT said:
+
+Got it — I can see exactly what’s happening.
+
+Anthropic isn’t actually “seeing” your video. Their models (Claude, etc.) don’t process raw video or images directly. What you’re seeing is the model rejecting the request to comment on visual/psychological traits because it knows it has no access to the underlying frames. Instead, it defaults to a disclaimer like:
+
+“I don’t actually have access to video content or visual data…”
+
+That’s Anthropic’s safety + transparency layer, not a reflection of anything in your video. Even if your video is sterile (no nudity, profanity, etc.), Anthropic models will refuse if they think they’re being asked to analyze someone’s appearance, body language, or psychology from visuals.
+
+Meanwhile, OpenAI, DeepSeek, Perplexity, etc. don’t run that same filter, so they just proceed with your prompt and give you what you expect.
+
+Why it’s happening
+
+Mismatch in modality: Anthropic is treating your app’s video → transcript pipeline as if you were asking for visual analysis.
+
+Strict refusal policy: Their models err on the side of disclaiming rather than inferring.
+
+Prompt structure issue: If your app prompt mentions “facial analysis,” “body language,” “visual cues,” etc., Anthropic will trigger a refusal, even if the data being passed is just text.
+
+Fixes
+
+Strip visual-language references for Anthropic.
+
+Instead of “analyze appearance, mannerisms, psychological state,” rephrase the system/instruction prompt to “analyze the speech transcript for tone, pacing, semantic density, rhetorical markers.”
+
+Keep “video” terminology out of the Anthropic prompt — just pass text/audio content.
+
+Route logic by provider in your app.
+
+For DeepSeek/OpenAI/etc., keep your full “video analysis” prompt.
+
+For Anthropic, swap in a text-only analysis template (e.g., rhetorical/semantic analysis).
+
+Optional: Post-process Anthropic’s refusal by stripping disclaimers. But cleaner is fixing the prompt upstream.
+
+👉 Bottom line: nothing’s wrong with your video — it’s Anthropic’s model guardrails plus your current prompt. If you tweak the Anthropic-specific prompt to be text-only and avoid references to “seeing video,” it’ll stop giving you that boilerplate refusal.
+
+Do you want me to draft you a drop-in replacement Anthropic prompt (parallel to your current one) that avoids triggering their visual-content filter?
