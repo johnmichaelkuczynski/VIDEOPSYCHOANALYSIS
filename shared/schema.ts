@@ -142,6 +142,14 @@ export const sessionSchema = z.object({
   name: z.string().optional(),
 });
 
+// Schema for video segment analysis
+export const videoSegmentAnalysisSchema = z.object({
+  analysisId: z.number(),
+  segmentId: z.number(),
+  selectedModel: z.enum(["deepseek", "openai", "anthropic", "perplexity"]).optional().default("deepseek"),
+  sessionId: z.string(),
+});
+
 // Schema for downloading analysis
 export const downloadAnalysisSchema = z.object({
   analysisId: z.number(),

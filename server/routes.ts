@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { insertAnalysisSchema, insertMessageSchema, insertShareSchema, uploadMediaSchema } from "@shared/schema";
+import { insertAnalysisSchema, insertMessageSchema, insertShareSchema, uploadMediaSchema, videoSegmentAnalysisSchema } from "@shared/schema";
 import { z } from "zod";
 import { 
   RekognitionClient, 
@@ -1375,11 +1375,8 @@ Provide the deepest possible level of psychoanalytic insight based on observable
   // Video segment analysis endpoint
   app.post("/api/analyze/video-segment", async (req, res) => {
     try {
-      const { analysisId, segmentId, selectedModel = "deepseek", sessionId } = req.body;
-      
-      if (!analysisId || !segmentId) {
-        return res.status(400).json({ error: "Analysis ID and segment ID are required" });
-      }
+      const validatedData = videoSegmentAnalysisSchema.parse(req.body);
+      const { analysisId, segmentId, selectedModel, sessionId } = validatedData;
       
       const analysis = await storage.getAnalysisById(analysisId);
       if (!analysis) {
@@ -1760,6 +1757,9 @@ This analysis focuses on the selected segment to provide targeted personality in
       
     } catch (error) {
       console.error("Video segment analysis error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.format() });
+      }
       res.status(500).json({ error: "Failed to analyze video segment" });
     }
   });
