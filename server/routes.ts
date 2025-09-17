@@ -108,6 +108,17 @@ function formatMetricsForDisplay(metricsAnalysis: any): string {
 }
 
 /**
+ * Helper function to format video analysis for display
+ */
+function formatVideoAnalysisForDisplay(videoAnalysis: any, fileName: string, duration: number): string {
+  if (!videoAnalysis) {
+    return `## Video Analysis Complete\n\n**File:** ${fileName}\n**Duration:** ${duration}s\n\nComprehensive psychological assessment completed.`;
+  }
+  
+  return `## Video Analysis Complete\n\n**File:** ${fileName}\n**Duration:** ${duration}s\n\n**Summary:** ${videoAnalysis.summary || 'Comprehensive video analysis completed'}\n\n**Visual Analysis:** ${videoAnalysis.visualAnalysis || 'Visual content processed'}\n\n**Audio Analysis:** ${videoAnalysis.audioAnalysis || 'Audio content analyzed'}\n\n**Emotional State:** ${videoAnalysis.emotionalState || 'Emotional patterns assessed'}\n\n**Personality Traits:** ${videoAnalysis.personalityTraits || 'Behavioral indicators evaluated'}\n\n${videoAnalysis.fullAnalysis || 'Detailed psychological insights have been processed for this video content.'}\n\n*Complete analysis includes facial expression patterns, emotional indicators, and psychological assessment.*`;
+}
+
+/**
  * Helper function to get video duration using ffmpeg
  */
 function getVideoDuration(videoPath: string): Promise<number> {
@@ -941,35 +952,88 @@ Respond with JSON only:
           const duration = await getVideoDuration(tempVideoPath);
           console.log(`Video duration: ${duration} seconds`);
           
-          // Create segments
-          const segments = createVideoSegments(duration, 5);
+          // CRITICAL: ALL videos >10 seconds MUST be segmented regardless of file size
+          let requiresSegmentSelection = duration > 10;
+          console.log(`Multipart video: ${duration}s, file size: ${(file.size / 1024 / 1024).toFixed(2)}MB, requires segmentation: ${requiresSegmentSelection}`);
           
-          // Create analysis record and store the video file for later segment processing
-          const analysis = await storage.createAnalysis({
-            sessionId,
-            mediaUrl: `video:${Date.now()}`,
-            mediaType,
-            fileName: file.originalname,
-            fileType: file.mimetype,
-            modelUsed: selectedModel as any,
-            personalityInsights: {
-              requiresSegmentSelection: true,
-              segments,
+          if (requiresSegmentSelection) {
+            // Create segments for user selection
+            const segments = createVideoSegments(duration, 10);
+            
+            // Create analysis record and store the video file for later segment processing
+            const analysis = await storage.createAnalysis({
+              sessionId,
+              mediaUrl: `video:${Date.now()}`,
+              mediaType,
+              fileName: file.originalname,
+              fileType: file.mimetype,
+              modelUsed: selectedModel as any,
+              personalityInsights: {
+                requiresSegmentSelection: true,
+                segments,
+                duration,
+                tempVideoPath, // Keep the file for segment analysis
+                fileSize: file.size
+              }
+            });
+            
+            return res.json({
+              analysisId: analysis.id,
+              mediaType,
               duration,
-              tempVideoPath, // Keep the file for segment analysis
-              fileSize: file.size
-            }
-          });
-          
-          return res.json({
-            analysisId: analysis.id,
-            mediaType,
-            duration,
-            segments,
-            requiresSegmentSelection: true,
-            message: "Video uploaded successfully. Please select which 5-second segment to analyze.",
-            emailServiceAvailable: isEmailServiceConfigured
-          });
+              segments,
+              requiresSegmentSelection: true,
+              message: `Video uploaded successfully (${duration}s). Please select which 10-second segment to analyze.`,
+              emailServiceAvailable: isEmailServiceConfigured
+            });
+          } else {
+            // Short videos (≤10 seconds) can be processed immediately
+            console.log(`Short multipart video detected: ${duration}s - processing immediately`);
+            
+            const analysis = await storage.createAnalysis({
+              sessionId,
+              mediaUrl: `video:${Date.now()}`,
+              mediaType,
+              fileName: file.originalname,
+              fileType: file.mimetype,
+              modelUsed: selectedModel as any,
+              personalityInsights: {
+                requiresSegmentSelection: false,
+                duration,
+                tempVideoPath,
+                fileSize: file.size
+              }
+            });
+            
+            // Process the entire short video
+            const videoAnalysis = await performVideoAnalysis(tempVideoPath, selectedModel, sessionId);
+            
+            const message = {
+              role: "assistant" as const,
+              content: formatVideoAnalysisForDisplay(videoAnalysis, file.originalname, duration),
+              timestamp: new Date(),
+              analysisId: analysis.id
+            };
+            
+            await storage.createMessage({
+              sessionId,
+              role: "assistant",
+              content: message.content,
+              analysisId: analysis.id
+            });
+            
+            // Clean up temp file for short videos
+            await fs.promises.unlink(tempVideoPath).catch(() => {});
+            
+            return res.json({
+              analysisId: analysis.id,
+              mediaType,
+              duration,
+              requiresSegmentSelection: false,
+              messages: [message],
+              emailServiceAvailable: isEmailServiceConfigured
+            });
+          }
           
         } catch (error) {
           console.error("Error processing video:", error);
@@ -1017,13 +1081,6 @@ Respond with JSON only:
         });
       }
       
-      // For large video files (over 15MB), we'll create segments for selection
-      let requiresSegmentSelection = false;
-      if (fileSizeInMB > 15 && fileType.startsWith('video/')) {
-        requiresSegmentSelection = true;
-        console.log(`Large video detected: ${fileSizeInMB.toFixed(2)}MB - will create segments for selection`);
-      }
-      
       // Save file temporarily to analyze duration for videos
       const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${fileName}`);
       await writeFileAsync(tempFilePath, fileBuffer);
@@ -1036,37 +1093,91 @@ Respond with JSON only:
           const duration = await getVideoDuration(tempFilePath);
           console.log(`Video duration: ${duration} seconds`);
           
-          // Create 5-second segments for user selection
-          const segments = createVideoSegments(duration, 5);
+          // CRITICAL: ALL videos >10 seconds MUST be segmented regardless of file size
+          let requiresSegmentSelection = duration > 10;
+          console.log(`Video duration: ${duration}s, file size: ${fileSizeInMB.toFixed(2)}MB, requires segmentation: ${requiresSegmentSelection}`);
           
-          // Create analysis record with segments for selection and keep temp file for processing
-          const analysis = await storage.createAnalysis({
-            sessionId,
-            mediaUrl: `video:${Date.now()}`,
-            mediaType: "video",
-            personalityInsights: { 
-              segments,
-              originalFileName: fileName,
-              fileType,
+          if (requiresSegmentSelection) {
+            // Create 10-second segments for user selection
+            const segments = createVideoSegments(duration, 10);
+            
+            // Create analysis record with segments for selection and keep temp file for processing
+            const analysis = await storage.createAnalysis({
+              sessionId,
+              mediaUrl: `video:${Date.now()}`,
+              mediaType: "video",
+              personalityInsights: { 
+                segments,
+                originalFileName: fileName,
+                fileType,
+                duration,
+                requiresSegmentSelection: true,
+                tempVideoPath: tempFilePath, // Keep the file for segment analysis
+                fileSize: fileBuffer.length
+              },
+              title: title || fileName
+            });
+            
+            // Don't delete temp file - it's needed for segment analysis
+            
+            return res.json({
+              analysisId: analysis.id,
+              mediaType: "video",
               duration,
+              segments,
               requiresSegmentSelection: true,
-              tempVideoPath: tempFilePath, // Keep the file for segment analysis
-              fileSize: fileBuffer.length
-            },
-            title: title || fileName
-          });
-          
-          // Don't delete temp file - it's needed for segment analysis
-          
-          return res.json({
-            analysisId: analysis.id,
-            mediaType: "video",
-            duration,
-            segments,
-            requiresSegmentSelection: true,
-            message: "Video uploaded successfully. Please select which 5-second segment to analyze.",
-            emailServiceAvailable: isEmailServiceConfigured
-          });
+              message: `Video uploaded successfully (${duration}s). Please select which 10-second segment to analyze.`,
+              emailServiceAvailable: isEmailServiceConfigured
+            });
+          } else {
+            // Short videos (≤10 seconds) can be processed immediately
+            console.log(`Short video detected: ${duration}s - processing immediately`);
+            
+            // For short videos, process the entire video as one segment
+            const analysis = await storage.createAnalysis({
+              sessionId,
+              mediaUrl: `video:${Date.now()}`,
+              mediaType: "video",
+              personalityInsights: { 
+                originalFileName: fileName,
+                fileType,
+                duration,
+                requiresSegmentSelection: false,
+                tempVideoPath: tempFilePath,
+                fileSize: fileBuffer.length
+              },
+              title: title || fileName
+            });
+            
+            // Process the entire short video
+            const videoAnalysis = await performVideoAnalysis(tempFilePath, selectedModel, sessionId);
+            
+            const message = {
+              role: "assistant" as const,
+              content: formatVideoAnalysisForDisplay(videoAnalysis, fileName, duration),
+              timestamp: new Date(),
+              analysisId: analysis.id
+            };
+            
+            await storage.createMessage({
+              sessionId,
+              role: "assistant",
+              content: message.content,
+              analysisId: analysis.id
+            });
+            
+            // Clean up temp file for short videos
+            await unlinkAsync(tempFilePath).catch(() => {});
+            
+            return res.json({
+              analysisId: analysis.id,
+              mediaType: "video",
+              duration,
+              requiresSegmentSelection: false,
+              messages: [message],
+              emailServiceAvailable: isEmailServiceConfigured
+            });
+          }
           
         } catch (error) {
           console.error("Video processing error:", error);
@@ -1384,11 +1495,38 @@ Provide the deepest possible level of psychoanalytic insight based on observable
       }
       
       const personalityInsights = analysis.personalityInsights as any;
-      const segments = personalityInsights?.segments || [];
-      const selectedSegment = segments.find((s: any) => s.id === segmentId);
       
+      // CRITICAL VALIDATION: Ensure this video actually requires segmentation
+      if (!personalityInsights?.requiresSegmentSelection) {
+        return res.status(400).json({ 
+          error: "This video does not require segment selection. Process through regular analysis.",
+          code: "NO_SEGMENTATION_REQUIRED" 
+        });
+      }
+      
+      const segments = personalityInsights?.segments || [];
+      if (segments.length === 0) {
+        return res.status(400).json({ 
+          error: "No segments available for this video. Video may not have been properly processed.",
+          code: "NO_SEGMENTS_AVAILABLE" 
+        });
+      }
+      
+      const selectedSegment = segments.find((s: any) => s.id === segmentId);
       if (!selectedSegment) {
-        return res.status(400).json({ error: "Invalid segment ID" });
+        return res.status(400).json({ 
+          error: `Invalid segment ID. Available segments: ${segments.map((s: any) => s.id).join(', ')}`,
+          code: "INVALID_SEGMENT_ID" 
+        });
+      }
+      
+      // Additional validation: Check video duration to ensure segmentation was properly enforced
+      const duration = personalityInsights?.duration || 0;
+      if (duration > 10 && !personalityInsights?.requiresSegmentSelection) {
+        return res.status(400).json({ 
+          error: "Videos longer than 10 seconds must be processed through segmentation.",
+          code: "SEGMENTATION_REQUIRED" 
+        });
       }
       
       console.log(`Analyzing video segment ${segmentId}: ${selectedSegment.label}`);

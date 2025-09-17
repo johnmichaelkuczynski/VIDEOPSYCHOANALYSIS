@@ -127,7 +127,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
   // Video segment states
   const [videoSegmentStart, setVideoSegmentStart] = useState<number>(0);
-  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(5);
+  const [videoSegmentDuration, setVideoSegmentDuration] = useState<number>(10);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [videoSegments, setVideoSegments] = useState<any[]>([]);
   const [selectedVideoSegment, setSelectedVideoSegment] = useState<number | null>(null);
@@ -361,17 +361,18 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
             reader.readAsDataURL(file);
           });
 
-          // For videos, get duration for segment selection and enforce size limits
+          // For videos, get duration for segment selection validation
           if (isVideo) {
-            // Check file size - if over 15MB, we'll get segment selection
-            if (file.size > 15 * 1024 * 1024) {
-              console.log(`Large video file detected: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
-            }
-
             const videoElement = document.createElement('video');
             await new Promise<void>((resolve) => {
               videoElement.onloadedmetadata = () => {
-                setVideoDuration(videoElement.duration);
+                const duration = videoElement.duration;
+                setVideoDuration(duration);
+                
+                // CRITICAL: ALL videos >10 seconds require segmentation
+                const needsSegmentation = duration > 10;
+                console.log(`Video file: ${(file.size / (1024 * 1024)).toFixed(2)}MB, duration: ${duration}s, needs segmentation: ${needsSegmentation}`);
+                
                 resolve();
               };
               videoElement.src = mediaData;
@@ -448,7 +449,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
 
           toast({
             title: "Video Uploaded",
-            description: "Please select a 5-second segment to analyze.",
+            description: "Please select a 10-second segment to analyze.",
           });
         } else if (response && response.analysisId) {
           setAnalysisId(response.analysisId);
@@ -691,7 +692,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
     noClick: true,
     noKeyboard: true,
     maxFiles: 1,
-    maxSize: 50 * 1024 * 1024, // 50MB limit
+    maxSize: 100 * 1024 * 1024, // 100MB limit
   });
 
   // Click handlers for different upload types
@@ -1153,7 +1154,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 Drag & drop files here to analyze
               </p>
               <p className="text-xs text-muted-foreground">
-                Supports JPG, PNG, MP4, MOV (max 50MB)
+                Supports JPG, PNG, MP4, MOV (max 100MB)
               </p>
             </div>
           </Card>
@@ -1257,7 +1258,7 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                     <h3 className="font-medium text-blue-900">Select Video Segment</h3>
                     <p className="text-sm text-blue-700">
-                      Your video is large, so please select a 5-second segment to analyze for optimal performance:
+                      Your video is large, so please select a 10-second segment to analyze for optimal performance:
                     </p>
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Analysis focuses on facial expressions, body language, and speech patterns in the selected segment.
@@ -1299,11 +1300,11 @@ export default function Home({ isShareMode = false, shareId }: { isShareMode?: b
                 )}
 
                 {/* Original Video Segment Selection for Small Videos */}
-                {!requiresSegmentSelection && mediaType === "video" && videoDuration > 0 && (
+                {requiresSegmentSelection && mediaType === "video" && videoDuration > 0 && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                    <h3 className="font-medium text-blue-900">Video Segment Selection</h3>
+                    <h3 className="font-medium text-blue-900">Video Segment Selection Required</h3>
                     <p className="text-sm text-blue-700">
-                      For optimal performance, videos are processed in 5-second segments. Select which segment to analyze:
+                      This video is longer than 10 seconds and must be processed in 10-second segments. Please select which segment to analyze:
                     </p>
                     <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                       💡 Tip: Video processing may take 2-3 minutes depending on complexity. The system extracts facial analysis, 
