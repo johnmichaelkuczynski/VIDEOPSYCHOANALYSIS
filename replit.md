@@ -4,6 +4,7 @@
 This project is an advanced AI-powered personality insights platform designed for comprehensive emotional, visual, and cognitive analysis. Its purpose is to provide highly detailed, evidence-based psychological evaluations from various media inputs (images, videos, text). The platform aims to deliver professional-grade insights, moving beyond basic personality assessments to offer clinical-level psychological evaluations with documented evidence and direct quotations. It supports multi-modal analysis, incorporates enhanced cognitive profiling, and offers robust reliability through multi-service fallback chains, with results exportable in multiple formats.
 
 ## Recent Changes
+- **September 17, 2025**: Fixed critical video processing crashes for videos longer than 10 seconds. Implemented duration-based segmentation (10-second segments), increased file size support to 1-minute videos, and enforced segment selection requirement to prevent end-to-end video processing that was causing "413: request entity too large" errors.
 - **September 7, 2025**: Fixed DeepSeek (ZHI 3) model validation issue for video analysis. Added proper Zod validation schema for video segment analysis endpoint, ensuring DeepSeek is accepted as a valid model option alongside OpenAI, Anthropic, and Perplexity.
 - **Previous Session**: Implemented consolidated download system that combines all analysis modules (psychological Q1-Q36, 40 cognitive parameters, clinical markers) into a single comprehensive document with prominent "Consolidate & Download" buttons.
 
